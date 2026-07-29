@@ -1,0 +1,7 @@
+allowBuilds:
+  '@google/genai': false
+  protobufjs: false
+
+patchedDependencies:
+  # for isolatedModules. regenerate with scripts/repatch-protocol.sh.
+  '@microsoft/agent-host-protocol': patches/@microsoft__agent-host-protocol.patch

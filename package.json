@@ -1,0 +1,33 @@
+{
+	"name": "pi-ahp",
+	"version": "0.0.1",
+	"description": "Agent Host Protocol server for Pi coding agent",
+	"type": "module",
+	"private": true,
+	"bin": {
+		"pi-ahp": "./src/cli.ts"
+	},
+	"engines": {
+		"node": ">=24.0.0"
+	},
+	"scripts": {
+		"start": "node src/cli.ts",
+		"test": "node --test",
+		"check": "tsc",
+		"lint": "biome check",
+		"format": "biome check --write"
+	},
+	"dependencies": {
+		"@earendil-works/pi-ai": "0.82.1",
+		"@earendil-works/pi-coding-agent": "0.82.1",
+		"@microsoft/agent-host-protocol": "0.6.0",
+		"ws": "^8.21.1"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.5.6",
+		"@types/node": "^24.13.3",
+		"@types/ws": "^8.18.1",
+		"ajv": "^8.20.0",
+		"typescript": "^7.0.2"
+	}
+}

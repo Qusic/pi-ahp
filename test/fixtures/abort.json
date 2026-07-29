@@ -1,0 +1,164 @@
+{
+	"name": "abort",
+	"description": "A turn cancelled while it is running.",
+	"prompt": "Count slowly from 1 to 60, one number per line, with no other text.",
+	"events": [
+		{
+			"type": "agent_start"
+		},
+		{
+			"type": "turn_start"
+		},
+		{
+			"type": "message_start",
+			"message": {
+				"role": "user",
+				"content": [
+					{
+						"type": "text",
+						"text": "Count slowly from 1 to 60, one number per line, with no other text."
+					}
+				],
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "message_end",
+			"message": {
+				"role": "user",
+				"content": [
+					{
+						"type": "text",
+						"text": "Count slowly from 1 to 60, one number per line, with no other text."
+					}
+				],
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "message_start",
+			"message": {
+				"role": "assistant",
+				"content": [],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.6-sol",
+				"usage": {
+					"input": 0,
+					"output": 0,
+					"cacheRead": 0,
+					"cacheWrite": 0,
+					"totalTokens": 0,
+					"cost": {
+						"input": 0,
+						"output": 0,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"total": 0
+					}
+				},
+				"stopReason": "aborted",
+				"timestamp": 0,
+				"errorMessage": "Request aborted"
+			}
+		},
+		{
+			"type": "message_end",
+			"message": {
+				"role": "assistant",
+				"content": [],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.6-sol",
+				"usage": {
+					"input": 0,
+					"output": 0,
+					"cacheRead": 0,
+					"cacheWrite": 0,
+					"totalTokens": 0,
+					"cost": {
+						"input": 0,
+						"output": 0,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"total": 0
+					}
+				},
+				"stopReason": "aborted",
+				"timestamp": 0,
+				"errorMessage": "Request aborted"
+			}
+		},
+		{
+			"type": "turn_end",
+			"message": {
+				"role": "assistant",
+				"content": [],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.6-sol",
+				"usage": {
+					"input": 0,
+					"output": 0,
+					"cacheRead": 0,
+					"cacheWrite": 0,
+					"totalTokens": 0,
+					"cost": {
+						"input": 0,
+						"output": 0,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"total": 0
+					}
+				},
+				"stopReason": "aborted",
+				"timestamp": 0,
+				"errorMessage": "Request aborted"
+			},
+			"toolResults": []
+		},
+		{
+			"type": "agent_end",
+			"messages": [
+				{
+					"role": "user",
+					"content": [
+						{
+							"type": "text",
+							"text": "Count slowly from 1 to 60, one number per line, with no other text."
+						}
+					],
+					"timestamp": 0
+				},
+				{
+					"role": "assistant",
+					"content": [],
+					"api": "openai-responses",
+					"provider": "github-copilot",
+					"model": "gpt-5.6-sol",
+					"usage": {
+						"input": 0,
+						"output": 0,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"totalTokens": 0,
+						"cost": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"total": 0
+						}
+					},
+					"stopReason": "aborted",
+					"timestamp": 0,
+					"errorMessage": "Request aborted"
+				}
+			],
+			"willRetry": false
+		},
+		{
+			"type": "agent_settled"
+		}
+	]
+}

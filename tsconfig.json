@@ -1,0 +1,32 @@
+{
+	"compilerOptions": {
+		"module": "nodenext",
+
+		// Strictness: everything `@tsconfig/strictest` turns on except
+		// `noPropertyAccessFromIndexSignature`.
+		"strict": true,
+		"noUncheckedIndexedAccess": true,
+		"noImplicitOverride": true,
+		"noImplicitReturns": true,
+		"noFallthroughCasesInSwitch": true,
+		"exactOptionalPropertyTypes": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"allowUnusedLabels": false,
+		"allowUnreachableCode": false,
+
+		// Node strips types one file at a time; these reject what it cannot.
+		"isolatedModules": true,
+		"erasableSyntaxOnly": true,
+		"allowImportingTsExtensions": true,
+
+		// pi's transitive SDKs ship unresolvable references.
+		"skipLibCheck": true,
+
+		// Nothing is emitted; `declaration` is on to run the declaration-emit
+		// check, which catches exported types that cannot be written down.
+		"noEmit": true,
+		"declaration": true
+	},
+	"include": ["src/**/*.ts", "test/**/*.ts", "scripts/**/*.ts"]
+}

@@ -1,0 +1,233 @@
+{
+	"name": "plain-text",
+	"description": "A reply with no tool calls — the simplest possible turn.",
+	"prompt": "Reply with exactly the word PONG and nothing else.",
+	"events": [
+		{
+			"type": "agent_start"
+		},
+		{
+			"type": "turn_start"
+		},
+		{
+			"type": "message_start",
+			"message": {
+				"role": "user",
+				"content": [
+					{
+						"type": "text",
+						"text": "Reply with exactly the word PONG and nothing else."
+					}
+				],
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "message_end",
+			"message": {
+				"role": "user",
+				"content": [
+					{
+						"type": "text",
+						"text": "Reply with exactly the word PONG and nothing else."
+					}
+				],
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "message_start",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "text",
+						"text": "PONG",
+						"textSignature": "{\"v\":1,\"id\":\"Erm0UgkLjm3rPkEobzKo0uz2BLyN3raWHB90MXvowj78RJGuSWDYBcT/H+PmMwb4BfgfAIOutPhNYkK0/DYfniUceYr69a7pDD12reARHlWoyDVr9gJaD9Sf3F7GdyhPabupN/hxKnCmpWDh31F+IYpK8wpffYR29mSmSbJp61n6lI+cBbteQreVJAttkCQ+TKl1g9bCAJfsHHJ4yUMor+al91JMws5IArXGgnl2wHSxJFC3fP2Tj38fiY0XIQt6e33Sdpq0C6WfCKOay3LxFFE94Cn25NxIW6Fjvr6M+3Rd5wCMnHUqpnl9zkWIrFocOFYJA/7fc4JrK1O5TAcsfGetnTgkEdGXmkvDOCeRu+D8qYyqXc3PRYXpApGZyeqqRJ0iFPrYjWqirTd8VXmF6rD1++CE\",\"phase\":\"final_answer\"}"
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.6-sol",
+				"usage": {
+					"input": 0,
+					"output": 0,
+					"cacheRead": 0,
+					"cacheWrite": 0,
+					"totalTokens": 0,
+					"cost": {
+						"input": 0,
+						"output": 0,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"total": 0
+					}
+				},
+				"stopReason": "stop",
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_start",
+				"contentIndex": 0
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": "P"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": "ONG"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_end",
+				"contentIndex": 0,
+				"content": "PONG"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_end",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "text",
+						"text": "PONG",
+						"textSignature": "{\"v\":1,\"id\":\"Erm0UgkLjm3rPkEobzKo0uz2BLyN3raWHB90MXvowj78RJGuSWDYBcT/H+PmMwb4BfgfAIOutPhNYkK0/DYfniUceYr69a7pDD12reARHlWoyDVr9gJaD9Sf3F7GdyhPabupN/hxKnCmpWDh31F+IYpK8wpffYR29mSmSbJp61n6lI+cBbteQreVJAttkCQ+TKl1g9bCAJfsHHJ4yUMor+al91JMws5IArXGgnl2wHSxJFC3fP2Tj38fiY0XIQt6e33Sdpq0C6WfCKOay3LxFFE94Cn25NxIW6Fjvr6M+3Rd5wCMnHUqpnl9zkWIrFocOFYJA/7fc4JrK1O5TAcsfGetnTgkEdGXmkvDOCeRu+D8qYyqXc3PRYXpApGZyeqqRJ0iFPrYjWqirTd8VXmF6rD1++CE\",\"phase\":\"final_answer\"}"
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.6-sol",
+				"usage": {
+					"input": 3,
+					"output": 6,
+					"cacheRead": 0,
+					"cacheWrite": 2707,
+					"reasoning": 0,
+					"totalTokens": 2716,
+					"cost": {
+						"input": 0.000015000000000000002,
+						"output": 0.00018,
+						"cacheRead": 0,
+						"cacheWrite": 0.01691875,
+						"total": 0.01711375
+					}
+				},
+				"stopReason": "stop",
+				"timestamp": 0,
+				"responseId": "AH6Wqw9b2YET0ZS81qaQgk7UerkKYaexWisCB4LwwMN2caM7uK3sxG5jiAPxxNsAtc9xigZ1xfLLYbulH2UMgOB61YQat56B7GscxYJqxjkyEpUOpPQze23Zds58MXYoyAGDSBYUHYnJCM0XcfMM+DHE5XKZLrVvblUaGfO6/fMiptS//wMqFIwE9XilWs4zOiUFBrlCdOg1oOPUXauBaaq5u3vDttY0FWv2OO6NMEv6gTzkQzYAmWNHMIeg2kEmk8bqXNm0BN+12f95c5qSEShr2ddz7Xk1Oi4VgyHpl2afgGCSQTUdnAzY90hTsNfZsSnwHuTGasBIc2/lUtJRBMvhD28BBuQL8PxQuMIU3H2YKp8ZtRZkgP4hKcGvQGehb8nq3RiuflSUPmMacGy1L4M8XMSoUQ=="
+			}
+		},
+		{
+			"type": "turn_end",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "text",
+						"text": "PONG",
+						"textSignature": "{\"v\":1,\"id\":\"Erm0UgkLjm3rPkEobzKo0uz2BLyN3raWHB90MXvowj78RJGuSWDYBcT/H+PmMwb4BfgfAIOutPhNYkK0/DYfniUceYr69a7pDD12reARHlWoyDVr9gJaD9Sf3F7GdyhPabupN/hxKnCmpWDh31F+IYpK8wpffYR29mSmSbJp61n6lI+cBbteQreVJAttkCQ+TKl1g9bCAJfsHHJ4yUMor+al91JMws5IArXGgnl2wHSxJFC3fP2Tj38fiY0XIQt6e33Sdpq0C6WfCKOay3LxFFE94Cn25NxIW6Fjvr6M+3Rd5wCMnHUqpnl9zkWIrFocOFYJA/7fc4JrK1O5TAcsfGetnTgkEdGXmkvDOCeRu+D8qYyqXc3PRYXpApGZyeqqRJ0iFPrYjWqirTd8VXmF6rD1++CE\",\"phase\":\"final_answer\"}"
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.6-sol",
+				"usage": {
+					"input": 3,
+					"output": 6,
+					"cacheRead": 0,
+					"cacheWrite": 2707,
+					"reasoning": 0,
+					"totalTokens": 2716,
+					"cost": {
+						"input": 0.000015000000000000002,
+						"output": 0.00018,
+						"cacheRead": 0,
+						"cacheWrite": 0.01691875,
+						"total": 0.01711375
+					}
+				},
+				"stopReason": "stop",
+				"timestamp": 0,
+				"responseId": "AH6Wqw9b2YET0ZS81qaQgk7UerkKYaexWisCB4LwwMN2caM7uK3sxG5jiAPxxNsAtc9xigZ1xfLLYbulH2UMgOB61YQat56B7GscxYJqxjkyEpUOpPQze23Zds58MXYoyAGDSBYUHYnJCM0XcfMM+DHE5XKZLrVvblUaGfO6/fMiptS//wMqFIwE9XilWs4zOiUFBrlCdOg1oOPUXauBaaq5u3vDttY0FWv2OO6NMEv6gTzkQzYAmWNHMIeg2kEmk8bqXNm0BN+12f95c5qSEShr2ddz7Xk1Oi4VgyHpl2afgGCSQTUdnAzY90hTsNfZsSnwHuTGasBIc2/lUtJRBMvhD28BBuQL8PxQuMIU3H2YKp8ZtRZkgP4hKcGvQGehb8nq3RiuflSUPmMacGy1L4M8XMSoUQ=="
+			},
+			"toolResults": []
+		},
+		{
+			"type": "agent_end",
+			"messages": [
+				{
+					"role": "user",
+					"content": [
+						{
+							"type": "text",
+							"text": "Reply with exactly the word PONG and nothing else."
+						}
+					],
+					"timestamp": 0
+				},
+				{
+					"role": "assistant",
+					"content": [
+						{
+							"type": "text",
+							"text": "PONG",
+							"textSignature": "{\"v\":1,\"id\":\"Erm0UgkLjm3rPkEobzKo0uz2BLyN3raWHB90MXvowj78RJGuSWDYBcT/H+PmMwb4BfgfAIOutPhNYkK0/DYfniUceYr69a7pDD12reARHlWoyDVr9gJaD9Sf3F7GdyhPabupN/hxKnCmpWDh31F+IYpK8wpffYR29mSmSbJp61n6lI+cBbteQreVJAttkCQ+TKl1g9bCAJfsHHJ4yUMor+al91JMws5IArXGgnl2wHSxJFC3fP2Tj38fiY0XIQt6e33Sdpq0C6WfCKOay3LxFFE94Cn25NxIW6Fjvr6M+3Rd5wCMnHUqpnl9zkWIrFocOFYJA/7fc4JrK1O5TAcsfGetnTgkEdGXmkvDOCeRu+D8qYyqXc3PRYXpApGZyeqqRJ0iFPrYjWqirTd8VXmF6rD1++CE\",\"phase\":\"final_answer\"}"
+						}
+					],
+					"api": "openai-responses",
+					"provider": "github-copilot",
+					"model": "gpt-5.6-sol",
+					"usage": {
+						"input": 3,
+						"output": 6,
+						"cacheRead": 0,
+						"cacheWrite": 2707,
+						"reasoning": 0,
+						"totalTokens": 2716,
+						"cost": {
+							"input": 0.000015000000000000002,
+							"output": 0.00018,
+							"cacheRead": 0,
+							"cacheWrite": 0.01691875,
+							"total": 0.01711375
+						}
+					},
+					"stopReason": "stop",
+					"timestamp": 0,
+					"responseId": "AH6Wqw9b2YET0ZS81qaQgk7UerkKYaexWisCB4LwwMN2caM7uK3sxG5jiAPxxNsAtc9xigZ1xfLLYbulH2UMgOB61YQat56B7GscxYJqxjkyEpUOpPQze23Zds58MXYoyAGDSBYUHYnJCM0XcfMM+DHE5XKZLrVvblUaGfO6/fMiptS//wMqFIwE9XilWs4zOiUFBrlCdOg1oOPUXauBaaq5u3vDttY0FWv2OO6NMEv6gTzkQzYAmWNHMIeg2kEmk8bqXNm0BN+12f95c5qSEShr2ddz7Xk1Oi4VgyHpl2afgGCSQTUdnAzY90hTsNfZsSnwHuTGasBIc2/lUtJRBMvhD28BBuQL8PxQuMIU3H2YKp8ZtRZkgP4hKcGvQGehb8nq3RiuflSUPmMacGy1L4M8XMSoUQ=="
+				}
+			],
+			"willRetry": false
+		},
+		{
+			"type": "agent_settled"
+		}
+	]
+}

@@ -1,0 +1,150 @@
+/**
+ * Assembles a fully wired host: root channel, session catalogue, and session
+ * lifecycle, all backed by pi.
+ */
+
+import { ModelRuntime } from "@earendil-works/pi-coding-agent";
+import type { CreateSessionParams, ModelSelection, URI } from "@microsoft/agent-host-protocol";
+import { installRootChannel } from "./channels/root.ts";
+import { AhpHost, type HostOptions } from "./core/host.ts";
+import { CompletionService, MENTION_TRIGGER } from "./pi/completions.ts";
+import { deleteSessionFile } from "./pi/delete-session.ts";
+import { InProcessPiBackend } from "./pi/in-process-backend.ts";
+import { buildAgentInfo, THINKING_CONFIG_KEY } from "./pi/models.ts";
+import type { ProjectTrustPolicy } from "./pi/project-trust.ts";
+import { ResourceService } from "./pi/resource-service.ts";
+import { ResourceWatchService } from "./pi/resource-watch.ts";
+import { PiSessionCatalogue } from "./pi/session-catalogue.ts";
+import { SessionConfigService } from "./pi/session-config.ts";
+import { SessionHydrator } from "./pi/session-hydrator.ts";
+import { type BackendFactory, type CreateSessionRequest, SessionRegistry } from "./pi/session-registry.ts";
+
+export interface PiHostOptions extends HostOptions {
+	/** Working directory for sessions created without one. Defaults to `process.cwd()`. */
+	readonly workingDirectory?: string;
+	/** Injectable for tests; defaults to pi's real model runtime. */
+	readonly modelRuntime?: Pick<ModelRuntime, "getAvailable">;
+	/** Injectable for tests; defaults to trash-then-unlink. */
+	readonly deleteFile?: (path: string) => void;
+	/** Injectable for tests; defaults to an in-process `AgentSession`. */
+	readonly createBackend?: BackendFactory;
+	/**
+	 * How to treat `.pi` resources in a session's working directory.
+	 *
+	 * Defaults to `trust`, matching pi's own behaviour. Switch to `inherit` when
+	 * the host is reachable from outside its own trust domain: the working
+	 * directory then arrives from a client, and `inherit` will only load project
+	 * resources the user already approved through pi's CLI.
+	 */
+	readonly projectTrustPolicy?: ProjectTrustPolicy;
+	/**
+	 * Directories the `resource*` family may reach. Empty means unrestricted.
+	 * See `src/pi/resource-service.ts` for why that is the default.
+	 */
+	readonly resourceRoots?: readonly string[];
+}
+
+export interface PiHost {
+	readonly host: AhpHost;
+	readonly sessions: SessionRegistry;
+	readonly catalogue: PiSessionCatalogue;
+	readonly watches: ResourceWatchService;
+}
+
+/**
+ * Builds the host and registers every channel a client can reach at this
+ * milestone.
+ *
+ * The model list is read once at startup. Refreshing it later means dispatching
+ * `root/agentsChanged`, which is what makes the agent list a state channel
+ * rather than a one-shot handshake field.
+ */
+export async function createPiHost(options: PiHostOptions = {}): Promise<PiHost> {
+	const host = new AhpHost({
+		...options,
+		// `@` is the only trigger this host can answer: every completion item
+		// must carry an attachment, and pi's `/` commands attach nothing.
+		completionTriggerCharacters: options.completionTriggerCharacters ?? [MENTION_TRIGGER],
+	});
+
+	const modelRuntime = options.modelRuntime ?? (await ModelRuntime.create());
+	// A user with no configured provider still gets a usable host — they just
+	// see an agent with no models, which is the honest representation.
+	const models = await modelRuntime.getAvailable().catch(() => []);
+	installRootChannel(host, [buildAgentInfo(models as never)]);
+
+	// Shown when a session file records no model of its own. `medium` matches
+	// pi's own default reasoning effort for models that support it.
+	const fallbackSelection = (): ModelSelection | undefined => {
+		const first = models[0];
+		return first ? { id: first.id, config: { [THINKING_CONFIG_KEY]: "medium" } } : undefined;
+	};
+
+	const catalogue = new PiSessionCatalogue();
+	const watches = new ResourceWatchService(host, { ...(options.log ? { log: options.log } : {}) });
+
+	const createBackend: BackendFactory =
+		options.createBackend ??
+		((session) =>
+			InProcessPiBackend.create({
+				cwd: session.workingDirectory,
+				sessionManager: session.sessionManager,
+				...(options.projectTrustPolicy ? { projectTrustPolicy: options.projectTrustPolicy } : {}),
+			}));
+
+	const sessions = new SessionRegistry({
+		host,
+		defaultWorkingDirectory: options.workingDirectory ?? process.cwd(),
+		createBackend,
+		defaultSelection: fallbackSelection,
+		deleteFile: options.deleteFile ?? ((path: string) => void deleteSessionFile(path)),
+		findSessionFile: (id) => catalogue.findSessionFile(id),
+		...(options.log ? { log: options.log } : {}),
+	});
+
+	host.serve({
+		catalogue,
+		resources: new ResourceService({ ...(options.resourceRoots ? { roots: options.resourceRoots } : {}) }),
+		resourceWatches: watches,
+		sessionConfig: new SessionConfigService({
+			defaultWorkingDirectory: options.workingDirectory ?? process.cwd(),
+			...(options.projectTrustPolicy ? { projectTrustPolicy: options.projectTrustPolicy } : {}),
+		}),
+		completions: new CompletionService({
+			// Mentions resolve against the chat's own directory, which is the
+			// session's working directory for the single chat this host serves.
+			workingDirectoryFor: (chat) => sessions.getByChat(chat)?.workingDirectory,
+		}),
+		turnPaging: {
+			async fetchTurns(params) {
+				await sessions.fetchTurns(params.channel, params.cursor);
+				return {};
+			},
+		},
+		sessions: {
+			create(params: CreateSessionParams): void {
+				// `CreateSessionParams` carries fields this milestone ignores
+				// (fork, config, activeClient); narrowing here keeps the registry
+				// honest about what it actually supports.
+				sessions.create(params as CreateSessionRequest);
+			},
+			dispose(channel: URI): Promise<void> {
+				return sessions.dispose(channel);
+			},
+		},
+		// Opening a session from the catalogue must work: only sessions this
+		// host created are live, so anything else is loaded from disk on
+		// subscribe.
+		hydrator: new SessionHydrator({
+			host,
+			catalogue,
+			isLive: (session) => sessions.has(session),
+			// Adopted without a backend; one starts on the first turn.
+			adopt: (session) => void sessions.adopt(session),
+			fallbackSelection,
+			...(options.log ? { log: options.log } : {}),
+		}),
+	});
+
+	return { host, sessions, catalogue, watches };
+}

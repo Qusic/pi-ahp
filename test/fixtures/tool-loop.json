@@ -1,0 +1,2637 @@
+{
+	"name": "tool-loop",
+	"description": "Two or more assistant messages in one turn — the case where contentIndex restarts and partIds must not collide.",
+	"prompt": "First list the files under the data directory, then read the file you find there, then reply with its contents only.",
+	"events": [
+		{
+			"type": "agent_start"
+		},
+		{
+			"type": "turn_start"
+		},
+		{
+			"type": "message_start",
+			"message": {
+				"role": "user",
+				"content": [
+					{
+						"type": "text",
+						"text": "First list the files under the data directory, then read the file you find there, then reply with its contents only."
+					}
+				],
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "message_end",
+			"message": {
+				"role": "user",
+				"content": [
+					{
+						"type": "text",
+						"text": "First list the files under the data directory, then read the file you find there, then reply with its contents only."
+					}
+				],
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "message_start",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "thinking",
+						"thinking": "**Following process sequence**\n\nI need to make sure I follow the correct steps in sequence. First, I must list the files in the data directory and then read the contents of the file I find. To do that, I should inspect the current working directory. I'll likely use a command like “ls data” to list those files. Once I have that, I’ll read the file without any extra commentary—just the content, which seems straightforward enough!",
+						"thinkingSignature": "{\"content\":[],\"encrypted_content\":\"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\",\"id\":\"oCllV1Cqw4pZcl/6D/eKSGUHXGipjOwfY8HGGI1RzjPISj0P20usDy7Nzwz8tmkpQszTbj2yVCm/BbwA9gH9NcMf7L3Wnh15cer6/qvxvIuTbRjjsGj7g94lGZcHPJ1cn8n0hPXYDPwaXV0geF0Js718wSilYrmt0Gf230ZpzyaMc3v+8pdPsl+p0j0+GXNiwUKRc1aBx164SLCJUnBCZi3ztkh6ejEXod4R6sZVUEOp23zziV07HUYr6zrIND93CkbKu/ioEcmYk6EHdJS5ZA3kkGzCpNeAUFKJ+Yfds0/qUB21DYLyGuMGhqS1M4FEyVw6ZTy2sc1Z9Y6XFTYCStEjAr+9rSY5sQ6UljDAOBLDa2eMp2n5meH9YmVtTGtP+vH2ajud+Capjjt55ry7vXqvrF4=\",\"summary\":[{\"text\":\"**Following process sequence**\\n\\nI need to make sure I follow the correct steps in sequence. First, I must list the files in the data directory and then read the contents of the file I find. To do that, I should inspect the current working directory. I'll likely use a command like “ls data” to list those files. Once I have that, I’ll read the file without any extra commentary—just the content, which seems straightforward enough!\",\"type\":\"summary_text\"}],\"type\":\"reasoning\"}"
+					},
+					{
+						"type": "toolCall",
+						"id": "toolcall_0",
+						"name": "bash",
+						"arguments": {
+							"command": "find data -maxdepth 1 -type f -printf '%f\\n' | sort && find data -mindepth 1 -maxdepth 1 -type d -printf '%f/\\n' | sort",
+							"timeout": 10
+						}
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.6-sol",
+				"usage": {
+					"input": 0,
+					"output": 0,
+					"cacheRead": 0,
+					"cacheWrite": 0,
+					"totalTokens": 0,
+					"cost": {
+						"input": 0,
+						"output": 0,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"total": 0
+					}
+				},
+				"stopReason": "stop",
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_start",
+				"contentIndex": 0
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "**Following process sequence**\n\nI"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " need"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " to"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " make"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " sure"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " follow"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " the"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " correct"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " steps"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " in"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " sequence"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "."
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " First"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ","
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " must"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " list"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " the"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " files"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " in"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " the"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " data"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " directory"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " and"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " then"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " read"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " the"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " contents"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " of"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " the"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " file"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " find"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "."
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " To"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " do"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " that"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ","
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " should"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " inspect"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " the"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " current"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " working"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " directory"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "."
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I'll"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " likely"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " use"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " a"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " command"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " like"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " “"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "ls"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " data"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "”"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " to"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " list"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " those"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " files"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "."
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " Once"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " have"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " that"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ","
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "’ll"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " read"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " the"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " file"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " without"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " any"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " extra"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " commentary"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "—"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "just"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " the"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " content"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ","
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " which"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " seems"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " straightforward"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " enough"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "!"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "\n\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_end",
+				"contentIndex": 0,
+				"content": "**Following process sequence**\n\nI need to make sure I follow the correct steps in sequence. First, I must list the files in the data directory and then read the contents of the file I find. To do that, I should inspect the current working directory. I'll likely use a command like “ls data” to list those files. Once I have that, I’ll read the file without any extra commentary—just the content, which seems straightforward enough!"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_start",
+				"contentIndex": 1,
+				"partial": {
+					"role": "assistant",
+					"content": [
+						{
+							"type": "thinking",
+							"thinking": "**Following process sequence**\n\nI need to make sure I follow the correct steps in sequence. First, I must list the files in the data directory and then read the contents of the file I find. To do that, I should inspect the current working directory. I'll likely use a command like “ls data” to list those files. Once I have that, I’ll read the file without any extra commentary—just the content, which seems straightforward enough!",
+							"thinkingSignature": "{\"content\":[],\"encrypted_content\":\"Dbu3c3wOZVbc2GAtRQ3NJamYLj9gPXETmHOqeY13t2dGzNVoKI/capJJmwayjeZNu+bizFTy9SplvTdX+j9UkXXrRMnf4DqQ/mvPQWi6ZZSAnI3Sb+UY8+NxVgL8RM9EmCCtJjFpPPFv0RmfjmwjXry9OH7Mlc2BubvtrU6qluZTFkkGbpyRZ3ic3oIwVJsAMnc72c6Ws/yxiWXn2vINbcLrvrx/nE5NZm2OQy53i1uIh0Lj5LinWIDZwTbmfCM8mN2UKLrBzXPFrnAaCNcrWOuqmh8tSQ5mI6U1bA4jpARo1bSg8ZATwyC74IZ+QJjioXlwzvR/GHXgxEBwdjkAFLOhJdlQc72IHeMnlokU0Vyywsx+8PktRFf0qQfLZiwDxTW5XcR4HU9gHLQMlbpWKuR8c3zO8thSoaopEnr2VcdbJBmvyERAAZiv/QBVfXBe2V1RS6f/BEuQSd8xeQDqHQSoyBJZSO5JD5CA+M6y0BTyxLQX3iB/AV2B4jrM+QDIhOyCCNLj+CMks53Jqr9E+P0jalgT1XIYO1UCiQ+v71fm4inbZ18ydeF/2c7gFudXpPnOvZZVylhyKOwsf8Cl9Iq2KzXpdaTnK96fLaqjeWpPvMqHu90WYQNtmut/TiIZsbLcTT9JryYWfi5TLa174MuHoqbI1pVltmKyyTNTv7SNuQKibB8xbRVUIZgsM7/22z/pfI1veEaUsaoGKwhpqScGzai0d2/FVOFcvJdEhHtoxwVcEEAz5/BEVpVJgPLU1rF3qY4f0rV6qjM22ro8d56xOM2RswagNKn75UIVd6N13TsRbr9CcO9HoCSpsOnqvN3hbTy+WkygUdrPXeZNyQaBZJQ0QrQhptVjmKm2HLmwGCgvLm6aMDjxyutTIAXSPbvqPHcixEsIt+px0YYZP/MyBOAFlPoel22bBMD2Gnrfgkadfr3/RTXVU61KALeOyHVtfSBSykeRGJsOlyHRL1xuEvUWm5Lm4erjNiNfufQJsW9ehE/K/gya0KrT52pnkmc+6mpoWgrCkyB0CHu63QnQuEzFn6OplyLRUIR3WYg69OOE5GQbctNNvXpJ/pVYv5fP63GikwS4jK4n++YDI2HGx5sTaFcObjVk8+xXw+mK11G4eZSGbY8m2+uay8xparpfgYSqX8MgArNA5TvbRt3zqhsIJdoFzVYbv5PnxtbhARsiB4wkYEwLcqJCurluhan42fM6+zoa1tMOvZzanhV3TcjPlzi6TK1zHun4lM+q+O3yVyel8uDnJzfpDiUG2fnAe2vuxToZriwF9T7Lv6zB33b1c8fqpKPGx5sn53vElhOWUfBZyFxl6WUqWBWan0fNCA+nmU5LSw7FB1gmTfG0p/eBb4s7NnZMdK928Xll7C0fR9Nn8NFLrfk4xXJq45QCIDfIDgMcXF4d5Ic4v5IJAp9fNmmzEzAgK64G63Z4bABYUjZOD7ahlBFmvI5u/ggCBubtKxk6UDqjkNUdsDC3RmnVDD4vYfmN6Xw0MG+HvI4bnTS+V+ai7hicCyjP+NrQXTohOsw6a/k9myaDOqBZkLsM5TGV+tPMBefCHZc+N+W6iVL978lO3tbqdXgmtTd1XDw0t2+J0bbFed9F5gn1KI2nEHITtIJQQrWKo8mUza7nZrSNkdgXah0g3tGxvyD1j+SdjObVa/iF5+Dc5Exjb9/dpTekKIWGeYvzcp17LJit8t88p4a0/TqXCnhH72yJBcrvc5PYBXIqiabEv7WMG08Ks52f4PzicPFobwyQli8Su/UsZvBt/VjBAH+9PmjPdM3pjmjqwFsnwtPj1tbKXW2xFb5LQOmtHY8ywvZF/sSpmidoP/WqPBbu4a6zh2nV3ZNsLEp79bTtAr+IT7AvkXZKhHSaphehV7mBpVGVWeVwaqcMR9B1pLevulsNzdqnvqmTRoR3c4gflzyco8v6AdeqTK+FIPBAsl9tNf72Xa3UrhsK/SwerBxDiI76YLG1TdgqMJZycw==\",\"id\":\"oCllV1Cqw4pZcl/6D/eKSGUHXGipjOwfY8HGGI1RzjPISj0P20usDy7Nzwz8tmkpQszTbj2yVCm/BbwA9gH9NcMf7L3Wnh15cer6/qvxvIuTbRjjsGj7g94lGZcHPJ1cn8n0hPXYDPwaXV0geF0Js718wSilYrmt0Gf230ZpzyaMc3v+8pdPsl+p0j0+GXNiwUKRc1aBx164SLCJUnBCZi3ztkh6ejEXod4R6sZVUEOp23zziV07HUYr6zrIND93CkbKu/ioEcmYk6EHdJS5ZA3kkGzCpNeAUFKJ+Yfds0/qUB21DYLyGuMGhqS1M4FEyVw6ZTy2sc1Z9Y6XFTYCStEjAr+9rSY5sQ6UljDAOBLDa2eMp2n5meH9YmVtTGtP+vH2ajud+Capjjt55ry7vXqvrF4=\",\"summary\":[{\"text\":\"**Following process sequence**\\n\\nI need to make sure I follow the correct steps in sequence. First, I must list the files in the data directory and then read the contents of the file I find. To do that, I should inspect the current working directory. I'll likely use a command like “ls data” to list those files. Once I have that, I’ll read the file without any extra commentary—just the content, which seems straightforward enough!\",\"type\":\"summary_text\"}],\"type\":\"reasoning\"}"
+						},
+						{
+							"type": "toolCall",
+							"id": "toolcall_0",
+							"name": "bash",
+							"arguments": {
+								"command": "find data -maxdepth 1 -type f -printf '%f\\n' | sort && find data -mindepth 1 -maxdepth 1 -type d -printf '%f/\\n' | sort",
+								"timeout": 10
+							}
+						}
+					],
+					"api": "openai-responses",
+					"provider": "github-copilot",
+					"model": "gpt-5.6-sol",
+					"usage": {
+						"input": 3,
+						"output": 119,
+						"cacheRead": 0,
+						"cacheWrite": 2719,
+						"reasoning": 50,
+						"totalTokens": 2841,
+						"cost": {
+							"input": 0.000015000000000000002,
+							"output": 0.0035700000000000003,
+							"cacheRead": 0,
+							"cacheWrite": 0.01699375,
+							"total": 0.02057875
+						}
+					},
+					"stopReason": "toolUse",
+					"timestamp": 0,
+					"responseId": "xD9+/TmxFN0lTE2kubCfo/FVwxFVRPHg1yBbFI2Ku45N0gpShD6hnVu7S2FuZysAPpPaZnjdZb76114spieFK7+E7orDo/gVSEsXAIFJzAAfqdc1Z59TRD9uVC81a92ZnygZznU9/o00d+ZYSSo0TFkFpVAr4e2iWODter55GQ1PQUxeiGWAVH4Eq2NAKXoC4gVOTrWvxyU/PJB49sHSm1Yq06EmHHmU+XLsze0lTvWtJj2K4Gps9RRvYDPJ4dgMnWly+V3vjnZ3+O2aoLI5fa2JhhkNfr4WVtWU7lSRpdaybeBsZBXpUVI7FrJKdeZUyoMWrIYHqej0PuPasvr3Y3gmH58rolx9NDHYkCFcQgupxzK4H68OP/DSU4s05iMPpFNXTQhZvnnuMlBGa2ziknIaKpNfyw=="
+				}
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "{\""
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "command"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\":\""
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "find"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " data"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " -"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "max"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "depth"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " "
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "1"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " -"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "type"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " f"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " -"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "printf"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " '%"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "f"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\\\\"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "'"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " |"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " sort"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " &&"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " find"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " data"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " -"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "mind"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "ep"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "th"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " "
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "1"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " -"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "max"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "depth"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " "
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "1"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " -"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "type"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " d"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " -"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "printf"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " '%"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "f"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "/"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\\\\"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "'"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " |"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " sort"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\",\""
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "timeout"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\":"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "10"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "}"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_end",
+				"contentIndex": 1,
+				"toolCall": {
+					"type": "toolCall",
+					"id": "toolcall_0",
+					"name": "bash",
+					"arguments": {
+						"command": "find data -maxdepth 1 -type f -printf '%f\\n' | sort && find data -mindepth 1 -maxdepth 1 -type d -printf '%f/\\n' | sort",
+						"timeout": 10
+					}
+				}
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_end",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "thinking",
+						"thinking": "**Following process sequence**\n\nI need to make sure I follow the correct steps in sequence. First, I must list the files in the data directory and then read the contents of the file I find. To do that, I should inspect the current working directory. I'll likely use a command like “ls data” to list those files. Once I have that, I’ll read the file without any extra commentary—just the content, which seems straightforward enough!",
+						"thinkingSignature": "{\"content\":[],\"encrypted_content\":\"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\",\"id\":\"oCllV1Cqw4pZcl/6D/eKSGUHXGipjOwfY8HGGI1RzjPISj0P20usDy7Nzwz8tmkpQszTbj2yVCm/BbwA9gH9NcMf7L3Wnh15cer6/qvxvIuTbRjjsGj7g94lGZcHPJ1cn8n0hPXYDPwaXV0geF0Js718wSilYrmt0Gf230ZpzyaMc3v+8pdPsl+p0j0+GXNiwUKRc1aBx164SLCJUnBCZi3ztkh6ejEXod4R6sZVUEOp23zziV07HUYr6zrIND93CkbKu/ioEcmYk6EHdJS5ZA3kkGzCpNeAUFKJ+Yfds0/qUB21DYLyGuMGhqS1M4FEyVw6ZTy2sc1Z9Y6XFTYCStEjAr+9rSY5sQ6UljDAOBLDa2eMp2n5meH9YmVtTGtP+vH2ajud+Capjjt55ry7vXqvrF4=\",\"summary\":[{\"text\":\"**Following process sequence**\\n\\nI need to make sure I follow the correct steps in sequence. First, I must list the files in the data directory and then read the contents of the file I find. To do that, I should inspect the current working directory. I'll likely use a command like “ls data” to list those files. Once I have that, I’ll read the file without any extra commentary—just the content, which seems straightforward enough!\",\"type\":\"summary_text\"}],\"type\":\"reasoning\"}"
+					},
+					{
+						"type": "toolCall",
+						"id": "toolcall_0",
+						"name": "bash",
+						"arguments": {
+							"command": "find data -maxdepth 1 -type f -printf '%f\\n' | sort && find data -mindepth 1 -maxdepth 1 -type d -printf '%f/\\n' | sort",
+							"timeout": 10
+						}
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.6-sol",
+				"usage": {
+					"input": 3,
+					"output": 119,
+					"cacheRead": 0,
+					"cacheWrite": 2719,
+					"reasoning": 50,
+					"totalTokens": 2841,
+					"cost": {
+						"input": 0.000015000000000000002,
+						"output": 0.0035700000000000003,
+						"cacheRead": 0,
+						"cacheWrite": 0.01699375,
+						"total": 0.02057875
+					}
+				},
+				"stopReason": "toolUse",
+				"timestamp": 0,
+				"responseId": "xD9+/TmxFN0lTE2kubCfo/FVwxFVRPHg1yBbFI2Ku45N0gpShD6hnVu7S2FuZysAPpPaZnjdZb76114spieFK7+E7orDo/gVSEsXAIFJzAAfqdc1Z59TRD9uVC81a92ZnygZznU9/o00d+ZYSSo0TFkFpVAr4e2iWODter55GQ1PQUxeiGWAVH4Eq2NAKXoC4gVOTrWvxyU/PJB49sHSm1Yq06EmHHmU+XLsze0lTvWtJj2K4Gps9RRvYDPJ4dgMnWly+V3vjnZ3+O2aoLI5fa2JhhkNfr4WVtWU7lSRpdaybeBsZBXpUVI7FrJKdeZUyoMWrIYHqej0PuPasvr3Y3gmH58rolx9NDHYkCFcQgupxzK4H68OP/DSU4s05iMPpFNXTQhZvnnuMlBGa2ziknIaKpNfyw=="
+			}
+		},
+		{
+			"type": "tool_execution_start",
+			"toolCallId": "toolcall_0",
+			"toolName": "bash",
+			"args": {
+				"command": "find data -maxdepth 1 -type f -printf '%f\\n' | sort && find data -mindepth 1 -maxdepth 1 -type d -printf '%f/\\n' | sort",
+				"timeout": 10
+			}
+		},
+		{
+			"type": "tool_execution_update",
+			"toolCallId": "toolcall_0",
+			"toolName": "bash",
+			"args": {
+				"command": "find data -maxdepth 1 -type f -printf '%f\\n' | sort && find data -mindepth 1 -maxdepth 1 -type d -printf '%f/\\n' | sort",
+				"timeout": 10
+			},
+			"partialResult": {
+				"content": []
+			}
+		},
+		{
+			"type": "tool_execution_update",
+			"toolCallId": "toolcall_0",
+			"toolName": "bash",
+			"args": {
+				"command": "find data -maxdepth 1 -type f -printf '%f\\n' | sort && find data -mindepth 1 -maxdepth 1 -type d -printf '%f/\\n' | sort",
+				"timeout": 10
+			},
+			"partialResult": {
+				"content": [
+					{
+						"type": "text",
+						"text": "values.txt\n"
+					}
+				],
+				"details": {}
+			}
+		},
+		{
+			"type": "tool_execution_end",
+			"toolCallId": "toolcall_0",
+			"toolName": "bash",
+			"result": {
+				"content": [
+					{
+						"type": "text",
+						"text": "values.txt\n"
+					}
+				]
+			},
+			"isError": false
+		},
+		{
+			"type": "message_start",
+			"message": {
+				"role": "toolResult",
+				"toolCallId": "toolcall_0",
+				"toolName": "bash",
+				"content": [
+					{
+						"type": "text",
+						"text": "values.txt\n"
+					}
+				],
+				"isError": false,
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "message_end",
+			"message": {
+				"role": "toolResult",
+				"toolCallId": "toolcall_0",
+				"toolName": "bash",
+				"content": [
+					{
+						"type": "text",
+						"text": "values.txt\n"
+					}
+				],
+				"isError": false,
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "turn_end",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "thinking",
+						"thinking": "**Following process sequence**\n\nI need to make sure I follow the correct steps in sequence. First, I must list the files in the data directory and then read the contents of the file I find. To do that, I should inspect the current working directory. I'll likely use a command like “ls data” to list those files. Once I have that, I’ll read the file without any extra commentary—just the content, which seems straightforward enough!",
+						"thinkingSignature": "{\"content\":[],\"encrypted_content\":\"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\",\"id\":\"oCllV1Cqw4pZcl/6D/eKSGUHXGipjOwfY8HGGI1RzjPISj0P20usDy7Nzwz8tmkpQszTbj2yVCm/BbwA9gH9NcMf7L3Wnh15cer6/qvxvIuTbRjjsGj7g94lGZcHPJ1cn8n0hPXYDPwaXV0geF0Js718wSilYrmt0Gf230ZpzyaMc3v+8pdPsl+p0j0+GXNiwUKRc1aBx164SLCJUnBCZi3ztkh6ejEXod4R6sZVUEOp23zziV07HUYr6zrIND93CkbKu/ioEcmYk6EHdJS5ZA3kkGzCpNeAUFKJ+Yfds0/qUB21DYLyGuMGhqS1M4FEyVw6ZTy2sc1Z9Y6XFTYCStEjAr+9rSY5sQ6UljDAOBLDa2eMp2n5meH9YmVtTGtP+vH2ajud+Capjjt55ry7vXqvrF4=\",\"summary\":[{\"text\":\"**Following process sequence**\\n\\nI need to make sure I follow the correct steps in sequence. First, I must list the files in the data directory and then read the contents of the file I find. To do that, I should inspect the current working directory. I'll likely use a command like “ls data” to list those files. Once I have that, I’ll read the file without any extra commentary—just the content, which seems straightforward enough!\",\"type\":\"summary_text\"}],\"type\":\"reasoning\"}"
+					},
+					{
+						"type": "toolCall",
+						"id": "toolcall_0",
+						"name": "bash",
+						"arguments": {
+							"command": "find data -maxdepth 1 -type f -printf '%f\\n' | sort && find data -mindepth 1 -maxdepth 1 -type d -printf '%f/\\n' | sort",
+							"timeout": 10
+						}
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.6-sol",
+				"usage": {
+					"input": 3,
+					"output": 119,
+					"cacheRead": 0,
+					"cacheWrite": 2719,
+					"reasoning": 50,
+					"totalTokens": 2841,
+					"cost": {
+						"input": 0.000015000000000000002,
+						"output": 0.0035700000000000003,
+						"cacheRead": 0,
+						"cacheWrite": 0.01699375,
+						"total": 0.02057875
+					}
+				},
+				"stopReason": "toolUse",
+				"timestamp": 0,
+				"responseId": "xD9+/TmxFN0lTE2kubCfo/FVwxFVRPHg1yBbFI2Ku45N0gpShD6hnVu7S2FuZysAPpPaZnjdZb76114spieFK7+E7orDo/gVSEsXAIFJzAAfqdc1Z59TRD9uVC81a92ZnygZznU9/o00d+ZYSSo0TFkFpVAr4e2iWODter55GQ1PQUxeiGWAVH4Eq2NAKXoC4gVOTrWvxyU/PJB49sHSm1Yq06EmHHmU+XLsze0lTvWtJj2K4Gps9RRvYDPJ4dgMnWly+V3vjnZ3+O2aoLI5fa2JhhkNfr4WVtWU7lSRpdaybeBsZBXpUVI7FrJKdeZUyoMWrIYHqej0PuPasvr3Y3gmH58rolx9NDHYkCFcQgupxzK4H68OP/DSU4s05iMPpFNXTQhZvnnuMlBGa2ziknIaKpNfyw=="
+			},
+			"toolResults": [
+				{
+					"role": "toolResult",
+					"toolCallId": "toolcall_0",
+					"toolName": "bash",
+					"content": [
+						{
+							"type": "text",
+							"text": "values.txt\n"
+						}
+					],
+					"isError": false,
+					"timestamp": 0
+				}
+			]
+		},
+		{
+			"type": "turn_start"
+		},
+		{
+			"type": "message_start",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "toolCall",
+						"id": "toolcall_1",
+						"name": "read",
+						"arguments": {
+							"path": "data/values.txt",
+							"offset": 1,
+							"limit": 2000
+						}
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.6-sol",
+				"usage": {
+					"input": 0,
+					"output": 0,
+					"cacheRead": 0,
+					"cacheWrite": 0,
+					"totalTokens": 0,
+					"cost": {
+						"input": 0,
+						"output": 0,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"total": 0
+					}
+				},
+				"stopReason": "stop",
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_start",
+				"contentIndex": 0,
+				"partial": {
+					"role": "assistant",
+					"content": [
+						{
+							"type": "toolCall",
+							"id": "toolcall_1",
+							"name": "read",
+							"arguments": {
+								"path": "data/values.txt",
+								"offset": 1,
+								"limit": 2000
+							}
+						}
+					],
+					"api": "openai-responses",
+					"provider": "github-copilot",
+					"model": "gpt-5.6-sol",
+					"usage": {
+						"input": 3,
+						"output": 29,
+						"cacheRead": 2719,
+						"cacheWrite": 133,
+						"reasoning": 0,
+						"totalTokens": 2884,
+						"cost": {
+							"input": 0.000015000000000000002,
+							"output": 0.00087,
+							"cacheRead": 0.0013595,
+							"cacheWrite": 0.00083125,
+							"total": 0.00307575
+						}
+					},
+					"stopReason": "toolUse",
+					"timestamp": 0,
+					"responseId": "blA7RDZ1+c+rEXecRVba3sPbZ/VOZL6IcthN083prhM3qMpgivRy7865LWwN7BFL+YLdo2ZoTR62JeAx2jIOrAKr+ywHPIPY3iFbkgIqBNbhn8aTDEdqOFtpDJcQlM4/8+Ik5NNMYPU3Tch63Hci4zQyzNsOJbKgDGhylDDP3uzlIuadHY0twrGkcvRXMlNiCHDPm/MAgK/EkgAUQdzycgBbySKaTNnnwhUvI7Wvu12tKoi68uqet1b6NhoJQAdRLYF2McvPtWBlE8qyeuMLNjJQa6+2WoYF57w3KdZbm1HNNyH/n1ZaQBS/VWbSVoKXWrzh3n6QZu2C4ksDhvKQbWluYGnp03qPsSYVLkQdPjPbY1N3O2RZxcUx0J5OxVErbZpWTl4r52tWNt5+zdDSMTXpX4H65w=="
+				}
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 0,
+				"delta": "{\""
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 0,
+				"delta": "path"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 0,
+				"delta": "\":\""
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 0,
+				"delta": "data"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 0,
+				"delta": "/"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 0,
+				"delta": "values"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 0,
+				"delta": ".txt"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 0,
+				"delta": "\",\""
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 0,
+				"delta": "offset"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 0,
+				"delta": "\":"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 0,
+				"delta": "1"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 0,
+				"delta": ",\""
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 0,
+				"delta": "limit"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 0,
+				"delta": "\":"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 0,
+				"delta": "200"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 0,
+				"delta": "0"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 0,
+				"delta": "}"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_end",
+				"contentIndex": 0,
+				"toolCall": {
+					"type": "toolCall",
+					"id": "toolcall_1",
+					"name": "read",
+					"arguments": {
+						"path": "data/values.txt",
+						"offset": 1,
+						"limit": 2000
+					}
+				}
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_end",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "toolCall",
+						"id": "toolcall_1",
+						"name": "read",
+						"arguments": {
+							"path": "data/values.txt",
+							"offset": 1,
+							"limit": 2000
+						}
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.6-sol",
+				"usage": {
+					"input": 3,
+					"output": 29,
+					"cacheRead": 2719,
+					"cacheWrite": 133,
+					"reasoning": 0,
+					"totalTokens": 2884,
+					"cost": {
+						"input": 0.000015000000000000002,
+						"output": 0.00087,
+						"cacheRead": 0.0013595,
+						"cacheWrite": 0.00083125,
+						"total": 0.00307575
+					}
+				},
+				"stopReason": "toolUse",
+				"timestamp": 0,
+				"responseId": "blA7RDZ1+c+rEXecRVba3sPbZ/VOZL6IcthN083prhM3qMpgivRy7865LWwN7BFL+YLdo2ZoTR62JeAx2jIOrAKr+ywHPIPY3iFbkgIqBNbhn8aTDEdqOFtpDJcQlM4/8+Ik5NNMYPU3Tch63Hci4zQyzNsOJbKgDGhylDDP3uzlIuadHY0twrGkcvRXMlNiCHDPm/MAgK/EkgAUQdzycgBbySKaTNnnwhUvI7Wvu12tKoi68uqet1b6NhoJQAdRLYF2McvPtWBlE8qyeuMLNjJQa6+2WoYF57w3KdZbm1HNNyH/n1ZaQBS/VWbSVoKXWrzh3n6QZu2C4ksDhvKQbWluYGnp03qPsSYVLkQdPjPbY1N3O2RZxcUx0J5OxVErbZpWTl4r52tWNt5+zdDSMTXpX4H65w=="
+			}
+		},
+		{
+			"type": "tool_execution_start",
+			"toolCallId": "toolcall_1",
+			"toolName": "read",
+			"args": {
+				"path": "data/values.txt",
+				"offset": 1,
+				"limit": 2000
+			}
+		},
+		{
+			"type": "tool_execution_end",
+			"toolCallId": "toolcall_1",
+			"toolName": "read",
+			"result": {
+				"content": [
+					{
+						"type": "text",
+						"text": "42\n"
+					}
+				]
+			},
+			"isError": false
+		},
+		{
+			"type": "message_start",
+			"message": {
+				"role": "toolResult",
+				"toolCallId": "toolcall_1",
+				"toolName": "read",
+				"content": [
+					{
+						"type": "text",
+						"text": "42\n"
+					}
+				],
+				"isError": false,
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "message_end",
+			"message": {
+				"role": "toolResult",
+				"toolCallId": "toolcall_1",
+				"toolName": "read",
+				"content": [
+					{
+						"type": "text",
+						"text": "42\n"
+					}
+				],
+				"isError": false,
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "turn_end",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "toolCall",
+						"id": "toolcall_1",
+						"name": "read",
+						"arguments": {
+							"path": "data/values.txt",
+							"offset": 1,
+							"limit": 2000
+						}
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.6-sol",
+				"usage": {
+					"input": 3,
+					"output": 29,
+					"cacheRead": 2719,
+					"cacheWrite": 133,
+					"reasoning": 0,
+					"totalTokens": 2884,
+					"cost": {
+						"input": 0.000015000000000000002,
+						"output": 0.00087,
+						"cacheRead": 0.0013595,
+						"cacheWrite": 0.00083125,
+						"total": 0.00307575
+					}
+				},
+				"stopReason": "toolUse",
+				"timestamp": 0,
+				"responseId": "blA7RDZ1+c+rEXecRVba3sPbZ/VOZL6IcthN083prhM3qMpgivRy7865LWwN7BFL+YLdo2ZoTR62JeAx2jIOrAKr+ywHPIPY3iFbkgIqBNbhn8aTDEdqOFtpDJcQlM4/8+Ik5NNMYPU3Tch63Hci4zQyzNsOJbKgDGhylDDP3uzlIuadHY0twrGkcvRXMlNiCHDPm/MAgK/EkgAUQdzycgBbySKaTNnnwhUvI7Wvu12tKoi68uqet1b6NhoJQAdRLYF2McvPtWBlE8qyeuMLNjJQa6+2WoYF57w3KdZbm1HNNyH/n1ZaQBS/VWbSVoKXWrzh3n6QZu2C4ksDhvKQbWluYGnp03qPsSYVLkQdPjPbY1N3O2RZxcUx0J5OxVErbZpWTl4r52tWNt5+zdDSMTXpX4H65w=="
+			},
+			"toolResults": [
+				{
+					"role": "toolResult",
+					"toolCallId": "toolcall_1",
+					"toolName": "read",
+					"content": [
+						{
+							"type": "text",
+							"text": "42\n"
+						}
+					],
+					"isError": false,
+					"timestamp": 0
+				}
+			]
+		},
+		{
+			"type": "turn_start"
+		},
+		{
+			"type": "message_start",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "text",
+						"text": "42",
+						"textSignature": "{\"v\":1,\"id\":\"t0dfLiHcyGX29yaXpfqa3z608z3x0OlBL9MMWozPu3C+T1aL0Xvc4cPdpBndvxrWRShMPiS9I8QtS2c4VLS72X4lt6aVvcCmkIw0jEmmZRWpyAxuJj8WeOfAQwczcQsrsWO2n45qLJZQWz9PLTLNLJXnjT1o6Wj5SqCay75+OBdB0SPtxgr/JZJHoP0Znfl6D227ZEsouI+mbR8ZdW/wspXK4U4sFgrw5KQpJIm5Gn0w2d54NuAQI6fHLyMuE9qTwkx/agEfgBqV63pP7sU9ffwFqZ7GV7i29eZ1PnYrIde7cckM7HKJhKYnbvqTf/q2Ai+/TIvciTz2lnWZccxb5qFsgXB8pSl7ImhLOi5H67uu9CIDA+vbSieE1kyuX6sLUFZmQ4vqznmrkLnNpZyZewWwUJ/M\",\"phase\":\"final_answer\"}"
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.6-sol",
+				"usage": {
+					"input": 0,
+					"output": 0,
+					"cacheRead": 0,
+					"cacheWrite": 0,
+					"totalTokens": 0,
+					"cost": {
+						"input": 0,
+						"output": 0,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"total": 0
+					}
+				},
+				"stopReason": "stop",
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_start",
+				"contentIndex": 0
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": "42"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_end",
+				"contentIndex": 0,
+				"content": "42"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_end",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "text",
+						"text": "42",
+						"textSignature": "{\"v\":1,\"id\":\"t0dfLiHcyGX29yaXpfqa3z608z3x0OlBL9MMWozPu3C+T1aL0Xvc4cPdpBndvxrWRShMPiS9I8QtS2c4VLS72X4lt6aVvcCmkIw0jEmmZRWpyAxuJj8WeOfAQwczcQsrsWO2n45qLJZQWz9PLTLNLJXnjT1o6Wj5SqCay75+OBdB0SPtxgr/JZJHoP0Znfl6D227ZEsouI+mbR8ZdW/wspXK4U4sFgrw5KQpJIm5Gn0w2d54NuAQI6fHLyMuE9qTwkx/agEfgBqV63pP7sU9ffwFqZ7GV7i29eZ1PnYrIde7cckM7HKJhKYnbvqTf/q2Ai+/TIvciTz2lnWZccxb5qFsgXB8pSl7ImhLOi5H67uu9CIDA+vbSieE1kyuX6sLUFZmQ4vqznmrkLnNpZyZewWwUJ/M\",\"phase\":\"final_answer\"}"
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.6-sol",
+				"usage": {
+					"input": 3,
+					"output": 5,
+					"cacheRead": 2852,
+					"cacheWrite": 41,
+					"reasoning": 0,
+					"totalTokens": 2901,
+					"cost": {
+						"input": 0.000015000000000000002,
+						"output": 0.00015000000000000001,
+						"cacheRead": 0.001426,
+						"cacheWrite": 0.00025625,
+						"total": 0.00184725
+					}
+				},
+				"stopReason": "stop",
+				"timestamp": 0,
+				"responseId": "Rc7hc1gSVO3iLTCehUKthtB8CsMtbVnzFdk6/iuuuWNgLiGpO9q7WRV0kDzqNtiH6xzHeSAitCbDzCYWUOhLEYFQcvgzFJ2ofEzvGVFtjDBQ5d+G/7VBelmGAgUWvOi1WmyPUYKXKOPyzf6lafpBFfEbgoe4tD3JtJuU331hRygUAwY6sivpvjJ+bZaLQpXO+ExFZrMP9A9dXC9kVkr+jGa9YsegmW9kMQ6JVeQ4dPRBBSJZVs3Av6YTCUx16F6//yKvvOA95ex6Co4qV5X3wqDh57LvbrEFzm8IRLJMxxvIlZ7ifjiYJJSVCDwqmVflzIyQjdGQ2bcI3XXm1Vkta4neHbXJiQDHKWrY2wClis9cmdgiwQozwcqSjBXeYTRnXLbljhfV0Yw8/4GonAExZM3ik3yjkg=="
+			}
+		},
+		{
+			"type": "turn_end",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "text",
+						"text": "42",
+						"textSignature": "{\"v\":1,\"id\":\"t0dfLiHcyGX29yaXpfqa3z608z3x0OlBL9MMWozPu3C+T1aL0Xvc4cPdpBndvxrWRShMPiS9I8QtS2c4VLS72X4lt6aVvcCmkIw0jEmmZRWpyAxuJj8WeOfAQwczcQsrsWO2n45qLJZQWz9PLTLNLJXnjT1o6Wj5SqCay75+OBdB0SPtxgr/JZJHoP0Znfl6D227ZEsouI+mbR8ZdW/wspXK4U4sFgrw5KQpJIm5Gn0w2d54NuAQI6fHLyMuE9qTwkx/agEfgBqV63pP7sU9ffwFqZ7GV7i29eZ1PnYrIde7cckM7HKJhKYnbvqTf/q2Ai+/TIvciTz2lnWZccxb5qFsgXB8pSl7ImhLOi5H67uu9CIDA+vbSieE1kyuX6sLUFZmQ4vqznmrkLnNpZyZewWwUJ/M\",\"phase\":\"final_answer\"}"
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.6-sol",
+				"usage": {
+					"input": 3,
+					"output": 5,
+					"cacheRead": 2852,
+					"cacheWrite": 41,
+					"reasoning": 0,
+					"totalTokens": 2901,
+					"cost": {
+						"input": 0.000015000000000000002,
+						"output": 0.00015000000000000001,
+						"cacheRead": 0.001426,
+						"cacheWrite": 0.00025625,
+						"total": 0.00184725
+					}
+				},
+				"stopReason": "stop",
+				"timestamp": 0,
+				"responseId": "Rc7hc1gSVO3iLTCehUKthtB8CsMtbVnzFdk6/iuuuWNgLiGpO9q7WRV0kDzqNtiH6xzHeSAitCbDzCYWUOhLEYFQcvgzFJ2ofEzvGVFtjDBQ5d+G/7VBelmGAgUWvOi1WmyPUYKXKOPyzf6lafpBFfEbgoe4tD3JtJuU331hRygUAwY6sivpvjJ+bZaLQpXO+ExFZrMP9A9dXC9kVkr+jGa9YsegmW9kMQ6JVeQ4dPRBBSJZVs3Av6YTCUx16F6//yKvvOA95ex6Co4qV5X3wqDh57LvbrEFzm8IRLJMxxvIlZ7ifjiYJJSVCDwqmVflzIyQjdGQ2bcI3XXm1Vkta4neHbXJiQDHKWrY2wClis9cmdgiwQozwcqSjBXeYTRnXLbljhfV0Yw8/4GonAExZM3ik3yjkg=="
+			},
+			"toolResults": []
+		},
+		{
+			"type": "agent_end",
+			"messages": [
+				{
+					"role": "user",
+					"content": [
+						{
+							"type": "text",
+							"text": "First list the files under the data directory, then read the file you find there, then reply with its contents only."
+						}
+					],
+					"timestamp": 0
+				},
+				{
+					"role": "assistant",
+					"content": [
+						{
+							"type": "thinking",
+							"thinking": "**Following process sequence**\n\nI need to make sure I follow the correct steps in sequence. First, I must list the files in the data directory and then read the contents of the file I find. To do that, I should inspect the current working directory. I'll likely use a command like “ls data” to list those files. Once I have that, I’ll read the file without any extra commentary—just the content, which seems straightforward enough!",
+							"thinkingSignature": "{\"content\":[],\"encrypted_content\":\"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\",\"id\":\"oCllV1Cqw4pZcl/6D/eKSGUHXGipjOwfY8HGGI1RzjPISj0P20usDy7Nzwz8tmkpQszTbj2yVCm/BbwA9gH9NcMf7L3Wnh15cer6/qvxvIuTbRjjsGj7g94lGZcHPJ1cn8n0hPXYDPwaXV0geF0Js718wSilYrmt0Gf230ZpzyaMc3v+8pdPsl+p0j0+GXNiwUKRc1aBx164SLCJUnBCZi3ztkh6ejEXod4R6sZVUEOp23zziV07HUYr6zrIND93CkbKu/ioEcmYk6EHdJS5ZA3kkGzCpNeAUFKJ+Yfds0/qUB21DYLyGuMGhqS1M4FEyVw6ZTy2sc1Z9Y6XFTYCStEjAr+9rSY5sQ6UljDAOBLDa2eMp2n5meH9YmVtTGtP+vH2ajud+Capjjt55ry7vXqvrF4=\",\"summary\":[{\"text\":\"**Following process sequence**\\n\\nI need to make sure I follow the correct steps in sequence. First, I must list the files in the data directory and then read the contents of the file I find. To do that, I should inspect the current working directory. I'll likely use a command like “ls data” to list those files. Once I have that, I’ll read the file without any extra commentary—just the content, which seems straightforward enough!\",\"type\":\"summary_text\"}],\"type\":\"reasoning\"}"
+						},
+						{
+							"type": "toolCall",
+							"id": "toolcall_0",
+							"name": "bash",
+							"arguments": {
+								"command": "find data -maxdepth 1 -type f -printf '%f\\n' | sort && find data -mindepth 1 -maxdepth 1 -type d -printf '%f/\\n' | sort",
+								"timeout": 10
+							}
+						}
+					],
+					"api": "openai-responses",
+					"provider": "github-copilot",
+					"model": "gpt-5.6-sol",
+					"usage": {
+						"input": 3,
+						"output": 119,
+						"cacheRead": 0,
+						"cacheWrite": 2719,
+						"reasoning": 50,
+						"totalTokens": 2841,
+						"cost": {
+							"input": 0.000015000000000000002,
+							"output": 0.0035700000000000003,
+							"cacheRead": 0,
+							"cacheWrite": 0.01699375,
+							"total": 0.02057875
+						}
+					},
+					"stopReason": "toolUse",
+					"timestamp": 0,
+					"responseId": "xD9+/TmxFN0lTE2kubCfo/FVwxFVRPHg1yBbFI2Ku45N0gpShD6hnVu7S2FuZysAPpPaZnjdZb76114spieFK7+E7orDo/gVSEsXAIFJzAAfqdc1Z59TRD9uVC81a92ZnygZznU9/o00d+ZYSSo0TFkFpVAr4e2iWODter55GQ1PQUxeiGWAVH4Eq2NAKXoC4gVOTrWvxyU/PJB49sHSm1Yq06EmHHmU+XLsze0lTvWtJj2K4Gps9RRvYDPJ4dgMnWly+V3vjnZ3+O2aoLI5fa2JhhkNfr4WVtWU7lSRpdaybeBsZBXpUVI7FrJKdeZUyoMWrIYHqej0PuPasvr3Y3gmH58rolx9NDHYkCFcQgupxzK4H68OP/DSU4s05iMPpFNXTQhZvnnuMlBGa2ziknIaKpNfyw=="
+				},
+				{
+					"role": "toolResult",
+					"toolCallId": "toolcall_0",
+					"toolName": "bash",
+					"content": [
+						{
+							"type": "text",
+							"text": "values.txt\n"
+						}
+					],
+					"isError": false,
+					"timestamp": 0
+				},
+				{
+					"role": "assistant",
+					"content": [
+						{
+							"type": "toolCall",
+							"id": "toolcall_1",
+							"name": "read",
+							"arguments": {
+								"path": "data/values.txt",
+								"offset": 1,
+								"limit": 2000
+							}
+						}
+					],
+					"api": "openai-responses",
+					"provider": "github-copilot",
+					"model": "gpt-5.6-sol",
+					"usage": {
+						"input": 3,
+						"output": 29,
+						"cacheRead": 2719,
+						"cacheWrite": 133,
+						"reasoning": 0,
+						"totalTokens": 2884,
+						"cost": {
+							"input": 0.000015000000000000002,
+							"output": 0.00087,
+							"cacheRead": 0.0013595,
+							"cacheWrite": 0.00083125,
+							"total": 0.00307575
+						}
+					},
+					"stopReason": "toolUse",
+					"timestamp": 0,
+					"responseId": "blA7RDZ1+c+rEXecRVba3sPbZ/VOZL6IcthN083prhM3qMpgivRy7865LWwN7BFL+YLdo2ZoTR62JeAx2jIOrAKr+ywHPIPY3iFbkgIqBNbhn8aTDEdqOFtpDJcQlM4/8+Ik5NNMYPU3Tch63Hci4zQyzNsOJbKgDGhylDDP3uzlIuadHY0twrGkcvRXMlNiCHDPm/MAgK/EkgAUQdzycgBbySKaTNnnwhUvI7Wvu12tKoi68uqet1b6NhoJQAdRLYF2McvPtWBlE8qyeuMLNjJQa6+2WoYF57w3KdZbm1HNNyH/n1ZaQBS/VWbSVoKXWrzh3n6QZu2C4ksDhvKQbWluYGnp03qPsSYVLkQdPjPbY1N3O2RZxcUx0J5OxVErbZpWTl4r52tWNt5+zdDSMTXpX4H65w=="
+				},
+				{
+					"role": "toolResult",
+					"toolCallId": "toolcall_1",
+					"toolName": "read",
+					"content": [
+						{
+							"type": "text",
+							"text": "42\n"
+						}
+					],
+					"isError": false,
+					"timestamp": 0
+				},
+				{
+					"role": "assistant",
+					"content": [
+						{
+							"type": "text",
+							"text": "42",
+							"textSignature": "{\"v\":1,\"id\":\"t0dfLiHcyGX29yaXpfqa3z608z3x0OlBL9MMWozPu3C+T1aL0Xvc4cPdpBndvxrWRShMPiS9I8QtS2c4VLS72X4lt6aVvcCmkIw0jEmmZRWpyAxuJj8WeOfAQwczcQsrsWO2n45qLJZQWz9PLTLNLJXnjT1o6Wj5SqCay75+OBdB0SPtxgr/JZJHoP0Znfl6D227ZEsouI+mbR8ZdW/wspXK4U4sFgrw5KQpJIm5Gn0w2d54NuAQI6fHLyMuE9qTwkx/agEfgBqV63pP7sU9ffwFqZ7GV7i29eZ1PnYrIde7cckM7HKJhKYnbvqTf/q2Ai+/TIvciTz2lnWZccxb5qFsgXB8pSl7ImhLOi5H67uu9CIDA+vbSieE1kyuX6sLUFZmQ4vqznmrkLnNpZyZewWwUJ/M\",\"phase\":\"final_answer\"}"
+						}
+					],
+					"api": "openai-responses",
+					"provider": "github-copilot",
+					"model": "gpt-5.6-sol",
+					"usage": {
+						"input": 3,
+						"output": 5,
+						"cacheRead": 2852,
+						"cacheWrite": 41,
+						"reasoning": 0,
+						"totalTokens": 2901,
+						"cost": {
+							"input": 0.000015000000000000002,
+							"output": 0.00015000000000000001,
+							"cacheRead": 0.001426,
+							"cacheWrite": 0.00025625,
+							"total": 0.00184725
+						}
+					},
+					"stopReason": "stop",
+					"timestamp": 0,
+					"responseId": "Rc7hc1gSVO3iLTCehUKthtB8CsMtbVnzFdk6/iuuuWNgLiGpO9q7WRV0kDzqNtiH6xzHeSAitCbDzCYWUOhLEYFQcvgzFJ2ofEzvGVFtjDBQ5d+G/7VBelmGAgUWvOi1WmyPUYKXKOPyzf6lafpBFfEbgoe4tD3JtJuU331hRygUAwY6sivpvjJ+bZaLQpXO+ExFZrMP9A9dXC9kVkr+jGa9YsegmW9kMQ6JVeQ4dPRBBSJZVs3Av6YTCUx16F6//yKvvOA95ex6Co4qV5X3wqDh57LvbrEFzm8IRLJMxxvIlZ7ifjiYJJSVCDwqmVflzIyQjdGQ2bcI3XXm1Vkta4neHbXJiQDHKWrY2wClis9cmdgiwQozwcqSjBXeYTRnXLbljhfV0Yw8/4GonAExZM3ik3yjkg=="
+				}
+			],
+			"willRetry": false
+		},
+		{
+			"type": "agent_settled"
+		}
+	]
+}

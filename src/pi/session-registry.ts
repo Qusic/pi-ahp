@@ -1,0 +1,465 @@
+/**
+ * Live sessions: creation, disposal, adoption from disk, and routing client
+ * actions to whatever can carry them out.
+ *
+ * This is the pi-facing half of the session channel. The protocol-shaped half —
+ * building a `SessionState`, deriving a `SessionSummary` — lives in
+ * `channels/session.ts` and knows nothing about pi. The dependency runs one
+ * way: an adapter depends on the shapes it produces, never the reverse.
+ *
+ * The session URI's uuid **is** pi's session id. `SessionManager.create()`
+ * accepts an explicit id, so the two identity spaces are the same one and no
+ * persistent mapping table is needed.
+ *
+ * @see https://microsoft.github.io/agent-host-protocol/specification/session-channel
+ */
+
+import { SessionManager } from "@earendil-works/pi-coding-agent";
+import {
+	ActionType,
+	type ChatState,
+	type ModelSelection,
+	type SessionState,
+	type StateAction,
+	type URI,
+} from "@microsoft/agent-host-protocol";
+import { installDefaultChat, syncChatSummary } from "../channels/chat.ts";
+import { notifySessionAdded, notifySessionRemoved, notifySessionSummaryChanged } from "../channels/root.ts";
+import { initialSessionState, sessionSummaryOf } from "../channels/session.ts";
+import { chatUri, permissiveSessionId, ROOT_CHANNEL } from "../core/channels.ts";
+import type { AhpHost } from "../core/host.ts";
+import { fileUriToPath } from "../core/uri.ts";
+import { ProtocolError } from "../protocol/errors.ts";
+import { ChatDriver, type PiBackend } from "./chat-driver.ts";
+import { PI_PROVIDER } from "./provider.ts";
+import { dispatchOlderTurns, truncationAnchor } from "./session-history.ts";
+
+/** Everything the host tracks for a live session. */
+export interface LiveSession {
+	readonly uri: URI;
+	/** pi's session id — identical to the uuid in `uri`. */
+	readonly sessionId: string;
+	readonly workingDirectory: string;
+	readonly sessionManager: SessionManager;
+	readonly createdAt: string;
+	/** The session's single chat channel. */
+	readonly chatChannel: URI;
+	/** Present once a backend is attached; absent while the session is storage-only. */
+	driver?: ChatDriver;
+	/**
+	 * In-flight backend attach, so concurrent actions wait on one attempt.
+	 *
+	 * Explicitly `| undefined` rather than only optional: it is cleared by
+	 * assignment when the attempt settles, which `exactOptionalPropertyTypes`
+	 * distinguishes from never having been set.
+	 */
+	attaching?: Promise<void> | undefined;
+	/**
+	 * Turn id → the pi session entry that turn ends on.
+	 *
+	 * Truncation needs it: the protocol names a turn, pi navigates to an entry.
+	 * Filled from the rebuild when a session is loaded from disk, and from the
+	 * leaf pointer as live turns complete.
+	 */
+	readonly turnAnchors: Map<string, string>;
+}
+
+/** Creates the agent backend for a session. Absent in storage-only mode. */
+export type BackendFactory = (session: LiveSession) => Promise<PiBackend> | PiBackend;
+
+export interface CreateSessionRequest {
+	readonly channel: URI;
+	/**
+	 * Singular in protocol 0.6.0. `main` has since renamed this to a
+	 * `workingDirectories` array gated behind the
+	 * `multipleWorkingDirectories` capability; this host serves one directory
+	 * per session either way, so the rename is a no-op for us when we upgrade.
+	 */
+	readonly workingDirectory?: URI;
+	readonly provider?: string;
+}
+
+export interface SessionRegistryOptions {
+	readonly host: AhpHost;
+	/** Used for sessions created without one of their own. */
+	readonly defaultWorkingDirectory?: string;
+	readonly createBackend?: BackendFactory;
+	/** Seeds a new chat's draft so a client has a model selected from the start. */
+	readonly defaultSelection?: () => ModelSelection | undefined;
+	/** Removes a session's durable record. Injected so disposal stays testable. */
+	readonly deleteFile?: (path: string) => void;
+	/** Locates the file behind a session this host never ran. */
+	readonly findSessionFile?: (sessionId: string) => Promise<string | undefined>;
+	readonly log?: (message: string) => void;
+}
+
+export class SessionRegistry {
+	readonly #options: SessionRegistryOptions;
+	readonly #host: AhpHost;
+	readonly #sessions = new Map<URI, LiveSession>();
+	readonly #byChat = new Map<URI, LiveSession>();
+
+	constructor(options: SessionRegistryOptions) {
+		this.#options = options;
+		this.#host = options.host;
+
+		// Client actions are routed to whichever channel owns them; the host
+		// core stays agnostic of chats and backends.
+		this.#host.onClientAction((channel, action) => {
+			void this.#routeClientAction(channel, action);
+		});
+
+		// Truncation is refused up front when it cannot be carried out.
+		// Accepting it would truncate the client's view while pi kept the full
+		// history — every later turn would then run on context the user
+		// believes is gone, with nothing reporting the mismatch.
+		this.#host.addClientActionValidator((channel, action) => {
+			if (action.type !== ActionType.ChatTruncated) {
+				return undefined;
+			}
+			const session = this.#byChat.get(channel);
+			if (!session) {
+				return undefined;
+			}
+			return truncationAnchor(session, action.turnId)
+				? undefined
+				: `Cannot truncate: no session entry matches turn ${action.turnId ?? "(all)"}`;
+		});
+	}
+
+	// ── Lookup ──────────────────────────────────────────────────────────────
+
+	get(uri: URI): LiveSession | undefined {
+		return this.#sessions.get(uri);
+	}
+
+	getByChat(chatChannel: URI): LiveSession | undefined {
+		return this.#byChat.get(chatChannel);
+	}
+
+	has(uri: URI): boolean {
+		return this.#sessions.has(uri);
+	}
+
+	// ── Lifecycle ───────────────────────────────────────────────────────────
+
+	/**
+	 * Handles `createSession`.
+	 *
+	 * Returns as soon as the channel exists; readiness arrives later as a
+	 * `session/ready` action on that channel.
+	 */
+	create(request: CreateSessionRequest): void {
+		const uri = request.channel;
+		// Accept the URI shape the client chose, not only the spec's canonical
+		// one. The reference host lets its provider mint the URI and merely logs
+		// a mismatch, so clients written against it still open sessions as
+		// `<provider>:/<uuid>`.
+		const sessionId = permissiveSessionId(uri);
+		if (!sessionId) {
+			throw ProtocolError.invalidParams(`Not a session URI: ${uri}`);
+		}
+		if (this.#sessions.has(uri) || this.#host.store.has(uri)) {
+			throw ProtocolError.sessionAlreadyExists(uri);
+		}
+		if (request.provider !== undefined && request.provider !== PI_PROVIDER) {
+			throw ProtocolError.providerNotFound(request.provider);
+		}
+
+		// This host serves one working directory per session, so it does not
+		// declare `multipleWorkingDirectories`. A client's chosen directory is
+		// honoured; the host's own cwd is the fallback.
+		const workingDirectory = request.workingDirectory
+			? fileUriToPath(request.workingDirectory)
+			: (this.#options.defaultWorkingDirectory ?? process.cwd());
+
+		const title = "New Session";
+		// The URI may carry a non-standard scheme; it is a session either way.
+		this.#host.store.create(uri, initialSessionState(PI_PROVIDER, title, workingDirectory), "session");
+
+		// pi writes the session file lazily on first append, so allocating the
+		// manager here does not litter the disk with empty sessions.
+		const sessionManager = SessionManager.create(workingDirectory, undefined, { id: sessionId });
+		const chatChannel = installDefaultChat(
+			this.#host,
+			uri,
+			sessionId,
+			title,
+			`file://${workingDirectory}`,
+			this.#options.defaultSelection?.(),
+		);
+
+		const session: LiveSession = {
+			uri,
+			sessionId,
+			workingDirectory,
+			sessionManager,
+			chatChannel,
+			createdAt: new Date().toISOString(),
+			turnAnchors: new Map(),
+		};
+		this.#track(session);
+
+		notifySessionAdded(
+			this.#host,
+			sessionSummaryOf(uri, session.createdAt, this.#host.store.get(uri) as SessionState, {
+				piSessionId: sessionId,
+			}),
+		);
+		this.#bumpActiveSessions();
+
+		// Readiness is genuinely asynchronous once a backend is involved: the
+		// client already holds the channel and sees `lifecycle: 'creating'` until
+		// the agent is up.
+		void this.#attachBackend(session);
+	}
+
+	/**
+	 * Registers a session loaded from disk.
+	 *
+	 * Deliberately without a backend: a client browsing its history would
+	 * otherwise start an agent for every session it looks at. The agent is
+	 * attached on the first action that needs one.
+	 */
+	adopt(
+		session: Omit<LiveSession, "driver" | "attaching" | "turnAnchors"> & {
+			turnAnchors?: Map<string, string>;
+		},
+	): LiveSession {
+		const existing = this.#sessions.get(session.uri);
+		if (existing) {
+			return existing;
+		}
+		const adopted: LiveSession = { ...session, turnAnchors: session.turnAnchors ?? new Map() };
+		this.#track(adopted);
+		return adopted;
+	}
+
+	/**
+	 * Handles `disposeSession`.
+	 *
+	 * Works for any session in the catalogue, not just ones this host has
+	 * running. Most sessions a client can see were written by pi and have never
+	 * been live here, so refusing to dispose them would make the delete
+	 * affordance fail on almost everything the list shows.
+	 *
+	 * The protocol defines disposal as tearing down the backend and dropping the
+	 * catalogue entry, not as deleting the durable record. But a host that only
+	 * unloaded would announce `root/sessionRemoved` and then hand the same
+	 * session back on the next `listSessions`, so disposal also removes the file
+	 * — via the same trash-then-unlink path pi's own `/resume` delete uses.
+	 */
+	async dispose(uri: URI): Promise<void> {
+		const session = this.#sessions.get(uri);
+		let file: string | undefined;
+
+		if (session) {
+			file = session.sessionManager.getSessionFile();
+			session.driver?.dispose();
+			this.#sessions.delete(uri);
+			this.#byChat.delete(session.chatChannel);
+			// Disposing a session cascades to every chat in its catalog.
+			this.#host.store.delete(session.chatChannel);
+		} else {
+			const sessionId = permissiveSessionId(uri);
+			if (!sessionId) {
+				throw ProtocolError.sessionNotFound(uri);
+			}
+			file = await this.#options.findSessionFile?.(sessionId);
+			if (!file && !this.#host.store.has(uri)) {
+				throw ProtocolError.sessionNotFound(uri);
+			}
+			this.#host.store.delete(chatUri(sessionId));
+		}
+
+		this.#host.store.delete(uri);
+		if (file) {
+			this.#options.deleteFile?.(file);
+		}
+		notifySessionRemoved(this.#host, uri);
+		this.#bumpActiveSessions();
+	}
+
+	// ── Backend attachment ──────────────────────────────────────────────────
+
+	async #attachBackend(session: LiveSession): Promise<void> {
+		// Concurrent actions during startup must wait on one attempt, not race
+		// to build a second agent over the same session file.
+		if (session.attaching) {
+			return session.attaching;
+		}
+		session.attaching = this.#startBackend(session).finally(() => {
+			session.attaching = undefined;
+		});
+		return session.attaching;
+	}
+
+	async #startBackend(session: LiveSession): Promise<void> {
+		if (!this.#options.createBackend) {
+			// Storage-only mode: the session owns identity and history but has no
+			// agent, so it is ready as soon as it exists.
+			this.#host.dispatchServerAction(session.uri, { type: ActionType.SessionReady });
+			return;
+		}
+		try {
+			const backend = await this.#options.createBackend(session);
+			session.driver = new ChatDriver({
+				host: this.#host,
+				sessionChannel: session.uri,
+				chatChannel: session.chatChannel,
+				backend,
+				workingDirectory: session.workingDirectory,
+				// A completed turn's last entry is wherever the leaf now points.
+				recordTurnAnchor: (turnId) => {
+					const leaf = session.sessionManager.getLeafId();
+					if (leaf) {
+						session.turnAnchors.set(turnId, leaf);
+					}
+				},
+				...(this.#options.log ? { log: this.#options.log } : {}),
+			});
+			this.#host.dispatchServerAction(session.uri, { type: ActionType.SessionReady });
+			// Tell the client which model and reasoning effort are actually in
+			// effect. There is no protocol field for a "default model", but a
+			// client initialises its input from `ChatState.draft`, so seeding the
+			// draft's selection is how a host answers that question.
+			session.driver.publishDefaultSelection();
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			this.#host.dispatchServerAction(session.uri, {
+				type: ActionType.SessionCreationFailed,
+				error: { errorType: "backendStartFailed", message },
+			});
+
+			// A turn may already be active: the client's `chat/turnStarted` was
+			// reduced before the agent was asked for. Nothing will ever emit
+			// `agent_settled` now, so close it here or the chat sits in progress
+			// forever with no reply and no error.
+			const chat = this.#host.store.get(session.chatChannel) as ChatState | undefined;
+			if (chat?.activeTurn) {
+				this.#host.dispatchServerAction(session.chatChannel, {
+					type: ActionType.ChatError,
+					turnId: chat.activeTurn.id,
+					duration: 0,
+					error: { errorType: "backendStartFailed", message },
+				});
+			}
+		}
+	}
+
+	// ── Client actions ──────────────────────────────────────────────────────
+
+	/**
+	 * Routes a client action to whatever owns it.
+	 *
+	 * Chat actions go to the chat's driver, starting the agent first if this
+	 * session has only ever been read from disk. Session actions are handled
+	 * here — they carry no turn and need no agent.
+	 */
+	async #routeClientAction(channel: URI, action: StateAction): Promise<void> {
+		const owningSession = this.#sessions.get(channel);
+		if (owningSession) {
+			this.#handleSessionAction(owningSession, action);
+			return;
+		}
+
+		const session = this.#byChat.get(channel);
+		if (!session) {
+			return;
+		}
+		if (action.type === ActionType.ChatTruncated) {
+			await this.#truncate(session, action.turnId);
+			return;
+		}
+		if (action.type === ActionType.SessionTitleChanged) {
+			// A rename addressed to the chat renames that chat, not the session.
+			// With one chat per session the two are usually the same edit, but the
+			// client decides which it meant by choosing the channel.
+			this.#renameChat(session, action.title);
+			return;
+		}
+		if (!session.driver) {
+			await this.#attachBackend(session);
+		}
+		session.driver?.handleClientAction(channel, action);
+	}
+
+	#handleSessionAction(session: LiveSession, action: StateAction): void {
+		if (action.type !== ActionType.SessionTitleChanged) {
+			return;
+		}
+
+		// The reducer has already updated the in-memory title. Persisting it is
+		// what makes the rename survive a restart: pi stores session names as
+		// `session_info` entries, and this is the same call its own `/resume`
+		// rename makes — so a session renamed here reads the same in pi's CLI.
+		try {
+			session.sessionManager.appendSessionInfo(action.title);
+		} catch (error) {
+			this.#options.log?.(`could not persist title for ${session.uri}: ${String(error)}`);
+		}
+
+		// The chat mirrors the session's title, and the catalogue entry every
+		// other client renders comes from the summary.
+		this.#renameChat(session, action.title);
+		notifySessionSummaryChanged(this.#host, session.uri, {
+			title: action.title,
+			modifiedAt: new Date().toISOString(),
+		});
+	}
+
+	#renameChat(session: LiveSession, title: string): void {
+		const chat = this.#host.store.get(session.chatChannel) as ChatState | undefined;
+		if (!chat || chat.title === title) {
+			return;
+		}
+		// `ChatState` denormalises its summary fields, so the catalog entry has
+		// to be republished alongside the state itself.
+		this.#host.store.create(session.chatChannel, { ...chat, title }, "chat");
+		syncChatSummary(this.#host, session.uri, session.chatChannel);
+	}
+
+	// ── History ─────────────────────────────────────────────────────────────
+
+	/** Serves `fetchTurns`; the page is dispatched before this resolves. */
+	async fetchTurns(channel: URI, cursor: string | undefined): Promise<void> {
+		const session = this.#byChat.get(channel);
+		if (!session) {
+			throw ProtocolError.notFound(channel);
+		}
+		dispatchOlderTurns(this.#host, channel, session, cursor);
+	}
+
+	async #truncate(session: LiveSession, turnId: string | undefined): Promise<void> {
+		const anchor = truncationAnchor(session, turnId);
+		if (!anchor) {
+			// Validated before the action was applied, so this only happens if
+			// the file changed underneath us.
+			this.#options.log?.(`no truncation anchor for ${turnId ?? "(all)"} in ${session.uri}`);
+			return;
+		}
+		if (!session.driver) {
+			await this.#attachBackend(session);
+		}
+		const applied = await session.driver?.truncate(anchor);
+		if (applied === false) {
+			// An extension vetoed it. Protocol state is already truncated, so
+			// the two have diverged; say so loudly rather than pretend.
+			this.#options.log?.(`agent refused truncation of ${session.uri}; state and session now differ`);
+		}
+	}
+
+	// ── Internals ───────────────────────────────────────────────────────────
+
+	#track(session: LiveSession): void {
+		this.#sessions.set(session.uri, session);
+		this.#byChat.set(session.chatChannel, session);
+	}
+
+	#bumpActiveSessions(): void {
+		this.#host.dispatchServerAction(ROOT_CHANNEL, {
+			type: ActionType.RootActiveSessionsChanged,
+			activeSessions: this.#sessions.size,
+		});
+	}
+}

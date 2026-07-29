@@ -1,0 +1,829 @@
+{
+	"name": "parallel-tools",
+	"description": "Several tool calls in one assistant message — exercises contentIndex fan-out.",
+	"prompt": "Read both a.txt and b.txt, then reply with their contents separated by a comma.",
+	"events": [
+		{
+			"type": "agent_start"
+		},
+		{
+			"type": "turn_start"
+		},
+		{
+			"type": "message_start",
+			"message": {
+				"role": "user",
+				"content": [
+					{
+						"type": "text",
+						"text": "Read both a.txt and b.txt, then reply with their contents separated by a comma."
+					}
+				],
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "message_end",
+			"message": {
+				"role": "user",
+				"content": [
+					{
+						"type": "text",
+						"text": "Read both a.txt and b.txt, then reply with their contents separated by a comma."
+					}
+				],
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "message_start",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "thinking",
+						"thinking": "",
+						"thinkingSignature": "{\"content\":[],\"encrypted_content\":\"fLbQ0HxmaiJBbgnoIqzfoYmQta7rgI8QbMlqf5ASjeYc2oJELMqt6LpReu8mb/zscAR+jiuK5/QSW03gtzjL3h+t9dkSzy70MDtTmOPRd7C+wYaXwSfNLuRuX3lJf1ip4LK8u3LfJ7OFVXMW4ArkRu4nzT2b0+Q6XdHTghoHwp2Yj2uaCZTRLTjceVZaRxvppdEf61Z7D/Xx+N/mbZrKHXAPNqWcyyENaTnfx/ZB94gevFspS8yhUiePAy5HCjVssT3dl41iFNMbMcEghKag444iqBmbspQUDN/4NF9IS5kM4CkpacxYK27eqto/EcRMdozX2atiTilYxSbThQZuAV6TnTz3nNiPL7jQdm2cvZzp24/o/wEOjjPnbcMlmhxZ2qQ9ZCta1FNz32Gyv5xs0NBtx1/+3mmmWJSi8Ck9RTtrLGdhh2Sm+GXWr/ZF1uFegQ7zJYyXD22WBhC6cF0LUvg8LvTSRidULH6QUTlsxtd/xR37ssbmLMYafA0B/czHZZwYvrUdnBuY1zoIJk6GHCDQN6/qCNOHCCxmPLmKbEu6a18QlUFaG1oG2GzHPzflnEOz3sea9KhvaDcGxa88Wc3YMkOiz+aHJ9LTVPIECskYVeDPkbD/dJdV4ZiCFuqUDwV4kpmUSW6LrA/9prfGweIW0tK7lrYPvN7TFn3m2p3/U/TdV4ZIZLuNFoFbX0/ipbAbmlYB5XMIOUSxUUNm98iAZJ8Gt92+raiGzObTU0uDvy+A2+4ILCmVy2y1E6AacUJOpI+SqspZA+oWqoakv5fGbMfTDqHmj2DuK/UMxxtS737q27KA9yPPsGlydKP/GoQevnNFIC3k7Q3J3ve+lJy7LxCLj3KGwXtS+wd69Yat0pzD7Qq4x59D/jMay9OR7Qb/4FZOx3iTvS0sCnreydAqmJfID2sAMfX7D2Uf+3liZVsr2+1MfNHq+VkK6GpEBWXV/MlLyFGEmWor84nPwShq9tQEGd9vUdECvlN2oTd+P2ApckTbW3un1Sx3Nu6XeOukK8XdOmYtCsoFDa280YMlXLw41GtA05dgZSBp8gbzPxHU26ZAhI8jMimhA9dn4daL59UWsPmZM2rtD1uu2w8vD2vbZauZhXifoE4b38QycMY67lR745xJZUr1FNJD70F2iHK4HdTtemQtHK62nYAfyJpT7nm3QQZyyu2aV1k9U/FQIyZNc6mS32mEgRfeEtdRh8y4HSGO2whogUhAPNEWL1zFfmm3BC12bFVMw5Vy7LMXpaLAZeajxrsF5QvxgkMwO9CfnM4H60UH0fP454Tp5q/esnAAtS9oZttn0PkGjzc6hBmpYvpl9LomYppVVwgF4ZvCnkoRZF41I23gXMHmKhXS6jKKAFwczqg9OQ6AjkqxVKhGGk/+MYyTTj5hT95VeVmeLKKJnEbr7sIhxRsYREXpuHgc7ntClpMokNFjdnGimLdEQuF01hntj8Adr3Fb7iXBkUHv9a55rJCQkBRWSUEoktTxYYwmtVGwI+g/k0ea9JH2UjlxBaqMk8zP1F81uCEI2w/AOIfUofB0eey5i2NFcv8PzQbEEDqJxLB/8qX9UlNOyveO+nkyk5BPsEuVdN9vVYcLwBEG15jTWLFC62Q/2xb47Kntqz3XF6y/9ZPyVyuSDXjhTaJXDmRh7GZEiwiPLroprK8W1FiPT1Y+CQqoim60ik2IGoZLnmpcraShJO9vWaogprtBpmxtLzxxKfsA0j4KNFg7VK5zqdd3uU4yo5A1ZodVrRlI3jB0pXKVGtRpbm/ilTRTk0jOrdT7fJUAdhWhugj7M4k4kwDKzRPEj4CnWEJ8yqVvddKBMdh8vbKizMMYanSQW8jitAE=\",\"id\":\"ZiEQCRIf4KaxcECryVLR/SGKdiMQ2mfqPvY6AFiE1ZeF/yhw1xoU2LKdRnHeRtXnZ/OfXB5+xVLQyOhM5UPYS8kaQY3YUbGIIGjH+11HrLu9McgJmCo0d9KGcaFTyP3D7em5cjegIbiDO2fpe4CSmVjnPGkOkB3N14ocssfaVDugru8XPpbE1G2HfSOvTkSkoh0QDdNQ6TWsnL+y/yjdQ9H7q1CXWhWmgtQTUhkuAnGyW3LMSP2hjdubaTUfDl3CQdsQQaR2MtbQbOwWgi26si7ZyTCJWOUm4ENtkDkuyu31ngG/Cs86qFw9t7ggThOgqlcJcr5PUBIq0H4N8fxGSaL8WBHxFefj8fPAl1xZwg42oufArHCszDSunIy+gCge0T5DLCK6KlPn3CvtHQGULcpESbA=\",\"summary\":[],\"type\":\"reasoning\"}"
+					},
+					{
+						"type": "toolCall",
+						"id": "toolcall_0",
+						"name": "read",
+						"arguments": {
+							"path": "a.txt",
+							"offset": 1,
+							"limit": 2000
+						}
+					},
+					{
+						"type": "toolCall",
+						"id": "toolcall_1",
+						"name": "read",
+						"arguments": {
+							"path": "b.txt",
+							"offset": 1,
+							"limit": 2000
+						}
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.6-sol",
+				"usage": {
+					"input": 0,
+					"output": 0,
+					"cacheRead": 0,
+					"cacheWrite": 0,
+					"totalTokens": 0,
+					"cost": {
+						"input": 0,
+						"output": 0,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"total": 0
+					}
+				},
+				"stopReason": "stop",
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_start",
+				"contentIndex": 0
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_end",
+				"contentIndex": 0,
+				"content": ""
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_start",
+				"contentIndex": 1,
+				"partial": {
+					"role": "assistant",
+					"content": [
+						{
+							"type": "thinking",
+							"thinking": "",
+							"thinkingSignature": "{\"content\":[],\"encrypted_content\":\"fLbQ0HxmaiJBbgnoIqzfoYmQta7rgI8QbMlqf5ASjeYc2oJELMqt6LpReu8mb/zscAR+jiuK5/QSW03gtzjL3h+t9dkSzy70MDtTmOPRd7C+wYaXwSfNLuRuX3lJf1ip4LK8u3LfJ7OFVXMW4ArkRu4nzT2b0+Q6XdHTghoHwp2Yj2uaCZTRLTjceVZaRxvppdEf61Z7D/Xx+N/mbZrKHXAPNqWcyyENaTnfx/ZB94gevFspS8yhUiePAy5HCjVssT3dl41iFNMbMcEghKag444iqBmbspQUDN/4NF9IS5kM4CkpacxYK27eqto/EcRMdozX2atiTilYxSbThQZuAV6TnTz3nNiPL7jQdm2cvZzp24/o/wEOjjPnbcMlmhxZ2qQ9ZCta1FNz32Gyv5xs0NBtx1/+3mmmWJSi8Ck9RTtrLGdhh2Sm+GXWr/ZF1uFegQ7zJYyXD22WBhC6cF0LUvg8LvTSRidULH6QUTlsxtd/xR37ssbmLMYafA0B/czHZZwYvrUdnBuY1zoIJk6GHCDQN6/qCNOHCCxmPLmKbEu6a18QlUFaG1oG2GzHPzflnEOz3sea9KhvaDcGxa88Wc3YMkOiz+aHJ9LTVPIECskYVeDPkbD/dJdV4ZiCFuqUDwV4kpmUSW6LrA/9prfGweIW0tK7lrYPvN7TFn3m2p3/U/TdV4ZIZLuNFoFbX0/ipbAbmlYB5XMIOUSxUUNm98iAZJ8Gt92+raiGzObTU0uDvy+A2+4ILCmVy2y1E6AacUJOpI+SqspZA+oWqoakv5fGbMfTDqHmj2DuK/UMxxtS737q27KA9yPPsGlydKP/GoQevnNFIC3k7Q3J3ve+lJy7LxCLj3KGwXtS+wd69Yat0pzD7Qq4x59D/jMay9OR7Qb/4FZOx3iTvS0sCnreydAqmJfID2sAMfX7D2Uf+3liZVsr2+1MfNHq+VkK6GpEBWXV/MlLyFGEmWor84nPwShq9tQEGd9vUdECvlN2oTd+P2ApckTbW3un1Sx3Nu6XeOukK8XdOmYtCsoFDa280YMlXLw41GtA05dgZSBp8gbzPxHU26ZAhI8jMimhA9dn4daL59UWsPmZM2rtD1uu2w8vD2vbZauZhXifoE4b38QycMY67lR745xJZUr1FNJD70F2iHK4HdTtemQtHK62nYAfyJpT7nm3QQZyyu2aV1k9U/FQIyZNc6mS32mEgRfeEtdRh8y4HSGO2whogUhAPNEWL1zFfmm3BC12bFVMw5Vy7LMXpaLAZeajxrsF5QvxgkMwO9CfnM4H60UH0fP454Tp5q/esnAAtS9oZttn0PkGjzc6hBmpYvpl9LomYppVVwgF4ZvCnkoRZF41I23gXMHmKhXS6jKKAFwczqg9OQ6AjkqxVKhGGk/+MYyTTj5hT95VeVmeLKKJnEbr7sIhxRsYREXpuHgc7ntClpMokNFjdnGimLdEQuF01hntj8Adr3Fb7iXBkUHv9a55rJCQkBRWSUEoktTxYYwmtVGwI+g/k0ea9JH2UjlxBaqMk8zP1F81uCEI2w/AOIfUofB0eey5i2NFcv8PzQbEEDqJxLB/8qX9UlNOyveO+nkyk5BPsEuVdN9vVYcLwBEG15jTWLFC62Q/2xb47Kntqz3XF6y/9ZPyVyuSDXjhTaJXDmRh7GZEiwiPLroprK8W1FiPT1Y+CQqoim60ik2IGoZLnmpcraShJO9vWaogprtBpmxtLzxxKfsA0j4KNFg7VK5zqdd3uU4yo5A1ZodVrRlI3jB0pXKVGtRpbm/ilTRTk0jOrdT7fJUAdhWhugj7M4k4kwDKzRPEj4CnWEJ8yqVvddKBMdh8vbKizMMYanSQW8jitAE=\",\"id\":\"ZiEQCRIf4KaxcECryVLR/SGKdiMQ2mfqPvY6AFiE1ZeF/yhw1xoU2LKdRnHeRtXnZ/OfXB5+xVLQyOhM5UPYS8kaQY3YUbGIIGjH+11HrLu9McgJmCo0d9KGcaFTyP3D7em5cjegIbiDO2fpe4CSmVjnPGkOkB3N14ocssfaVDugru8XPpbE1G2HfSOvTkSkoh0QDdNQ6TWsnL+y/yjdQ9H7q1CXWhWmgtQTUhkuAnGyW3LMSP2hjdubaTUfDl3CQdsQQaR2MtbQbOwWgi26si7ZyTCJWOUm4ENtkDkuyu31ngG/Cs86qFw9t7ggThOgqlcJcr5PUBIq0H4N8fxGSaL8WBHxFefj8fPAl1xZwg42oufArHCszDSunIy+gCge0T5DLCK6KlPn3CvtHQGULcpESbA=\",\"summary\":[],\"type\":\"reasoning\"}"
+						},
+						{
+							"type": "toolCall",
+							"id": "toolcall_0",
+							"name": "read",
+							"arguments": {
+								"path": "a.txt",
+								"offset": 1,
+								"limit": 2000
+							}
+						},
+						{
+							"type": "toolCall",
+							"id": "toolcall_1",
+							"name": "read",
+							"arguments": {
+								"path": "b.txt",
+								"offset": 1,
+								"limit": 2000
+							}
+						}
+					],
+					"api": "openai-responses",
+					"provider": "github-copilot",
+					"model": "gpt-5.6-sol",
+					"usage": {
+						"input": 3,
+						"output": 97,
+						"cacheRead": 0,
+						"cacheWrite": 2714,
+						"reasoning": 29,
+						"totalTokens": 2814,
+						"cost": {
+							"input": 0.000015000000000000002,
+							"output": 0.0029100000000000003,
+							"cacheRead": 0,
+							"cacheWrite": 0.0169625,
+							"total": 0.0198875
+						}
+					},
+					"stopReason": "toolUse",
+					"timestamp": 0,
+					"responseId": "jhl4I+7oZczgoZ9l0YMsvsNkBCKr2xvquvnZ9D6s1J987Pry97Fp/NQq/guuOj+9QXbErKmJnsL9tvTKUmWIMncDTWU7Xf+ys73+THbSUUXyW3IdqurACxpsWmLwQabzxJF0RqkUF0OKKysY7axDerJtyI9t0kmiL6p3Xau7gyW1WLlUMTx6GerZjBXOy/b5dhvm8jhXKGQ6m4DLb/8yhZlsLhA0U92cm1A3/FwuNTZooVDpDaG776mjCmJfaVZc1Wb/KziwFiDwd4+KgtMhNwO3zEohkwudvWQQtz8LxYvfm7thtmmXQSnJOemJJaGNt70e1CmX9ycc2nBEBbHfMulgfNmeaCFLn0nfxrjVCuvxIVcVkN03zsb3KF0kIPGsdVM1k0pyc7TihYONFsLod9aRpBevMA=="
+				}
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "{\"path\":\"a.txt\",\"offset\":1,\"limit\":2000}"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_end",
+				"contentIndex": 1,
+				"toolCall": {
+					"type": "toolCall",
+					"id": "toolcall_0",
+					"name": "read",
+					"arguments": {
+						"path": "a.txt",
+						"offset": 1,
+						"limit": 2000
+					}
+				}
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_start",
+				"contentIndex": 2,
+				"partial": {
+					"role": "assistant",
+					"content": [
+						{
+							"type": "thinking",
+							"thinking": "",
+							"thinkingSignature": "{\"content\":[],\"encrypted_content\":\"fLbQ0HxmaiJBbgnoIqzfoYmQta7rgI8QbMlqf5ASjeYc2oJELMqt6LpReu8mb/zscAR+jiuK5/QSW03gtzjL3h+t9dkSzy70MDtTmOPRd7C+wYaXwSfNLuRuX3lJf1ip4LK8u3LfJ7OFVXMW4ArkRu4nzT2b0+Q6XdHTghoHwp2Yj2uaCZTRLTjceVZaRxvppdEf61Z7D/Xx+N/mbZrKHXAPNqWcyyENaTnfx/ZB94gevFspS8yhUiePAy5HCjVssT3dl41iFNMbMcEghKag444iqBmbspQUDN/4NF9IS5kM4CkpacxYK27eqto/EcRMdozX2atiTilYxSbThQZuAV6TnTz3nNiPL7jQdm2cvZzp24/o/wEOjjPnbcMlmhxZ2qQ9ZCta1FNz32Gyv5xs0NBtx1/+3mmmWJSi8Ck9RTtrLGdhh2Sm+GXWr/ZF1uFegQ7zJYyXD22WBhC6cF0LUvg8LvTSRidULH6QUTlsxtd/xR37ssbmLMYafA0B/czHZZwYvrUdnBuY1zoIJk6GHCDQN6/qCNOHCCxmPLmKbEu6a18QlUFaG1oG2GzHPzflnEOz3sea9KhvaDcGxa88Wc3YMkOiz+aHJ9LTVPIECskYVeDPkbD/dJdV4ZiCFuqUDwV4kpmUSW6LrA/9prfGweIW0tK7lrYPvN7TFn3m2p3/U/TdV4ZIZLuNFoFbX0/ipbAbmlYB5XMIOUSxUUNm98iAZJ8Gt92+raiGzObTU0uDvy+A2+4ILCmVy2y1E6AacUJOpI+SqspZA+oWqoakv5fGbMfTDqHmj2DuK/UMxxtS737q27KA9yPPsGlydKP/GoQevnNFIC3k7Q3J3ve+lJy7LxCLj3KGwXtS+wd69Yat0pzD7Qq4x59D/jMay9OR7Qb/4FZOx3iTvS0sCnreydAqmJfID2sAMfX7D2Uf+3liZVsr2+1MfNHq+VkK6GpEBWXV/MlLyFGEmWor84nPwShq9tQEGd9vUdECvlN2oTd+P2ApckTbW3un1Sx3Nu6XeOukK8XdOmYtCsoFDa280YMlXLw41GtA05dgZSBp8gbzPxHU26ZAhI8jMimhA9dn4daL59UWsPmZM2rtD1uu2w8vD2vbZauZhXifoE4b38QycMY67lR745xJZUr1FNJD70F2iHK4HdTtemQtHK62nYAfyJpT7nm3QQZyyu2aV1k9U/FQIyZNc6mS32mEgRfeEtdRh8y4HSGO2whogUhAPNEWL1zFfmm3BC12bFVMw5Vy7LMXpaLAZeajxrsF5QvxgkMwO9CfnM4H60UH0fP454Tp5q/esnAAtS9oZttn0PkGjzc6hBmpYvpl9LomYppVVwgF4ZvCnkoRZF41I23gXMHmKhXS6jKKAFwczqg9OQ6AjkqxVKhGGk/+MYyTTj5hT95VeVmeLKKJnEbr7sIhxRsYREXpuHgc7ntClpMokNFjdnGimLdEQuF01hntj8Adr3Fb7iXBkUHv9a55rJCQkBRWSUEoktTxYYwmtVGwI+g/k0ea9JH2UjlxBaqMk8zP1F81uCEI2w/AOIfUofB0eey5i2NFcv8PzQbEEDqJxLB/8qX9UlNOyveO+nkyk5BPsEuVdN9vVYcLwBEG15jTWLFC62Q/2xb47Kntqz3XF6y/9ZPyVyuSDXjhTaJXDmRh7GZEiwiPLroprK8W1FiPT1Y+CQqoim60ik2IGoZLnmpcraShJO9vWaogprtBpmxtLzxxKfsA0j4KNFg7VK5zqdd3uU4yo5A1ZodVrRlI3jB0pXKVGtRpbm/ilTRTk0jOrdT7fJUAdhWhugj7M4k4kwDKzRPEj4CnWEJ8yqVvddKBMdh8vbKizMMYanSQW8jitAE=\",\"id\":\"ZiEQCRIf4KaxcECryVLR/SGKdiMQ2mfqPvY6AFiE1ZeF/yhw1xoU2LKdRnHeRtXnZ/OfXB5+xVLQyOhM5UPYS8kaQY3YUbGIIGjH+11HrLu9McgJmCo0d9KGcaFTyP3D7em5cjegIbiDO2fpe4CSmVjnPGkOkB3N14ocssfaVDugru8XPpbE1G2HfSOvTkSkoh0QDdNQ6TWsnL+y/yjdQ9H7q1CXWhWmgtQTUhkuAnGyW3LMSP2hjdubaTUfDl3CQdsQQaR2MtbQbOwWgi26si7ZyTCJWOUm4ENtkDkuyu31ngG/Cs86qFw9t7ggThOgqlcJcr5PUBIq0H4N8fxGSaL8WBHxFefj8fPAl1xZwg42oufArHCszDSunIy+gCge0T5DLCK6KlPn3CvtHQGULcpESbA=\",\"summary\":[],\"type\":\"reasoning\"}"
+						},
+						{
+							"type": "toolCall",
+							"id": "toolcall_0",
+							"name": "read",
+							"arguments": {
+								"path": "a.txt",
+								"offset": 1,
+								"limit": 2000
+							}
+						},
+						{
+							"type": "toolCall",
+							"id": "toolcall_1",
+							"name": "read",
+							"arguments": {
+								"path": "b.txt",
+								"offset": 1,
+								"limit": 2000
+							}
+						}
+					],
+					"api": "openai-responses",
+					"provider": "github-copilot",
+					"model": "gpt-5.6-sol",
+					"usage": {
+						"input": 3,
+						"output": 97,
+						"cacheRead": 0,
+						"cacheWrite": 2714,
+						"reasoning": 29,
+						"totalTokens": 2814,
+						"cost": {
+							"input": 0.000015000000000000002,
+							"output": 0.0029100000000000003,
+							"cacheRead": 0,
+							"cacheWrite": 0.0169625,
+							"total": 0.0198875
+						}
+					},
+					"stopReason": "toolUse",
+					"timestamp": 0,
+					"responseId": "jhl4I+7oZczgoZ9l0YMsvsNkBCKr2xvquvnZ9D6s1J987Pry97Fp/NQq/guuOj+9QXbErKmJnsL9tvTKUmWIMncDTWU7Xf+ys73+THbSUUXyW3IdqurACxpsWmLwQabzxJF0RqkUF0OKKysY7axDerJtyI9t0kmiL6p3Xau7gyW1WLlUMTx6GerZjBXOy/b5dhvm8jhXKGQ6m4DLb/8yhZlsLhA0U92cm1A3/FwuNTZooVDpDaG776mjCmJfaVZc1Wb/KziwFiDwd4+KgtMhNwO3zEohkwudvWQQtz8LxYvfm7thtmmXQSnJOemJJaGNt70e1CmX9ycc2nBEBbHfMulgfNmeaCFLn0nfxrjVCuvxIVcVkN03zsb3KF0kIPGsdVM1k0pyc7TihYONFsLod9aRpBevMA=="
+				}
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 2,
+				"delta": "{\"path\":\"b.txt\",\"offset\":1,\"limit\":2000}"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_end",
+				"contentIndex": 2,
+				"toolCall": {
+					"type": "toolCall",
+					"id": "toolcall_1",
+					"name": "read",
+					"arguments": {
+						"path": "b.txt",
+						"offset": 1,
+						"limit": 2000
+					}
+				}
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_end",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "thinking",
+						"thinking": "",
+						"thinkingSignature": "{\"content\":[],\"encrypted_content\":\"fLbQ0HxmaiJBbgnoIqzfoYmQta7rgI8QbMlqf5ASjeYc2oJELMqt6LpReu8mb/zscAR+jiuK5/QSW03gtzjL3h+t9dkSzy70MDtTmOPRd7C+wYaXwSfNLuRuX3lJf1ip4LK8u3LfJ7OFVXMW4ArkRu4nzT2b0+Q6XdHTghoHwp2Yj2uaCZTRLTjceVZaRxvppdEf61Z7D/Xx+N/mbZrKHXAPNqWcyyENaTnfx/ZB94gevFspS8yhUiePAy5HCjVssT3dl41iFNMbMcEghKag444iqBmbspQUDN/4NF9IS5kM4CkpacxYK27eqto/EcRMdozX2atiTilYxSbThQZuAV6TnTz3nNiPL7jQdm2cvZzp24/o/wEOjjPnbcMlmhxZ2qQ9ZCta1FNz32Gyv5xs0NBtx1/+3mmmWJSi8Ck9RTtrLGdhh2Sm+GXWr/ZF1uFegQ7zJYyXD22WBhC6cF0LUvg8LvTSRidULH6QUTlsxtd/xR37ssbmLMYafA0B/czHZZwYvrUdnBuY1zoIJk6GHCDQN6/qCNOHCCxmPLmKbEu6a18QlUFaG1oG2GzHPzflnEOz3sea9KhvaDcGxa88Wc3YMkOiz+aHJ9LTVPIECskYVeDPkbD/dJdV4ZiCFuqUDwV4kpmUSW6LrA/9prfGweIW0tK7lrYPvN7TFn3m2p3/U/TdV4ZIZLuNFoFbX0/ipbAbmlYB5XMIOUSxUUNm98iAZJ8Gt92+raiGzObTU0uDvy+A2+4ILCmVy2y1E6AacUJOpI+SqspZA+oWqoakv5fGbMfTDqHmj2DuK/UMxxtS737q27KA9yPPsGlydKP/GoQevnNFIC3k7Q3J3ve+lJy7LxCLj3KGwXtS+wd69Yat0pzD7Qq4x59D/jMay9OR7Qb/4FZOx3iTvS0sCnreydAqmJfID2sAMfX7D2Uf+3liZVsr2+1MfNHq+VkK6GpEBWXV/MlLyFGEmWor84nPwShq9tQEGd9vUdECvlN2oTd+P2ApckTbW3un1Sx3Nu6XeOukK8XdOmYtCsoFDa280YMlXLw41GtA05dgZSBp8gbzPxHU26ZAhI8jMimhA9dn4daL59UWsPmZM2rtD1uu2w8vD2vbZauZhXifoE4b38QycMY67lR745xJZUr1FNJD70F2iHK4HdTtemQtHK62nYAfyJpT7nm3QQZyyu2aV1k9U/FQIyZNc6mS32mEgRfeEtdRh8y4HSGO2whogUhAPNEWL1zFfmm3BC12bFVMw5Vy7LMXpaLAZeajxrsF5QvxgkMwO9CfnM4H60UH0fP454Tp5q/esnAAtS9oZttn0PkGjzc6hBmpYvpl9LomYppVVwgF4ZvCnkoRZF41I23gXMHmKhXS6jKKAFwczqg9OQ6AjkqxVKhGGk/+MYyTTj5hT95VeVmeLKKJnEbr7sIhxRsYREXpuHgc7ntClpMokNFjdnGimLdEQuF01hntj8Adr3Fb7iXBkUHv9a55rJCQkBRWSUEoktTxYYwmtVGwI+g/k0ea9JH2UjlxBaqMk8zP1F81uCEI2w/AOIfUofB0eey5i2NFcv8PzQbEEDqJxLB/8qX9UlNOyveO+nkyk5BPsEuVdN9vVYcLwBEG15jTWLFC62Q/2xb47Kntqz3XF6y/9ZPyVyuSDXjhTaJXDmRh7GZEiwiPLroprK8W1FiPT1Y+CQqoim60ik2IGoZLnmpcraShJO9vWaogprtBpmxtLzxxKfsA0j4KNFg7VK5zqdd3uU4yo5A1ZodVrRlI3jB0pXKVGtRpbm/ilTRTk0jOrdT7fJUAdhWhugj7M4k4kwDKzRPEj4CnWEJ8yqVvddKBMdh8vbKizMMYanSQW8jitAE=\",\"id\":\"ZiEQCRIf4KaxcECryVLR/SGKdiMQ2mfqPvY6AFiE1ZeF/yhw1xoU2LKdRnHeRtXnZ/OfXB5+xVLQyOhM5UPYS8kaQY3YUbGIIGjH+11HrLu9McgJmCo0d9KGcaFTyP3D7em5cjegIbiDO2fpe4CSmVjnPGkOkB3N14ocssfaVDugru8XPpbE1G2HfSOvTkSkoh0QDdNQ6TWsnL+y/yjdQ9H7q1CXWhWmgtQTUhkuAnGyW3LMSP2hjdubaTUfDl3CQdsQQaR2MtbQbOwWgi26si7ZyTCJWOUm4ENtkDkuyu31ngG/Cs86qFw9t7ggThOgqlcJcr5PUBIq0H4N8fxGSaL8WBHxFefj8fPAl1xZwg42oufArHCszDSunIy+gCge0T5DLCK6KlPn3CvtHQGULcpESbA=\",\"summary\":[],\"type\":\"reasoning\"}"
+					},
+					{
+						"type": "toolCall",
+						"id": "toolcall_0",
+						"name": "read",
+						"arguments": {
+							"path": "a.txt",
+							"offset": 1,
+							"limit": 2000
+						}
+					},
+					{
+						"type": "toolCall",
+						"id": "toolcall_1",
+						"name": "read",
+						"arguments": {
+							"path": "b.txt",
+							"offset": 1,
+							"limit": 2000
+						}
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.6-sol",
+				"usage": {
+					"input": 3,
+					"output": 97,
+					"cacheRead": 0,
+					"cacheWrite": 2714,
+					"reasoning": 29,
+					"totalTokens": 2814,
+					"cost": {
+						"input": 0.000015000000000000002,
+						"output": 0.0029100000000000003,
+						"cacheRead": 0,
+						"cacheWrite": 0.0169625,
+						"total": 0.0198875
+					}
+				},
+				"stopReason": "toolUse",
+				"timestamp": 0,
+				"responseId": "jhl4I+7oZczgoZ9l0YMsvsNkBCKr2xvquvnZ9D6s1J987Pry97Fp/NQq/guuOj+9QXbErKmJnsL9tvTKUmWIMncDTWU7Xf+ys73+THbSUUXyW3IdqurACxpsWmLwQabzxJF0RqkUF0OKKysY7axDerJtyI9t0kmiL6p3Xau7gyW1WLlUMTx6GerZjBXOy/b5dhvm8jhXKGQ6m4DLb/8yhZlsLhA0U92cm1A3/FwuNTZooVDpDaG776mjCmJfaVZc1Wb/KziwFiDwd4+KgtMhNwO3zEohkwudvWQQtz8LxYvfm7thtmmXQSnJOemJJaGNt70e1CmX9ycc2nBEBbHfMulgfNmeaCFLn0nfxrjVCuvxIVcVkN03zsb3KF0kIPGsdVM1k0pyc7TihYONFsLod9aRpBevMA=="
+			}
+		},
+		{
+			"type": "tool_execution_start",
+			"toolCallId": "toolcall_0",
+			"toolName": "read",
+			"args": {
+				"path": "a.txt",
+				"offset": 1,
+				"limit": 2000
+			}
+		},
+		{
+			"type": "tool_execution_start",
+			"toolCallId": "toolcall_1",
+			"toolName": "read",
+			"args": {
+				"path": "b.txt",
+				"offset": 1,
+				"limit": 2000
+			}
+		},
+		{
+			"type": "tool_execution_end",
+			"toolCallId": "toolcall_1",
+			"toolName": "read",
+			"result": {
+				"content": [
+					{
+						"type": "text",
+						"text": "SECOND\n"
+					}
+				]
+			},
+			"isError": false
+		},
+		{
+			"type": "tool_execution_end",
+			"toolCallId": "toolcall_0",
+			"toolName": "read",
+			"result": {
+				"content": [
+					{
+						"type": "text",
+						"text": "FIRST\n"
+					}
+				]
+			},
+			"isError": false
+		},
+		{
+			"type": "message_start",
+			"message": {
+				"role": "toolResult",
+				"toolCallId": "toolcall_0",
+				"toolName": "read",
+				"content": [
+					{
+						"type": "text",
+						"text": "FIRST\n"
+					}
+				],
+				"isError": false,
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "message_end",
+			"message": {
+				"role": "toolResult",
+				"toolCallId": "toolcall_0",
+				"toolName": "read",
+				"content": [
+					{
+						"type": "text",
+						"text": "FIRST\n"
+					}
+				],
+				"isError": false,
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "message_start",
+			"message": {
+				"role": "toolResult",
+				"toolCallId": "toolcall_1",
+				"toolName": "read",
+				"content": [
+					{
+						"type": "text",
+						"text": "SECOND\n"
+					}
+				],
+				"isError": false,
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "message_end",
+			"message": {
+				"role": "toolResult",
+				"toolCallId": "toolcall_1",
+				"toolName": "read",
+				"content": [
+					{
+						"type": "text",
+						"text": "SECOND\n"
+					}
+				],
+				"isError": false,
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "turn_end",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "thinking",
+						"thinking": "",
+						"thinkingSignature": "{\"content\":[],\"encrypted_content\":\"fLbQ0HxmaiJBbgnoIqzfoYmQta7rgI8QbMlqf5ASjeYc2oJELMqt6LpReu8mb/zscAR+jiuK5/QSW03gtzjL3h+t9dkSzy70MDtTmOPRd7C+wYaXwSfNLuRuX3lJf1ip4LK8u3LfJ7OFVXMW4ArkRu4nzT2b0+Q6XdHTghoHwp2Yj2uaCZTRLTjceVZaRxvppdEf61Z7D/Xx+N/mbZrKHXAPNqWcyyENaTnfx/ZB94gevFspS8yhUiePAy5HCjVssT3dl41iFNMbMcEghKag444iqBmbspQUDN/4NF9IS5kM4CkpacxYK27eqto/EcRMdozX2atiTilYxSbThQZuAV6TnTz3nNiPL7jQdm2cvZzp24/o/wEOjjPnbcMlmhxZ2qQ9ZCta1FNz32Gyv5xs0NBtx1/+3mmmWJSi8Ck9RTtrLGdhh2Sm+GXWr/ZF1uFegQ7zJYyXD22WBhC6cF0LUvg8LvTSRidULH6QUTlsxtd/xR37ssbmLMYafA0B/czHZZwYvrUdnBuY1zoIJk6GHCDQN6/qCNOHCCxmPLmKbEu6a18QlUFaG1oG2GzHPzflnEOz3sea9KhvaDcGxa88Wc3YMkOiz+aHJ9LTVPIECskYVeDPkbD/dJdV4ZiCFuqUDwV4kpmUSW6LrA/9prfGweIW0tK7lrYPvN7TFn3m2p3/U/TdV4ZIZLuNFoFbX0/ipbAbmlYB5XMIOUSxUUNm98iAZJ8Gt92+raiGzObTU0uDvy+A2+4ILCmVy2y1E6AacUJOpI+SqspZA+oWqoakv5fGbMfTDqHmj2DuK/UMxxtS737q27KA9yPPsGlydKP/GoQevnNFIC3k7Q3J3ve+lJy7LxCLj3KGwXtS+wd69Yat0pzD7Qq4x59D/jMay9OR7Qb/4FZOx3iTvS0sCnreydAqmJfID2sAMfX7D2Uf+3liZVsr2+1MfNHq+VkK6GpEBWXV/MlLyFGEmWor84nPwShq9tQEGd9vUdECvlN2oTd+P2ApckTbW3un1Sx3Nu6XeOukK8XdOmYtCsoFDa280YMlXLw41GtA05dgZSBp8gbzPxHU26ZAhI8jMimhA9dn4daL59UWsPmZM2rtD1uu2w8vD2vbZauZhXifoE4b38QycMY67lR745xJZUr1FNJD70F2iHK4HdTtemQtHK62nYAfyJpT7nm3QQZyyu2aV1k9U/FQIyZNc6mS32mEgRfeEtdRh8y4HSGO2whogUhAPNEWL1zFfmm3BC12bFVMw5Vy7LMXpaLAZeajxrsF5QvxgkMwO9CfnM4H60UH0fP454Tp5q/esnAAtS9oZttn0PkGjzc6hBmpYvpl9LomYppVVwgF4ZvCnkoRZF41I23gXMHmKhXS6jKKAFwczqg9OQ6AjkqxVKhGGk/+MYyTTj5hT95VeVmeLKKJnEbr7sIhxRsYREXpuHgc7ntClpMokNFjdnGimLdEQuF01hntj8Adr3Fb7iXBkUHv9a55rJCQkBRWSUEoktTxYYwmtVGwI+g/k0ea9JH2UjlxBaqMk8zP1F81uCEI2w/AOIfUofB0eey5i2NFcv8PzQbEEDqJxLB/8qX9UlNOyveO+nkyk5BPsEuVdN9vVYcLwBEG15jTWLFC62Q/2xb47Kntqz3XF6y/9ZPyVyuSDXjhTaJXDmRh7GZEiwiPLroprK8W1FiPT1Y+CQqoim60ik2IGoZLnmpcraShJO9vWaogprtBpmxtLzxxKfsA0j4KNFg7VK5zqdd3uU4yo5A1ZodVrRlI3jB0pXKVGtRpbm/ilTRTk0jOrdT7fJUAdhWhugj7M4k4kwDKzRPEj4CnWEJ8yqVvddKBMdh8vbKizMMYanSQW8jitAE=\",\"id\":\"ZiEQCRIf4KaxcECryVLR/SGKdiMQ2mfqPvY6AFiE1ZeF/yhw1xoU2LKdRnHeRtXnZ/OfXB5+xVLQyOhM5UPYS8kaQY3YUbGIIGjH+11HrLu9McgJmCo0d9KGcaFTyP3D7em5cjegIbiDO2fpe4CSmVjnPGkOkB3N14ocssfaVDugru8XPpbE1G2HfSOvTkSkoh0QDdNQ6TWsnL+y/yjdQ9H7q1CXWhWmgtQTUhkuAnGyW3LMSP2hjdubaTUfDl3CQdsQQaR2MtbQbOwWgi26si7ZyTCJWOUm4ENtkDkuyu31ngG/Cs86qFw9t7ggThOgqlcJcr5PUBIq0H4N8fxGSaL8WBHxFefj8fPAl1xZwg42oufArHCszDSunIy+gCge0T5DLCK6KlPn3CvtHQGULcpESbA=\",\"summary\":[],\"type\":\"reasoning\"}"
+					},
+					{
+						"type": "toolCall",
+						"id": "toolcall_0",
+						"name": "read",
+						"arguments": {
+							"path": "a.txt",
+							"offset": 1,
+							"limit": 2000
+						}
+					},
+					{
+						"type": "toolCall",
+						"id": "toolcall_1",
+						"name": "read",
+						"arguments": {
+							"path": "b.txt",
+							"offset": 1,
+							"limit": 2000
+						}
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.6-sol",
+				"usage": {
+					"input": 3,
+					"output": 97,
+					"cacheRead": 0,
+					"cacheWrite": 2714,
+					"reasoning": 29,
+					"totalTokens": 2814,
+					"cost": {
+						"input": 0.000015000000000000002,
+						"output": 0.0029100000000000003,
+						"cacheRead": 0,
+						"cacheWrite": 0.0169625,
+						"total": 0.0198875
+					}
+				},
+				"stopReason": "toolUse",
+				"timestamp": 0,
+				"responseId": "jhl4I+7oZczgoZ9l0YMsvsNkBCKr2xvquvnZ9D6s1J987Pry97Fp/NQq/guuOj+9QXbErKmJnsL9tvTKUmWIMncDTWU7Xf+ys73+THbSUUXyW3IdqurACxpsWmLwQabzxJF0RqkUF0OKKysY7axDerJtyI9t0kmiL6p3Xau7gyW1WLlUMTx6GerZjBXOy/b5dhvm8jhXKGQ6m4DLb/8yhZlsLhA0U92cm1A3/FwuNTZooVDpDaG776mjCmJfaVZc1Wb/KziwFiDwd4+KgtMhNwO3zEohkwudvWQQtz8LxYvfm7thtmmXQSnJOemJJaGNt70e1CmX9ycc2nBEBbHfMulgfNmeaCFLn0nfxrjVCuvxIVcVkN03zsb3KF0kIPGsdVM1k0pyc7TihYONFsLod9aRpBevMA=="
+			},
+			"toolResults": [
+				{
+					"role": "toolResult",
+					"toolCallId": "toolcall_0",
+					"toolName": "read",
+					"content": [
+						{
+							"type": "text",
+							"text": "FIRST\n"
+						}
+					],
+					"isError": false,
+					"timestamp": 0
+				},
+				{
+					"role": "toolResult",
+					"toolCallId": "toolcall_1",
+					"toolName": "read",
+					"content": [
+						{
+							"type": "text",
+							"text": "SECOND\n"
+						}
+					],
+					"isError": false,
+					"timestamp": 0
+				}
+			]
+		},
+		{
+			"type": "turn_start"
+		},
+		{
+			"type": "message_start",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "text",
+						"text": "FIRST,SECOND",
+						"textSignature": "{\"v\":1,\"id\":\"/K+UW79/vzAWcRFVjM+qQov8al0bvz7Kz5r07vXOjaoL908jGrxXsjFagFz/rsZHNkmcTtnSlaIEt85Un2ssyQCtDN+kgvKo65kCV+BJmmkglHc4y1g9C1EbWLSk3JRp8/+wz1kiHHJJVA90CYXKhA0wh41pOHt+bJ9ueMaE/thbnnUT9iaob2Su7sodO04oWeOSpGZDJe6YR/wsunC3YHzNeVfD9N3h1SmHq4y5Lux2OQcPZghw+Iyo1Tkp1E5B5vJG1rXZSH1o/6JLDauREXD5CU0adq7Apa9iCDgmJKAGntfCWPUDMsVCIaMZT4413snFsadXiflu5Gw79bxLVH/6+WxqWItzczGOixO18G9emMiKiu+n5yO8jzSk3jkIW2tXZw4qYyKGPBdpr4g8gLznq4b4\",\"phase\":\"final_answer\"}"
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.6-sol",
+				"usage": {
+					"input": 0,
+					"output": 0,
+					"cacheRead": 0,
+					"cacheWrite": 0,
+					"totalTokens": 0,
+					"cost": {
+						"input": 0,
+						"output": 0,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"total": 0
+					}
+				},
+				"stopReason": "stop",
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_start",
+				"contentIndex": 0
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": "FIRST"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": ","
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": "SECOND"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_end",
+				"contentIndex": 0,
+				"content": "FIRST,SECOND"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_end",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "text",
+						"text": "FIRST,SECOND",
+						"textSignature": "{\"v\":1,\"id\":\"/K+UW79/vzAWcRFVjM+qQov8al0bvz7Kz5r07vXOjaoL908jGrxXsjFagFz/rsZHNkmcTtnSlaIEt85Un2ssyQCtDN+kgvKo65kCV+BJmmkglHc4y1g9C1EbWLSk3JRp8/+wz1kiHHJJVA90CYXKhA0wh41pOHt+bJ9ueMaE/thbnnUT9iaob2Su7sodO04oWeOSpGZDJe6YR/wsunC3YHzNeVfD9N3h1SmHq4y5Lux2OQcPZghw+Iyo1Tkp1E5B5vJG1rXZSH1o/6JLDauREXD5CU0adq7Apa9iCDgmJKAGntfCWPUDMsVCIaMZT4413snFsadXiflu5Gw79bxLVH/6+WxqWItzczGOixO18G9emMiKiu+n5yO8jzSk3jkIW2tXZw4qYyKGPBdpr4g8gLznq4b4\",\"phase\":\"final_answer\"}"
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.6-sol",
+				"usage": {
+					"input": 3,
+					"output": 7,
+					"cacheRead": 2714,
+					"cacheWrite": 119,
+					"reasoning": 0,
+					"totalTokens": 2843,
+					"cost": {
+						"input": 0.000015000000000000002,
+						"output": 0.00021,
+						"cacheRead": 0.001357,
+						"cacheWrite": 0.00074375,
+						"total": 0.0023257499999999997
+					}
+				},
+				"stopReason": "stop",
+				"timestamp": 0,
+				"responseId": "HIfMCLdA6z0SkJQPTGTWKByu2wDivhQXmeQEjcDvgS3E+UKWgFwk20rgbR/3HOYetudguqs58TSdJI4D22w4p4ZVq9m3krK0MeugQAfREkqUX173o/zG3iNbo0Ajb2Tm7PXSLAR0flR9abGo2IrHT57l2IzsODEnlqItZRnd0wkNoOW8z6E3iBvsWwSaJVQfaqfXutz16J2MrrsMipmgBH7uvfyBvdbPN9PfWXIKFWD7XErugq3So2hbc1d8iOlOoC12PFR0n8sdpcYItZmZg9UJcZaj8CzJw/2gcDXuCOvVukd5K4TeJwIzYi9Cc9Rnn4gGpPBSokbORWSBeewnlobpBpHW5Z7qcJifZdsfkqNyhP3CFbPBNSYLPj/wY9d0EZEbmX9jn7gPRhdWhLr3OVJYnaUPqw=="
+			}
+		},
+		{
+			"type": "turn_end",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "text",
+						"text": "FIRST,SECOND",
+						"textSignature": "{\"v\":1,\"id\":\"/K+UW79/vzAWcRFVjM+qQov8al0bvz7Kz5r07vXOjaoL908jGrxXsjFagFz/rsZHNkmcTtnSlaIEt85Un2ssyQCtDN+kgvKo65kCV+BJmmkglHc4y1g9C1EbWLSk3JRp8/+wz1kiHHJJVA90CYXKhA0wh41pOHt+bJ9ueMaE/thbnnUT9iaob2Su7sodO04oWeOSpGZDJe6YR/wsunC3YHzNeVfD9N3h1SmHq4y5Lux2OQcPZghw+Iyo1Tkp1E5B5vJG1rXZSH1o/6JLDauREXD5CU0adq7Apa9iCDgmJKAGntfCWPUDMsVCIaMZT4413snFsadXiflu5Gw79bxLVH/6+WxqWItzczGOixO18G9emMiKiu+n5yO8jzSk3jkIW2tXZw4qYyKGPBdpr4g8gLznq4b4\",\"phase\":\"final_answer\"}"
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.6-sol",
+				"usage": {
+					"input": 3,
+					"output": 7,
+					"cacheRead": 2714,
+					"cacheWrite": 119,
+					"reasoning": 0,
+					"totalTokens": 2843,
+					"cost": {
+						"input": 0.000015000000000000002,
+						"output": 0.00021,
+						"cacheRead": 0.001357,
+						"cacheWrite": 0.00074375,
+						"total": 0.0023257499999999997
+					}
+				},
+				"stopReason": "stop",
+				"timestamp": 0,
+				"responseId": "HIfMCLdA6z0SkJQPTGTWKByu2wDivhQXmeQEjcDvgS3E+UKWgFwk20rgbR/3HOYetudguqs58TSdJI4D22w4p4ZVq9m3krK0MeugQAfREkqUX173o/zG3iNbo0Ajb2Tm7PXSLAR0flR9abGo2IrHT57l2IzsODEnlqItZRnd0wkNoOW8z6E3iBvsWwSaJVQfaqfXutz16J2MrrsMipmgBH7uvfyBvdbPN9PfWXIKFWD7XErugq3So2hbc1d8iOlOoC12PFR0n8sdpcYItZmZg9UJcZaj8CzJw/2gcDXuCOvVukd5K4TeJwIzYi9Cc9Rnn4gGpPBSokbORWSBeewnlobpBpHW5Z7qcJifZdsfkqNyhP3CFbPBNSYLPj/wY9d0EZEbmX9jn7gPRhdWhLr3OVJYnaUPqw=="
+			},
+			"toolResults": []
+		},
+		{
+			"type": "agent_end",
+			"messages": [
+				{
+					"role": "user",
+					"content": [
+						{
+							"type": "text",
+							"text": "Read both a.txt and b.txt, then reply with their contents separated by a comma."
+						}
+					],
+					"timestamp": 0
+				},
+				{
+					"role": "assistant",
+					"content": [
+						{
+							"type": "thinking",
+							"thinking": "",
+							"thinkingSignature": "{\"content\":[],\"encrypted_content\":\"fLbQ0HxmaiJBbgnoIqzfoYmQta7rgI8QbMlqf5ASjeYc2oJELMqt6LpReu8mb/zscAR+jiuK5/QSW03gtzjL3h+t9dkSzy70MDtTmOPRd7C+wYaXwSfNLuRuX3lJf1ip4LK8u3LfJ7OFVXMW4ArkRu4nzT2b0+Q6XdHTghoHwp2Yj2uaCZTRLTjceVZaRxvppdEf61Z7D/Xx+N/mbZrKHXAPNqWcyyENaTnfx/ZB94gevFspS8yhUiePAy5HCjVssT3dl41iFNMbMcEghKag444iqBmbspQUDN/4NF9IS5kM4CkpacxYK27eqto/EcRMdozX2atiTilYxSbThQZuAV6TnTz3nNiPL7jQdm2cvZzp24/o/wEOjjPnbcMlmhxZ2qQ9ZCta1FNz32Gyv5xs0NBtx1/+3mmmWJSi8Ck9RTtrLGdhh2Sm+GXWr/ZF1uFegQ7zJYyXD22WBhC6cF0LUvg8LvTSRidULH6QUTlsxtd/xR37ssbmLMYafA0B/czHZZwYvrUdnBuY1zoIJk6GHCDQN6/qCNOHCCxmPLmKbEu6a18QlUFaG1oG2GzHPzflnEOz3sea9KhvaDcGxa88Wc3YMkOiz+aHJ9LTVPIECskYVeDPkbD/dJdV4ZiCFuqUDwV4kpmUSW6LrA/9prfGweIW0tK7lrYPvN7TFn3m2p3/U/TdV4ZIZLuNFoFbX0/ipbAbmlYB5XMIOUSxUUNm98iAZJ8Gt92+raiGzObTU0uDvy+A2+4ILCmVy2y1E6AacUJOpI+SqspZA+oWqoakv5fGbMfTDqHmj2DuK/UMxxtS737q27KA9yPPsGlydKP/GoQevnNFIC3k7Q3J3ve+lJy7LxCLj3KGwXtS+wd69Yat0pzD7Qq4x59D/jMay9OR7Qb/4FZOx3iTvS0sCnreydAqmJfID2sAMfX7D2Uf+3liZVsr2+1MfNHq+VkK6GpEBWXV/MlLyFGEmWor84nPwShq9tQEGd9vUdECvlN2oTd+P2ApckTbW3un1Sx3Nu6XeOukK8XdOmYtCsoFDa280YMlXLw41GtA05dgZSBp8gbzPxHU26ZAhI8jMimhA9dn4daL59UWsPmZM2rtD1uu2w8vD2vbZauZhXifoE4b38QycMY67lR745xJZUr1FNJD70F2iHK4HdTtemQtHK62nYAfyJpT7nm3QQZyyu2aV1k9U/FQIyZNc6mS32mEgRfeEtdRh8y4HSGO2whogUhAPNEWL1zFfmm3BC12bFVMw5Vy7LMXpaLAZeajxrsF5QvxgkMwO9CfnM4H60UH0fP454Tp5q/esnAAtS9oZttn0PkGjzc6hBmpYvpl9LomYppVVwgF4ZvCnkoRZF41I23gXMHmKhXS6jKKAFwczqg9OQ6AjkqxVKhGGk/+MYyTTj5hT95VeVmeLKKJnEbr7sIhxRsYREXpuHgc7ntClpMokNFjdnGimLdEQuF01hntj8Adr3Fb7iXBkUHv9a55rJCQkBRWSUEoktTxYYwmtVGwI+g/k0ea9JH2UjlxBaqMk8zP1F81uCEI2w/AOIfUofB0eey5i2NFcv8PzQbEEDqJxLB/8qX9UlNOyveO+nkyk5BPsEuVdN9vVYcLwBEG15jTWLFC62Q/2xb47Kntqz3XF6y/9ZPyVyuSDXjhTaJXDmRh7GZEiwiPLroprK8W1FiPT1Y+CQqoim60ik2IGoZLnmpcraShJO9vWaogprtBpmxtLzxxKfsA0j4KNFg7VK5zqdd3uU4yo5A1ZodVrRlI3jB0pXKVGtRpbm/ilTRTk0jOrdT7fJUAdhWhugj7M4k4kwDKzRPEj4CnWEJ8yqVvddKBMdh8vbKizMMYanSQW8jitAE=\",\"id\":\"ZiEQCRIf4KaxcECryVLR/SGKdiMQ2mfqPvY6AFiE1ZeF/yhw1xoU2LKdRnHeRtXnZ/OfXB5+xVLQyOhM5UPYS8kaQY3YUbGIIGjH+11HrLu9McgJmCo0d9KGcaFTyP3D7em5cjegIbiDO2fpe4CSmVjnPGkOkB3N14ocssfaVDugru8XPpbE1G2HfSOvTkSkoh0QDdNQ6TWsnL+y/yjdQ9H7q1CXWhWmgtQTUhkuAnGyW3LMSP2hjdubaTUfDl3CQdsQQaR2MtbQbOwWgi26si7ZyTCJWOUm4ENtkDkuyu31ngG/Cs86qFw9t7ggThOgqlcJcr5PUBIq0H4N8fxGSaL8WBHxFefj8fPAl1xZwg42oufArHCszDSunIy+gCge0T5DLCK6KlPn3CvtHQGULcpESbA=\",\"summary\":[],\"type\":\"reasoning\"}"
+						},
+						{
+							"type": "toolCall",
+							"id": "toolcall_0",
+							"name": "read",
+							"arguments": {
+								"path": "a.txt",
+								"offset": 1,
+								"limit": 2000
+							}
+						},
+						{
+							"type": "toolCall",
+							"id": "toolcall_1",
+							"name": "read",
+							"arguments": {
+								"path": "b.txt",
+								"offset": 1,
+								"limit": 2000
+							}
+						}
+					],
+					"api": "openai-responses",
+					"provider": "github-copilot",
+					"model": "gpt-5.6-sol",
+					"usage": {
+						"input": 3,
+						"output": 97,
+						"cacheRead": 0,
+						"cacheWrite": 2714,
+						"reasoning": 29,
+						"totalTokens": 2814,
+						"cost": {
+							"input": 0.000015000000000000002,
+							"output": 0.0029100000000000003,
+							"cacheRead": 0,
+							"cacheWrite": 0.0169625,
+							"total": 0.0198875
+						}
+					},
+					"stopReason": "toolUse",
+					"timestamp": 0,
+					"responseId": "jhl4I+7oZczgoZ9l0YMsvsNkBCKr2xvquvnZ9D6s1J987Pry97Fp/NQq/guuOj+9QXbErKmJnsL9tvTKUmWIMncDTWU7Xf+ys73+THbSUUXyW3IdqurACxpsWmLwQabzxJF0RqkUF0OKKysY7axDerJtyI9t0kmiL6p3Xau7gyW1WLlUMTx6GerZjBXOy/b5dhvm8jhXKGQ6m4DLb/8yhZlsLhA0U92cm1A3/FwuNTZooVDpDaG776mjCmJfaVZc1Wb/KziwFiDwd4+KgtMhNwO3zEohkwudvWQQtz8LxYvfm7thtmmXQSnJOemJJaGNt70e1CmX9ycc2nBEBbHfMulgfNmeaCFLn0nfxrjVCuvxIVcVkN03zsb3KF0kIPGsdVM1k0pyc7TihYONFsLod9aRpBevMA=="
+				},
+				{
+					"role": "toolResult",
+					"toolCallId": "toolcall_0",
+					"toolName": "read",
+					"content": [
+						{
+							"type": "text",
+							"text": "FIRST\n"
+						}
+					],
+					"isError": false,
+					"timestamp": 0
+				},
+				{
+					"role": "toolResult",
+					"toolCallId": "toolcall_1",
+					"toolName": "read",
+					"content": [
+						{
+							"type": "text",
+							"text": "SECOND\n"
+						}
+					],
+					"isError": false,
+					"timestamp": 0
+				},
+				{
+					"role": "assistant",
+					"content": [
+						{
+							"type": "text",
+							"text": "FIRST,SECOND",
+							"textSignature": "{\"v\":1,\"id\":\"/K+UW79/vzAWcRFVjM+qQov8al0bvz7Kz5r07vXOjaoL908jGrxXsjFagFz/rsZHNkmcTtnSlaIEt85Un2ssyQCtDN+kgvKo65kCV+BJmmkglHc4y1g9C1EbWLSk3JRp8/+wz1kiHHJJVA90CYXKhA0wh41pOHt+bJ9ueMaE/thbnnUT9iaob2Su7sodO04oWeOSpGZDJe6YR/wsunC3YHzNeVfD9N3h1SmHq4y5Lux2OQcPZghw+Iyo1Tkp1E5B5vJG1rXZSH1o/6JLDauREXD5CU0adq7Apa9iCDgmJKAGntfCWPUDMsVCIaMZT4413snFsadXiflu5Gw79bxLVH/6+WxqWItzczGOixO18G9emMiKiu+n5yO8jzSk3jkIW2tXZw4qYyKGPBdpr4g8gLznq4b4\",\"phase\":\"final_answer\"}"
+						}
+					],
+					"api": "openai-responses",
+					"provider": "github-copilot",
+					"model": "gpt-5.6-sol",
+					"usage": {
+						"input": 3,
+						"output": 7,
+						"cacheRead": 2714,
+						"cacheWrite": 119,
+						"reasoning": 0,
+						"totalTokens": 2843,
+						"cost": {
+							"input": 0.000015000000000000002,
+							"output": 0.00021,
+							"cacheRead": 0.001357,
+							"cacheWrite": 0.00074375,
+							"total": 0.0023257499999999997
+						}
+					},
+					"stopReason": "stop",
+					"timestamp": 0,
+					"responseId": "HIfMCLdA6z0SkJQPTGTWKByu2wDivhQXmeQEjcDvgS3E+UKWgFwk20rgbR/3HOYetudguqs58TSdJI4D22w4p4ZVq9m3krK0MeugQAfREkqUX173o/zG3iNbo0Ajb2Tm7PXSLAR0flR9abGo2IrHT57l2IzsODEnlqItZRnd0wkNoOW8z6E3iBvsWwSaJVQfaqfXutz16J2MrrsMipmgBH7uvfyBvdbPN9PfWXIKFWD7XErugq3So2hbc1d8iOlOoC12PFR0n8sdpcYItZmZg9UJcZaj8CzJw/2gcDXuCOvVukd5K4TeJwIzYi9Cc9Rnn4gGpPBSokbORWSBeewnlobpBpHW5Z7qcJifZdsfkqNyhP3CFbPBNSYLPj/wY9d0EZEbmX9jn7gPRhdWhLr3OVJYnaUPqw=="
+				}
+			],
+			"willRetry": false
+		},
+		{
+			"type": "agent_settled"
+		}
+	]
+}

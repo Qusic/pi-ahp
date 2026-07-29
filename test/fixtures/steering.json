@@ -1,0 +1,1785 @@
+{
+	"name": "steering",
+	"description": "A steering message injected into a running turn.",
+	"prompt": "Count slowly from 1 to 60, one number per line.",
+	"events": [
+		{
+			"type": "agent_start"
+		},
+		{
+			"type": "turn_start"
+		},
+		{
+			"type": "message_start",
+			"message": {
+				"role": "user",
+				"content": [
+					{
+						"type": "text",
+						"text": "Count slowly from 1 to 60, one number per line."
+					}
+				],
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "message_end",
+			"message": {
+				"role": "user",
+				"content": [
+					{
+						"type": "text",
+						"text": "Count slowly from 1 to 60, one number per line."
+					}
+				],
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "message_start",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "thinking",
+						"thinking": "",
+						"thinkingSignature": "{\"content\":[],\"encrypted_content\":\"yJLf9BobTZyl2iSUlFF9708v5+abVddyg9uhzSRAW/jM6uBJViIEZsK1VvgmYHdkdAm5rUgwbVvgutS13k/Q8sDeYDzl/H9VfBJmdlRbFfHoSeFCVhu72K7ItVMf1UrNSvUPXmtfE4rwnf+jkv/gDSWeTf6Nz12KgKPU/chxWhYRWi7dImQptuh7lJhbFat4xG+dbBkGXvW7YPyR81mFUSTwl1tVhsWufoEQUOvXjUNUdcDtGT8HhiYbsE5IXEChfjuiAGdU27gMxvKurzGvh/pQL289yF4aAg1cwtC/zVSeoQnK4+pqu3X+nBwfpXoUtNsbH0QTV9D8k3UIumE82sioeyfo4urMy2yB9wxBUOtitwf8kXzf8BM0uXPdRNzzM5CN3ouUJUyHG4SaeTWnLqLB9hXwdo4lUPiDZ0jYa1HUeXHBgsqIz6CYhtP6xlFSXitV67e5JLIBcUCaQDNSBbUzrqbwap86aA84QN7WJ4K1ield6s8rPwEYaK3H527+hqd1KKfb4nG5mnnIzKkqQh+snjqYTtnFBgL0jqAe9M+X7zVWtqjjZEyC9ekewSHFk5IuEVGINL8bmxAJIGg4BV7kje9BsXRaO6XzHbhveduaOyqReTuCM+UjWKecAeyJukjEKB606VTtzcr4h0ZUR5xE3lDIDjlerTCGvw5gBc49CmHdBssnLdWt8nUgo4GjHH5JRZca5V/0mt5Hgv6JodyeDwPD16C07YX+knIP6cSh8UzOZxeRCoUtIEFeU2bdRl8M3oyaHtPCtS4X306zFIBGvHIKQZMMCFLRhM7zXwnpdKW28qy5lqG30XKXUGzWwykxeXJS0S9+4q+q2H2URMbcJi4t3Rdvlkm8MV4G9WbwzaQ4oV7ogPE+8rwlL1C5uBhWicGbb8AWgG8R13yvSSKJ9xhE1Ru1snNvObPabBanCIFFnSCDHv5TMvdQnwMLIWXmz2VPecIJJ4pi9xY+08KpJky5xxJ2AuOz/Fpo7awPnAToUbL7TriR6TG+mPpw9A3BcHFfZYceXJKYdgUicB/usTbgY9Ne8PYn3YLG8P5wtmZ4Pww9nyzJ/UGYogCRDHwfyoUiTMQ+srIuJoqE6MX4rZcGla8rQKvIzOsoju47eW/gnkapqDws8lBFo8N+vgNV5E16h1gIBXYCvDEgEaSlb+xYGY+MZ3W6c1S5sBWpIqDzi1cOV9NkQK4qf/h/92En3G4B2/uUaRn8AENsTxuINopFiTaukMAYEhWDhSpbSz0h4FUY9B2rmB7N4mcrh8u4Vk3CG916OAtsJv8AEn+HwEBwdgR/wZYY0Lbh+zhGh/fPn+30R7Keze7Rs+jwxffSKFRtsvXXBG3FXWTbXpmb4e80OPuFXzFJAYTzZlAE1PLOzcXsLbYHmHSTV3xJYVMHoUapo9WiDvw+yFb/l+4xn3ZBPyVDnhI38pD9EKpRuoebeI7Mv7rGfI+/XHg7o+ViVzF+O7U3Ygzsv4AA+yq50qeqn7Nbm5lS/T93HqBdVwLbOFK4a1WnoL9G3ZWocbxVqvTF0K0dXhNePGdguwd1NX5KfiEa+GYHBZX+8i4IplmbIqt+tOhR6ZQMPBakc4o9sp3kI4s1FUF9gUea9etvBTZszerEyK3v8p79tGUhEmasKOmrLi9dkpR9jUARjDqs9RbomixfwNWmXImH8ND8v2Poe4PZhiO/P+V6blSV0FEu8XMYnxbLPyzw7iVAM9PDxfn+YZhLYAlxwy6fNTB9A7H3yUjJuoxFI7hyDejXBbF0sptXekBxDqOkmGu8mOh9lPHzH7Sqz3bB+Rkl/9qQtrcwIFSlpwHyy4qIk7cUwXHytimgJaKj6wQIrKq2dUo=\",\"id\":\"1no+r21L7lIkBoimgs/5YJ2p2YmZPZuDTPd+h8f+Crf2kQlu5UB8HhEWWZgyOAkbZ+7FVm4WgLJ+yO4peE25g4jXykwRlrzwKDGAkpTRvBwfmVUzpV2nqj7hMc2QQ2E5lnCb6wfc3BTRpYBHLx+x62vrkumByWY1/83dDytOrByk/TxW6eajf9ygLmGEfrfJhhRnH9iPNpqqEKIO7mwiCWAORfp0WCNXVPmBUBRMAIVdOIA5Yr681hS/6mge09vg6SX/o2rZc2s6MlZpExoTDb8n0AQmu+pkITdvL4RNU3Yj1lDUZJ82yvgjTGj6I9te58J9cPgnH5E5I3jTQBUCcZ0Q/fL2E8OsVtHlG4egMeoGCVTJQK+RxG96JDTFYPx6jefCYSP9a35Fj4GhN3SKij1pZ0g=\",\"summary\":[],\"type\":\"reasoning\"}"
+					},
+					{
+						"type": "text",
+						"text": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n32\n33\n34\n35\n36\n37\n38\n39\n40\n41\n42\n43\n44\n45\n46\n47\n48\n49\n50\n51\n52\n53\n54\n55\n56\n57\n58\n59\n60",
+						"textSignature": "{\"v\":1,\"id\":\"H/US9gEOyCLWNV5zLBKXVl1PkBoGGIVB7AIJ8QxZpBUgBen/jU9w+aEYcHVgg6Mu+BWVlH+rxtrhMdI4V2CULZddXcAG18e4D4jx3HKAdEfcghnk8mrHCuH8Dq6upfVmAsxsA3dqp+BdpWN+XBf4IiKZGc3Xuj7sasln/x5JXTZmIAjRWN2DhJe11RvGr8FMFQhbOx72Bmh6ThcIhzlf9/+ZbgMFxedCQZfZKuwsDI4YKlimWuUZDO3TcsBXHERMxVhSW5Li0bQwdtRjkIrVcxqB64uvreV+z7ZN+frMob3W5kLTL7avc1GKiQmfu2sDPhtWefJdAGREp8k8UeU4Dmiv5uJOELvaRcRI8St98Kh0AK1af3QzlINngRw7jwTzMNZXvtNQnQa5dorlmcDkhxAOP2fx\",\"phase\":\"final_answer\"}"
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.6-sol",
+				"usage": {
+					"input": 0,
+					"output": 0,
+					"cacheRead": 0,
+					"cacheWrite": 0,
+					"totalTokens": 0,
+					"cost": {
+						"input": 0,
+						"output": 0,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"total": 0
+					}
+				},
+				"stopReason": "stop",
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "queue_update",
+			"steering": ["Stop counting. Reply with the word STOPPED and nothing else."],
+			"followUp": []
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_start",
+				"contentIndex": 0
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_end",
+				"contentIndex": 0,
+				"content": ""
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_start",
+				"contentIndex": 1
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "1"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "2"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "3"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "4"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "5"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "6"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "7"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "8"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "9"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "10"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "11"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "12"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "13"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "14"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "15"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "16"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "17"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "18"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "19"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "20"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "21"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "22"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "23"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "24"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "25"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "26"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "27"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "28"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "29"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "30"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "31"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "32"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "33"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "34"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "35"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "36"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "37"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "38"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "39"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "40"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "41"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "42"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "43"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "44"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "45"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "46"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "47"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "48"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "49"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "50"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "51"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "52"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "53"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "54"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "55"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "56"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "57"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "58"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "59"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "60"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_end",
+				"contentIndex": 1,
+				"content": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n32\n33\n34\n35\n36\n37\n38\n39\n40\n41\n42\n43\n44\n45\n46\n47\n48\n49\n50\n51\n52\n53\n54\n55\n56\n57\n58\n59\n60"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_end",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "thinking",
+						"thinking": "",
+						"thinkingSignature": "{\"content\":[],\"encrypted_content\":\"yJLf9BobTZyl2iSUlFF9708v5+abVddyg9uhzSRAW/jM6uBJViIEZsK1VvgmYHdkdAm5rUgwbVvgutS13k/Q8sDeYDzl/H9VfBJmdlRbFfHoSeFCVhu72K7ItVMf1UrNSvUPXmtfE4rwnf+jkv/gDSWeTf6Nz12KgKPU/chxWhYRWi7dImQptuh7lJhbFat4xG+dbBkGXvW7YPyR81mFUSTwl1tVhsWufoEQUOvXjUNUdcDtGT8HhiYbsE5IXEChfjuiAGdU27gMxvKurzGvh/pQL289yF4aAg1cwtC/zVSeoQnK4+pqu3X+nBwfpXoUtNsbH0QTV9D8k3UIumE82sioeyfo4urMy2yB9wxBUOtitwf8kXzf8BM0uXPdRNzzM5CN3ouUJUyHG4SaeTWnLqLB9hXwdo4lUPiDZ0jYa1HUeXHBgsqIz6CYhtP6xlFSXitV67e5JLIBcUCaQDNSBbUzrqbwap86aA84QN7WJ4K1ield6s8rPwEYaK3H527+hqd1KKfb4nG5mnnIzKkqQh+snjqYTtnFBgL0jqAe9M+X7zVWtqjjZEyC9ekewSHFk5IuEVGINL8bmxAJIGg4BV7kje9BsXRaO6XzHbhveduaOyqReTuCM+UjWKecAeyJukjEKB606VTtzcr4h0ZUR5xE3lDIDjlerTCGvw5gBc49CmHdBssnLdWt8nUgo4GjHH5JRZca5V/0mt5Hgv6JodyeDwPD16C07YX+knIP6cSh8UzOZxeRCoUtIEFeU2bdRl8M3oyaHtPCtS4X306zFIBGvHIKQZMMCFLRhM7zXwnpdKW28qy5lqG30XKXUGzWwykxeXJS0S9+4q+q2H2URMbcJi4t3Rdvlkm8MV4G9WbwzaQ4oV7ogPE+8rwlL1C5uBhWicGbb8AWgG8R13yvSSKJ9xhE1Ru1snNvObPabBanCIFFnSCDHv5TMvdQnwMLIWXmz2VPecIJJ4pi9xY+08KpJky5xxJ2AuOz/Fpo7awPnAToUbL7TriR6TG+mPpw9A3BcHFfZYceXJKYdgUicB/usTbgY9Ne8PYn3YLG8P5wtmZ4Pww9nyzJ/UGYogCRDHwfyoUiTMQ+srIuJoqE6MX4rZcGla8rQKvIzOsoju47eW/gnkapqDws8lBFo8N+vgNV5E16h1gIBXYCvDEgEaSlb+xYGY+MZ3W6c1S5sBWpIqDzi1cOV9NkQK4qf/h/92En3G4B2/uUaRn8AENsTxuINopFiTaukMAYEhWDhSpbSz0h4FUY9B2rmB7N4mcrh8u4Vk3CG916OAtsJv8AEn+HwEBwdgR/wZYY0Lbh+zhGh/fPn+30R7Keze7Rs+jwxffSKFRtsvXXBG3FXWTbXpmb4e80OPuFXzFJAYTzZlAE1PLOzcXsLbYHmHSTV3xJYVMHoUapo9WiDvw+yFb/l+4xn3ZBPyVDnhI38pD9EKpRuoebeI7Mv7rGfI+/XHg7o+ViVzF+O7U3Ygzsv4AA+yq50qeqn7Nbm5lS/T93HqBdVwLbOFK4a1WnoL9G3ZWocbxVqvTF0K0dXhNePGdguwd1NX5KfiEa+GYHBZX+8i4IplmbIqt+tOhR6ZQMPBakc4o9sp3kI4s1FUF9gUea9etvBTZszerEyK3v8p79tGUhEmasKOmrLi9dkpR9jUARjDqs9RbomixfwNWmXImH8ND8v2Poe4PZhiO/P+V6blSV0FEu8XMYnxbLPyzw7iVAM9PDxfn+YZhLYAlxwy6fNTB9A7H3yUjJuoxFI7hyDejXBbF0sptXekBxDqOkmGu8mOh9lPHzH7Sqz3bB+Rkl/9qQtrcwIFSlpwHyy4qIk7cUwXHytimgJaKj6wQIrKq2dUo=\",\"id\":\"1no+r21L7lIkBoimgs/5YJ2p2YmZPZuDTPd+h8f+Crf2kQlu5UB8HhEWWZgyOAkbZ+7FVm4WgLJ+yO4peE25g4jXykwRlrzwKDGAkpTRvBwfmVUzpV2nqj7hMc2QQ2E5lnCb6wfc3BTRpYBHLx+x62vrkumByWY1/83dDytOrByk/TxW6eajf9ygLmGEfrfJhhRnH9iPNpqqEKIO7mwiCWAORfp0WCNXVPmBUBRMAIVdOIA5Yr681hS/6mge09vg6SX/o2rZc2s6MlZpExoTDb8n0AQmu+pkITdvL4RNU3Yj1lDUZJ82yvgjTGj6I9te58J9cPgnH5E5I3jTQBUCcZ0Q/fL2E8OsVtHlG4egMeoGCVTJQK+RxG96JDTFYPx6jefCYSP9a35Fj4GhN3SKij1pZ0g=\",\"summary\":[],\"type\":\"reasoning\"}"
+					},
+					{
+						"type": "text",
+						"text": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n32\n33\n34\n35\n36\n37\n38\n39\n40\n41\n42\n43\n44\n45\n46\n47\n48\n49\n50\n51\n52\n53\n54\n55\n56\n57\n58\n59\n60",
+						"textSignature": "{\"v\":1,\"id\":\"H/US9gEOyCLWNV5zLBKXVl1PkBoGGIVB7AIJ8QxZpBUgBen/jU9w+aEYcHVgg6Mu+BWVlH+rxtrhMdI4V2CULZddXcAG18e4D4jx3HKAdEfcghnk8mrHCuH8Dq6upfVmAsxsA3dqp+BdpWN+XBf4IiKZGc3Xuj7sasln/x5JXTZmIAjRWN2DhJe11RvGr8FMFQhbOx72Bmh6ThcIhzlf9/+ZbgMFxedCQZfZKuwsDI4YKlimWuUZDO3TcsBXHERMxVhSW5Li0bQwdtRjkIrVcxqB64uvreV+z7ZN+frMob3W5kLTL7avc1GKiQmfu2sDPhtWefJdAGREp8k8UeU4Dmiv5uJOELvaRcRI8St98Kh0AK1af3QzlINngRw7jwTzMNZXvtNQnQa5dorlmcDkhxAOP2fx\",\"phase\":\"final_answer\"}"
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.6-sol",
+				"usage": {
+					"input": 3,
+					"output": 157,
+					"cacheRead": 0,
+					"cacheWrite": 2709,
+					"reasoning": 32,
+					"totalTokens": 2869,
+					"cost": {
+						"input": 0.000015000000000000002,
+						"output": 0.00471,
+						"cacheRead": 0,
+						"cacheWrite": 0.01693125,
+						"total": 0.02165625
+					}
+				},
+				"stopReason": "stop",
+				"timestamp": 0,
+				"responseId": "oAnpJrEZx8YV4yN5G/eSiTda3cITY8A1CP3TOEZBXg225CxzwcuoKptCDFiHYDriy8qUNrDXcgR27Hu2E6WftnzhLG7T+4DTrBLNeF6cjpTmk+3fpS1CbitKNWAoTI5msph+Ythw8XuS+tlD0UZ/6teLh0sfpQ+rBu3Mefvox9F0HtLS/7SZHk7DwXKmSOGAPFUkWktSXgKcuPsNohT0J/4rbrxCWn1F6w9Di4NuRAStQLfbAY6cn4Yu5EXCf2fpS+bd9uy7ToHo6ih30TI4QuiCj+6D9ipWjuvVPbzf7Szq2LzhGOUGM8QFtZdZnDUHvK+Hb1ZmtI6bwhTmK1Te+CSDxjOJDGLhLMkCTdOqSfEfZci1IwV34KHj2OmNcVZoddw0VQ+s0YAbrQ01jLYDH3t6/hiqlg=="
+			}
+		},
+		{
+			"type": "turn_end",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "thinking",
+						"thinking": "",
+						"thinkingSignature": "{\"content\":[],\"encrypted_content\":\"yJLf9BobTZyl2iSUlFF9708v5+abVddyg9uhzSRAW/jM6uBJViIEZsK1VvgmYHdkdAm5rUgwbVvgutS13k/Q8sDeYDzl/H9VfBJmdlRbFfHoSeFCVhu72K7ItVMf1UrNSvUPXmtfE4rwnf+jkv/gDSWeTf6Nz12KgKPU/chxWhYRWi7dImQptuh7lJhbFat4xG+dbBkGXvW7YPyR81mFUSTwl1tVhsWufoEQUOvXjUNUdcDtGT8HhiYbsE5IXEChfjuiAGdU27gMxvKurzGvh/pQL289yF4aAg1cwtC/zVSeoQnK4+pqu3X+nBwfpXoUtNsbH0QTV9D8k3UIumE82sioeyfo4urMy2yB9wxBUOtitwf8kXzf8BM0uXPdRNzzM5CN3ouUJUyHG4SaeTWnLqLB9hXwdo4lUPiDZ0jYa1HUeXHBgsqIz6CYhtP6xlFSXitV67e5JLIBcUCaQDNSBbUzrqbwap86aA84QN7WJ4K1ield6s8rPwEYaK3H527+hqd1KKfb4nG5mnnIzKkqQh+snjqYTtnFBgL0jqAe9M+X7zVWtqjjZEyC9ekewSHFk5IuEVGINL8bmxAJIGg4BV7kje9BsXRaO6XzHbhveduaOyqReTuCM+UjWKecAeyJukjEKB606VTtzcr4h0ZUR5xE3lDIDjlerTCGvw5gBc49CmHdBssnLdWt8nUgo4GjHH5JRZca5V/0mt5Hgv6JodyeDwPD16C07YX+knIP6cSh8UzOZxeRCoUtIEFeU2bdRl8M3oyaHtPCtS4X306zFIBGvHIKQZMMCFLRhM7zXwnpdKW28qy5lqG30XKXUGzWwykxeXJS0S9+4q+q2H2URMbcJi4t3Rdvlkm8MV4G9WbwzaQ4oV7ogPE+8rwlL1C5uBhWicGbb8AWgG8R13yvSSKJ9xhE1Ru1snNvObPabBanCIFFnSCDHv5TMvdQnwMLIWXmz2VPecIJJ4pi9xY+08KpJky5xxJ2AuOz/Fpo7awPnAToUbL7TriR6TG+mPpw9A3BcHFfZYceXJKYdgUicB/usTbgY9Ne8PYn3YLG8P5wtmZ4Pww9nyzJ/UGYogCRDHwfyoUiTMQ+srIuJoqE6MX4rZcGla8rQKvIzOsoju47eW/gnkapqDws8lBFo8N+vgNV5E16h1gIBXYCvDEgEaSlb+xYGY+MZ3W6c1S5sBWpIqDzi1cOV9NkQK4qf/h/92En3G4B2/uUaRn8AENsTxuINopFiTaukMAYEhWDhSpbSz0h4FUY9B2rmB7N4mcrh8u4Vk3CG916OAtsJv8AEn+HwEBwdgR/wZYY0Lbh+zhGh/fPn+30R7Keze7Rs+jwxffSKFRtsvXXBG3FXWTbXpmb4e80OPuFXzFJAYTzZlAE1PLOzcXsLbYHmHSTV3xJYVMHoUapo9WiDvw+yFb/l+4xn3ZBPyVDnhI38pD9EKpRuoebeI7Mv7rGfI+/XHg7o+ViVzF+O7U3Ygzsv4AA+yq50qeqn7Nbm5lS/T93HqBdVwLbOFK4a1WnoL9G3ZWocbxVqvTF0K0dXhNePGdguwd1NX5KfiEa+GYHBZX+8i4IplmbIqt+tOhR6ZQMPBakc4o9sp3kI4s1FUF9gUea9etvBTZszerEyK3v8p79tGUhEmasKOmrLi9dkpR9jUARjDqs9RbomixfwNWmXImH8ND8v2Poe4PZhiO/P+V6blSV0FEu8XMYnxbLPyzw7iVAM9PDxfn+YZhLYAlxwy6fNTB9A7H3yUjJuoxFI7hyDejXBbF0sptXekBxDqOkmGu8mOh9lPHzH7Sqz3bB+Rkl/9qQtrcwIFSlpwHyy4qIk7cUwXHytimgJaKj6wQIrKq2dUo=\",\"id\":\"1no+r21L7lIkBoimgs/5YJ2p2YmZPZuDTPd+h8f+Crf2kQlu5UB8HhEWWZgyOAkbZ+7FVm4WgLJ+yO4peE25g4jXykwRlrzwKDGAkpTRvBwfmVUzpV2nqj7hMc2QQ2E5lnCb6wfc3BTRpYBHLx+x62vrkumByWY1/83dDytOrByk/TxW6eajf9ygLmGEfrfJhhRnH9iPNpqqEKIO7mwiCWAORfp0WCNXVPmBUBRMAIVdOIA5Yr681hS/6mge09vg6SX/o2rZc2s6MlZpExoTDb8n0AQmu+pkITdvL4RNU3Yj1lDUZJ82yvgjTGj6I9te58J9cPgnH5E5I3jTQBUCcZ0Q/fL2E8OsVtHlG4egMeoGCVTJQK+RxG96JDTFYPx6jefCYSP9a35Fj4GhN3SKij1pZ0g=\",\"summary\":[],\"type\":\"reasoning\"}"
+					},
+					{
+						"type": "text",
+						"text": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n32\n33\n34\n35\n36\n37\n38\n39\n40\n41\n42\n43\n44\n45\n46\n47\n48\n49\n50\n51\n52\n53\n54\n55\n56\n57\n58\n59\n60",
+						"textSignature": "{\"v\":1,\"id\":\"H/US9gEOyCLWNV5zLBKXVl1PkBoGGIVB7AIJ8QxZpBUgBen/jU9w+aEYcHVgg6Mu+BWVlH+rxtrhMdI4V2CULZddXcAG18e4D4jx3HKAdEfcghnk8mrHCuH8Dq6upfVmAsxsA3dqp+BdpWN+XBf4IiKZGc3Xuj7sasln/x5JXTZmIAjRWN2DhJe11RvGr8FMFQhbOx72Bmh6ThcIhzlf9/+ZbgMFxedCQZfZKuwsDI4YKlimWuUZDO3TcsBXHERMxVhSW5Li0bQwdtRjkIrVcxqB64uvreV+z7ZN+frMob3W5kLTL7avc1GKiQmfu2sDPhtWefJdAGREp8k8UeU4Dmiv5uJOELvaRcRI8St98Kh0AK1af3QzlINngRw7jwTzMNZXvtNQnQa5dorlmcDkhxAOP2fx\",\"phase\":\"final_answer\"}"
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.6-sol",
+				"usage": {
+					"input": 3,
+					"output": 157,
+					"cacheRead": 0,
+					"cacheWrite": 2709,
+					"reasoning": 32,
+					"totalTokens": 2869,
+					"cost": {
+						"input": 0.000015000000000000002,
+						"output": 0.00471,
+						"cacheRead": 0,
+						"cacheWrite": 0.01693125,
+						"total": 0.02165625
+					}
+				},
+				"stopReason": "stop",
+				"timestamp": 0,
+				"responseId": "oAnpJrEZx8YV4yN5G/eSiTda3cITY8A1CP3TOEZBXg225CxzwcuoKptCDFiHYDriy8qUNrDXcgR27Hu2E6WftnzhLG7T+4DTrBLNeF6cjpTmk+3fpS1CbitKNWAoTI5msph+Ythw8XuS+tlD0UZ/6teLh0sfpQ+rBu3Mefvox9F0HtLS/7SZHk7DwXKmSOGAPFUkWktSXgKcuPsNohT0J/4rbrxCWn1F6w9Di4NuRAStQLfbAY6cn4Yu5EXCf2fpS+bd9uy7ToHo6ih30TI4QuiCj+6D9ipWjuvVPbzf7Szq2LzhGOUGM8QFtZdZnDUHvK+Hb1ZmtI6bwhTmK1Te+CSDxjOJDGLhLMkCTdOqSfEfZci1IwV34KHj2OmNcVZoddw0VQ+s0YAbrQ01jLYDH3t6/hiqlg=="
+			},
+			"toolResults": []
+		},
+		{
+			"type": "turn_start"
+		},
+		{
+			"type": "queue_update",
+			"steering": [],
+			"followUp": []
+		},
+		{
+			"type": "message_start",
+			"message": {
+				"role": "user",
+				"content": [
+					{
+						"type": "text",
+						"text": "Stop counting. Reply with the word STOPPED and nothing else."
+					}
+				],
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "message_end",
+			"message": {
+				"role": "user",
+				"content": [
+					{
+						"type": "text",
+						"text": "Stop counting. Reply with the word STOPPED and nothing else."
+					}
+				],
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "message_start",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "text",
+						"text": "STOPPED",
+						"textSignature": "{\"v\":1,\"id\":\"n56xz0eY/lyRzQvA2KkdPuAYJNP/Bli8hWfrRjiIG/6DAosrgyapR7tcAZ8zm5sBDD5sCkIG9j3HX5axLCwGGP+WPsPTnDXikfvn5IQQx7e+k/TpUzFQK3AeBrDstGm9Vvvwsvdxw6npY359Ia5Frtf6ULteP7UopAuQTruV//zqPDgUsVTQ7y1a1j/hzvh0/BH1Ldneuy6UgoikZgXWXEklpZuC6BZrgApa2Tts0GUE6S4FY6OphGjVRtnVtlJe+458PUiu59LDzj0Hpzn8MU6HfiMKlNGvCHVzt9240hqnIKezlaFef3lwXmIJXMjX7/gGnIescGIXfzOTe0zyF53Y63UD/2Pk9NF0zk7bkXqj+QDAnfusW+fULDTsXqh9aIVEg748h+rkTt0F3eraElHxC/N5\",\"phase\":\"final_answer\"}"
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.6-sol",
+				"usage": {
+					"input": 0,
+					"output": 0,
+					"cacheRead": 0,
+					"cacheWrite": 0,
+					"totalTokens": 0,
+					"cost": {
+						"input": 0,
+						"output": 0,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"total": 0
+					}
+				},
+				"stopReason": "stop",
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_start",
+				"contentIndex": 0
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": "STOP"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": "PED"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_end",
+				"contentIndex": 0,
+				"content": "STOPPED"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_end",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "text",
+						"text": "STOPPED",
+						"textSignature": "{\"v\":1,\"id\":\"n56xz0eY/lyRzQvA2KkdPuAYJNP/Bli8hWfrRjiIG/6DAosrgyapR7tcAZ8zm5sBDD5sCkIG9j3HX5axLCwGGP+WPsPTnDXikfvn5IQQx7e+k/TpUzFQK3AeBrDstGm9Vvvwsvdxw6npY359Ia5Frtf6ULteP7UopAuQTruV//zqPDgUsVTQ7y1a1j/hzvh0/BH1Ldneuy6UgoikZgXWXEklpZuC6BZrgApa2Tts0GUE6S4FY6OphGjVRtnVtlJe+458PUiu59LDzj0Hpzn8MU6HfiMKlNGvCHVzt9240hqnIKezlaFef3lwXmIJXMjX7/gGnIescGIXfzOTe0zyF53Y63UD/2Pk9NF0zk7bkXqj+QDAnfusW+fULDTsXqh9aIVEg748h+rkTt0F3eraElHxC/N5\",\"phase\":\"final_answer\"}"
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.6-sol",
+				"usage": {
+					"input": 3,
+					"output": 6,
+					"cacheRead": 2709,
+					"cacheWrite": 176,
+					"reasoning": 0,
+					"totalTokens": 2894,
+					"cost": {
+						"input": 0.000015000000000000002,
+						"output": 0.00018,
+						"cacheRead": 0.0013545,
+						"cacheWrite": 0.0011,
+						"total": 0.0026495
+					}
+				},
+				"stopReason": "stop",
+				"timestamp": 0,
+				"responseId": "CZgOZpE8H1/E8kxaYunWfXETxmyotl9S+sAxu6S4cgiKCp29kw8GObpqmSTO2lRCHAQ6F8hNfXDCI2IJD5wScYa6oONMKJaDvvavsbW7XyvB24y952UWQK9CNY5VJCBDx59bIdkM9wDGer5Awy6z3aBizwwgK8FM1lJZLpFQsTRchFOlEqR85r9hErF9nJAzmpZI8iSKv9JZ7rkEDzx5H9CHtL/AfAYwMbFnS+dGG6dP26QmwCIcxGjtujWpnJxfwFHZ1wTjCaN+0K4fiGRFwzKRN02SGENSY6hg9NEhtN5xfPgeDexX++HaaFTCzKYeDsa+iKjYOYlE2qSI5QdMmrm2Z08zm4N3RRKc9LbBxXN5xJF6ys7PTu/8FF4HArLuHYe8V7RkNyEtNQpoxH9wdrAGKhdd2A=="
+			}
+		},
+		{
+			"type": "turn_end",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "text",
+						"text": "STOPPED",
+						"textSignature": "{\"v\":1,\"id\":\"n56xz0eY/lyRzQvA2KkdPuAYJNP/Bli8hWfrRjiIG/6DAosrgyapR7tcAZ8zm5sBDD5sCkIG9j3HX5axLCwGGP+WPsPTnDXikfvn5IQQx7e+k/TpUzFQK3AeBrDstGm9Vvvwsvdxw6npY359Ia5Frtf6ULteP7UopAuQTruV//zqPDgUsVTQ7y1a1j/hzvh0/BH1Ldneuy6UgoikZgXWXEklpZuC6BZrgApa2Tts0GUE6S4FY6OphGjVRtnVtlJe+458PUiu59LDzj0Hpzn8MU6HfiMKlNGvCHVzt9240hqnIKezlaFef3lwXmIJXMjX7/gGnIescGIXfzOTe0zyF53Y63UD/2Pk9NF0zk7bkXqj+QDAnfusW+fULDTsXqh9aIVEg748h+rkTt0F3eraElHxC/N5\",\"phase\":\"final_answer\"}"
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.6-sol",
+				"usage": {
+					"input": 3,
+					"output": 6,
+					"cacheRead": 2709,
+					"cacheWrite": 176,
+					"reasoning": 0,
+					"totalTokens": 2894,
+					"cost": {
+						"input": 0.000015000000000000002,
+						"output": 0.00018,
+						"cacheRead": 0.0013545,
+						"cacheWrite": 0.0011,
+						"total": 0.0026495
+					}
+				},
+				"stopReason": "stop",
+				"timestamp": 0,
+				"responseId": "CZgOZpE8H1/E8kxaYunWfXETxmyotl9S+sAxu6S4cgiKCp29kw8GObpqmSTO2lRCHAQ6F8hNfXDCI2IJD5wScYa6oONMKJaDvvavsbW7XyvB24y952UWQK9CNY5VJCBDx59bIdkM9wDGer5Awy6z3aBizwwgK8FM1lJZLpFQsTRchFOlEqR85r9hErF9nJAzmpZI8iSKv9JZ7rkEDzx5H9CHtL/AfAYwMbFnS+dGG6dP26QmwCIcxGjtujWpnJxfwFHZ1wTjCaN+0K4fiGRFwzKRN02SGENSY6hg9NEhtN5xfPgeDexX++HaaFTCzKYeDsa+iKjYOYlE2qSI5QdMmrm2Z08zm4N3RRKc9LbBxXN5xJF6ys7PTu/8FF4HArLuHYe8V7RkNyEtNQpoxH9wdrAGKhdd2A=="
+			},
+			"toolResults": []
+		},
+		{
+			"type": "agent_end",
+			"messages": [
+				{
+					"role": "user",
+					"content": [
+						{
+							"type": "text",
+							"text": "Count slowly from 1 to 60, one number per line."
+						}
+					],
+					"timestamp": 0
+				},
+				{
+					"role": "assistant",
+					"content": [
+						{
+							"type": "thinking",
+							"thinking": "",
+							"thinkingSignature": "{\"content\":[],\"encrypted_content\":\"yJLf9BobTZyl2iSUlFF9708v5+abVddyg9uhzSRAW/jM6uBJViIEZsK1VvgmYHdkdAm5rUgwbVvgutS13k/Q8sDeYDzl/H9VfBJmdlRbFfHoSeFCVhu72K7ItVMf1UrNSvUPXmtfE4rwnf+jkv/gDSWeTf6Nz12KgKPU/chxWhYRWi7dImQptuh7lJhbFat4xG+dbBkGXvW7YPyR81mFUSTwl1tVhsWufoEQUOvXjUNUdcDtGT8HhiYbsE5IXEChfjuiAGdU27gMxvKurzGvh/pQL289yF4aAg1cwtC/zVSeoQnK4+pqu3X+nBwfpXoUtNsbH0QTV9D8k3UIumE82sioeyfo4urMy2yB9wxBUOtitwf8kXzf8BM0uXPdRNzzM5CN3ouUJUyHG4SaeTWnLqLB9hXwdo4lUPiDZ0jYa1HUeXHBgsqIz6CYhtP6xlFSXitV67e5JLIBcUCaQDNSBbUzrqbwap86aA84QN7WJ4K1ield6s8rPwEYaK3H527+hqd1KKfb4nG5mnnIzKkqQh+snjqYTtnFBgL0jqAe9M+X7zVWtqjjZEyC9ekewSHFk5IuEVGINL8bmxAJIGg4BV7kje9BsXRaO6XzHbhveduaOyqReTuCM+UjWKecAeyJukjEKB606VTtzcr4h0ZUR5xE3lDIDjlerTCGvw5gBc49CmHdBssnLdWt8nUgo4GjHH5JRZca5V/0mt5Hgv6JodyeDwPD16C07YX+knIP6cSh8UzOZxeRCoUtIEFeU2bdRl8M3oyaHtPCtS4X306zFIBGvHIKQZMMCFLRhM7zXwnpdKW28qy5lqG30XKXUGzWwykxeXJS0S9+4q+q2H2URMbcJi4t3Rdvlkm8MV4G9WbwzaQ4oV7ogPE+8rwlL1C5uBhWicGbb8AWgG8R13yvSSKJ9xhE1Ru1snNvObPabBanCIFFnSCDHv5TMvdQnwMLIWXmz2VPecIJJ4pi9xY+08KpJky5xxJ2AuOz/Fpo7awPnAToUbL7TriR6TG+mPpw9A3BcHFfZYceXJKYdgUicB/usTbgY9Ne8PYn3YLG8P5wtmZ4Pww9nyzJ/UGYogCRDHwfyoUiTMQ+srIuJoqE6MX4rZcGla8rQKvIzOsoju47eW/gnkapqDws8lBFo8N+vgNV5E16h1gIBXYCvDEgEaSlb+xYGY+MZ3W6c1S5sBWpIqDzi1cOV9NkQK4qf/h/92En3G4B2/uUaRn8AENsTxuINopFiTaukMAYEhWDhSpbSz0h4FUY9B2rmB7N4mcrh8u4Vk3CG916OAtsJv8AEn+HwEBwdgR/wZYY0Lbh+zhGh/fPn+30R7Keze7Rs+jwxffSKFRtsvXXBG3FXWTbXpmb4e80OPuFXzFJAYTzZlAE1PLOzcXsLbYHmHSTV3xJYVMHoUapo9WiDvw+yFb/l+4xn3ZBPyVDnhI38pD9EKpRuoebeI7Mv7rGfI+/XHg7o+ViVzF+O7U3Ygzsv4AA+yq50qeqn7Nbm5lS/T93HqBdVwLbOFK4a1WnoL9G3ZWocbxVqvTF0K0dXhNePGdguwd1NX5KfiEa+GYHBZX+8i4IplmbIqt+tOhR6ZQMPBakc4o9sp3kI4s1FUF9gUea9etvBTZszerEyK3v8p79tGUhEmasKOmrLi9dkpR9jUARjDqs9RbomixfwNWmXImH8ND8v2Poe4PZhiO/P+V6blSV0FEu8XMYnxbLPyzw7iVAM9PDxfn+YZhLYAlxwy6fNTB9A7H3yUjJuoxFI7hyDejXBbF0sptXekBxDqOkmGu8mOh9lPHzH7Sqz3bB+Rkl/9qQtrcwIFSlpwHyy4qIk7cUwXHytimgJaKj6wQIrKq2dUo=\",\"id\":\"1no+r21L7lIkBoimgs/5YJ2p2YmZPZuDTPd+h8f+Crf2kQlu5UB8HhEWWZgyOAkbZ+7FVm4WgLJ+yO4peE25g4jXykwRlrzwKDGAkpTRvBwfmVUzpV2nqj7hMc2QQ2E5lnCb6wfc3BTRpYBHLx+x62vrkumByWY1/83dDytOrByk/TxW6eajf9ygLmGEfrfJhhRnH9iPNpqqEKIO7mwiCWAORfp0WCNXVPmBUBRMAIVdOIA5Yr681hS/6mge09vg6SX/o2rZc2s6MlZpExoTDb8n0AQmu+pkITdvL4RNU3Yj1lDUZJ82yvgjTGj6I9te58J9cPgnH5E5I3jTQBUCcZ0Q/fL2E8OsVtHlG4egMeoGCVTJQK+RxG96JDTFYPx6jefCYSP9a35Fj4GhN3SKij1pZ0g=\",\"summary\":[],\"type\":\"reasoning\"}"
+						},
+						{
+							"type": "text",
+							"text": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n32\n33\n34\n35\n36\n37\n38\n39\n40\n41\n42\n43\n44\n45\n46\n47\n48\n49\n50\n51\n52\n53\n54\n55\n56\n57\n58\n59\n60",
+							"textSignature": "{\"v\":1,\"id\":\"H/US9gEOyCLWNV5zLBKXVl1PkBoGGIVB7AIJ8QxZpBUgBen/jU9w+aEYcHVgg6Mu+BWVlH+rxtrhMdI4V2CULZddXcAG18e4D4jx3HKAdEfcghnk8mrHCuH8Dq6upfVmAsxsA3dqp+BdpWN+XBf4IiKZGc3Xuj7sasln/x5JXTZmIAjRWN2DhJe11RvGr8FMFQhbOx72Bmh6ThcIhzlf9/+ZbgMFxedCQZfZKuwsDI4YKlimWuUZDO3TcsBXHERMxVhSW5Li0bQwdtRjkIrVcxqB64uvreV+z7ZN+frMob3W5kLTL7avc1GKiQmfu2sDPhtWefJdAGREp8k8UeU4Dmiv5uJOELvaRcRI8St98Kh0AK1af3QzlINngRw7jwTzMNZXvtNQnQa5dorlmcDkhxAOP2fx\",\"phase\":\"final_answer\"}"
+						}
+					],
+					"api": "openai-responses",
+					"provider": "github-copilot",
+					"model": "gpt-5.6-sol",
+					"usage": {
+						"input": 3,
+						"output": 157,
+						"cacheRead": 0,
+						"cacheWrite": 2709,
+						"reasoning": 32,
+						"totalTokens": 2869,
+						"cost": {
+							"input": 0.000015000000000000002,
+							"output": 0.00471,
+							"cacheRead": 0,
+							"cacheWrite": 0.01693125,
+							"total": 0.02165625
+						}
+					},
+					"stopReason": "stop",
+					"timestamp": 0,
+					"responseId": "oAnpJrEZx8YV4yN5G/eSiTda3cITY8A1CP3TOEZBXg225CxzwcuoKptCDFiHYDriy8qUNrDXcgR27Hu2E6WftnzhLG7T+4DTrBLNeF6cjpTmk+3fpS1CbitKNWAoTI5msph+Ythw8XuS+tlD0UZ/6teLh0sfpQ+rBu3Mefvox9F0HtLS/7SZHk7DwXKmSOGAPFUkWktSXgKcuPsNohT0J/4rbrxCWn1F6w9Di4NuRAStQLfbAY6cn4Yu5EXCf2fpS+bd9uy7ToHo6ih30TI4QuiCj+6D9ipWjuvVPbzf7Szq2LzhGOUGM8QFtZdZnDUHvK+Hb1ZmtI6bwhTmK1Te+CSDxjOJDGLhLMkCTdOqSfEfZci1IwV34KHj2OmNcVZoddw0VQ+s0YAbrQ01jLYDH3t6/hiqlg=="
+				},
+				{
+					"role": "user",
+					"content": [
+						{
+							"type": "text",
+							"text": "Stop counting. Reply with the word STOPPED and nothing else."
+						}
+					],
+					"timestamp": 0
+				},
+				{
+					"role": "assistant",
+					"content": [
+						{
+							"type": "text",
+							"text": "STOPPED",
+							"textSignature": "{\"v\":1,\"id\":\"n56xz0eY/lyRzQvA2KkdPuAYJNP/Bli8hWfrRjiIG/6DAosrgyapR7tcAZ8zm5sBDD5sCkIG9j3HX5axLCwGGP+WPsPTnDXikfvn5IQQx7e+k/TpUzFQK3AeBrDstGm9Vvvwsvdxw6npY359Ia5Frtf6ULteP7UopAuQTruV//zqPDgUsVTQ7y1a1j/hzvh0/BH1Ldneuy6UgoikZgXWXEklpZuC6BZrgApa2Tts0GUE6S4FY6OphGjVRtnVtlJe+458PUiu59LDzj0Hpzn8MU6HfiMKlNGvCHVzt9240hqnIKezlaFef3lwXmIJXMjX7/gGnIescGIXfzOTe0zyF53Y63UD/2Pk9NF0zk7bkXqj+QDAnfusW+fULDTsXqh9aIVEg748h+rkTt0F3eraElHxC/N5\",\"phase\":\"final_answer\"}"
+						}
+					],
+					"api": "openai-responses",
+					"provider": "github-copilot",
+					"model": "gpt-5.6-sol",
+					"usage": {
+						"input": 3,
+						"output": 6,
+						"cacheRead": 2709,
+						"cacheWrite": 176,
+						"reasoning": 0,
+						"totalTokens": 2894,
+						"cost": {
+							"input": 0.000015000000000000002,
+							"output": 0.00018,
+							"cacheRead": 0.0013545,
+							"cacheWrite": 0.0011,
+							"total": 0.0026495
+						}
+					},
+					"stopReason": "stop",
+					"timestamp": 0,
+					"responseId": "CZgOZpE8H1/E8kxaYunWfXETxmyotl9S+sAxu6S4cgiKCp29kw8GObpqmSTO2lRCHAQ6F8hNfXDCI2IJD5wScYa6oONMKJaDvvavsbW7XyvB24y952UWQK9CNY5VJCBDx59bIdkM9wDGer5Awy6z3aBizwwgK8FM1lJZLpFQsTRchFOlEqR85r9hErF9nJAzmpZI8iSKv9JZ7rkEDzx5H9CHtL/AfAYwMbFnS+dGG6dP26QmwCIcxGjtujWpnJxfwFHZ1wTjCaN+0K4fiGRFwzKRN02SGENSY6hg9NEhtN5xfPgeDexX++HaaFTCzKYeDsa+iKjYOYlE2qSI5QdMmrm2Z08zm4N3RRKc9LbBxXN5xJF6ys7PTu/8FF4HArLuHYe8V7RkNyEtNQpoxH9wdrAGKhdd2A=="
+				}
+			],
+			"willRetry": false
+		},
+		{
+			"type": "agent_settled"
+		}
+	]
+}
