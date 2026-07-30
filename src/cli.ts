@@ -4,10 +4,7 @@
  */
 
 import { loadSettings, SettingsError } from "./config.ts";
-import { createPiHost } from "./pi-host.ts";
-import { serveWebSocket } from "./transport/websocket.ts";
-
-const VERSION = "0.0.1";
+import { closeOnSignal, startHost, VERSION } from "./serve.ts";
 
 function log(message: string): void {
 	process.stderr.write(`${message}\n`);
@@ -36,26 +33,16 @@ async function main(): Promise<void> {
 
 	const verbose = args.includes("--verbose");
 	const settings = await loadSettings();
-	const port = Number(flagValue(args, "--port") ?? settings.port);
-	const host = flagValue(args, "--host") ?? settings.host;
 	const workingDirectory = flagValue(args, "--cwd") ?? process.cwd();
 
-	const { host: ahpHost } = await createPiHost({
-		serverInfo: { name: "pi-ahp", version: VERSION },
-		defaultDirectory: `file://${workingDirectory}`,
+	const server = await startHost({
+		host: flagValue(args, "--host") ?? settings.host,
+		port: Number(flagValue(args, "--port") ?? settings.port),
+		token: settings.token ?? undefined,
 		workingDirectory,
 		...(verbose ? { log } : {}),
 	});
 
-	const listen = (chosenPort: number) =>
-		serveWebSocket(ahpHost, {
-			host,
-			port: chosenPort,
-			...(settings.token ? { token: settings.token } : {}),
-			...(verbose ? { log } : {}),
-		});
-
-	const server = await listen(port);
 	log(
 		settings.token
 			? `pi-ahp listening on ws://${server.host}:${server.port}?token=${settings.token}`
@@ -63,11 +50,7 @@ async function main(): Promise<void> {
 	);
 	log(`working directory: ${workingDirectory}`);
 
-	const shutdown = (): void => {
-		void server.close().then(() => process.exit(0));
-	};
-	process.on("SIGINT", shutdown);
-	process.on("SIGTERM", shutdown);
+	closeOnSignal(server);
 }
 
 try {
