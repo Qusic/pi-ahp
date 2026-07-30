@@ -2,6 +2,948 @@
 	"name": "tool-error",
 	"description": "A failing tool call the agent has to recover from.",
 	"prompt": "Read a file called does-not-exist.txt and tell me plainly whether it exists.",
+	"partials": [
+		{
+			"role": "assistant",
+			"content": [
+				{
+					"type": "thinking",
+					"thinking": "**Considering inspection methods**\n\nI need to make sure I'm following the guidelines. I should check the PI environment variables for details about the current model and session. The guideline suggests using a command like `bash env | grep ^PI_`, but that might be more complex than the user needs. Since they asked a simple question, I wonder if I should skip that step. I think it’s best to read through first, look for any errors, and then provide a straightforward answer.",
+					"thinkingSignature": ""
+				},
+				{
+					"type": "toolCall",
+					"id": "toolcall_0",
+					"name": "read",
+					"arguments": {
+						"path": "does-not-exist.txt",
+						"offset": 1,
+						"limit": 50
+					}
+				}
+			],
+			"api": "openai-responses",
+			"provider": "github-copilot",
+			"model": "gpt-5.4",
+			"usage": {
+				"input": 1565,
+				"output": 107,
+				"cacheRead": 0,
+				"cacheWrite": 0,
+				"reasoning": 76,
+				"totalTokens": 1672,
+				"cost": {
+					"input": 0.0039125,
+					"output": 0.001605,
+					"cacheRead": 0,
+					"cacheWrite": 0,
+					"total": 0.0055175
+				}
+			},
+			"stopReason": "toolUse",
+			"timestamp": 0,
+			"responseId": ""
+		},
+		{
+			"role": "assistant",
+			"content": [
+				{
+					"type": "text",
+					"text": "No, `does-not-exist.txt` does not exist.",
+					"textSignature": ""
+				}
+			],
+			"api": "openai-responses",
+			"provider": "github-copilot",
+			"model": "gpt-5.4",
+			"usage": {
+				"input": 1708,
+				"output": 17,
+				"cacheRead": 0,
+				"cacheWrite": 0,
+				"reasoning": 0,
+				"totalTokens": 1725,
+				"cost": {
+					"input": 0.00427,
+					"output": 0.000255,
+					"cacheRead": 0,
+					"cacheWrite": 0,
+					"total": 0.004525
+				}
+			},
+			"stopReason": "stop",
+			"timestamp": 0,
+			"responseId": ""
+		}
+	],
+	"turns": [
+		[
+			{
+				"type": "start",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_start",
+				"contentIndex": 0,
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "**Considering inspection methods**\n\nI",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " need",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " to",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " make",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " sure",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I'm",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " following",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " the",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " guidelines",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ".",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " should",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " check",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " the",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " PI",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " environment",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " variables",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " for",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " details",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " about",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " the",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " current",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " model",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " and",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " session",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ".",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " The",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " guideline",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " suggests",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " using",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " a",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " command",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " like",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " `",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "bash",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " env",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " |",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " grep",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " ^",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "PI",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "_",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "`,",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " but",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " that",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " might",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " be",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " more",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " complex",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " than",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " the",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " user",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " needs",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ".",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " Since",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " they",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " asked",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " a",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " simple",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " question",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ",",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " wonder",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " if",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " should",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " skip",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " that",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " step",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ".",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " think",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " it",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "’s",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " best",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " to",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " read",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " through",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " first",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ",",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " look",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " for",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " any",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " errors",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ",",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " and",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " then",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " provide",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " a",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " straightforward",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " answer",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ".",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "\n\n",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_end",
+				"contentIndex": 0,
+				"content": "**Considering inspection methods**\n\nI need to make sure I'm following the guidelines. I should check the PI environment variables for details about the current model and session. The guideline suggests using a command like `bash env | grep ^PI_`, but that might be more complex than the user needs. Since they asked a simple question, I wonder if I should skip that step. I think it’s best to read through first, look for any errors, and then provide a straightforward answer.",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_start",
+				"contentIndex": 1,
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "{\"",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "path",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\":\"",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "does",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "-not",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "-ex",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "ist",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": ".txt",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\",\"",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "offset",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\":",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "1",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": ",\"",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "limit",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\":",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "50",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "}",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_end",
+				"contentIndex": 1,
+				"toolCall": {
+					"type": "toolCall",
+					"id": "toolcall_0",
+					"name": "read",
+					"arguments": {
+						"path": "does-not-exist.txt",
+						"offset": 1,
+						"limit": 50
+					}
+				},
+				"partialRef": 0
+			},
+			{
+				"type": "done",
+				"reason": "toolUse",
+				"message": {
+					"role": "assistant",
+					"content": [
+						{
+							"type": "thinking",
+							"thinking": "**Considering inspection methods**\n\nI need to make sure I'm following the guidelines. I should check the PI environment variables for details about the current model and session. The guideline suggests using a command like `bash env | grep ^PI_`, but that might be more complex than the user needs. Since they asked a simple question, I wonder if I should skip that step. I think it’s best to read through first, look for any errors, and then provide a straightforward answer.",
+							"thinkingSignature": ""
+						},
+						{
+							"type": "toolCall",
+							"id": "toolcall_0",
+							"name": "read",
+							"arguments": {
+								"path": "does-not-exist.txt",
+								"offset": 1,
+								"limit": 50
+							}
+						}
+					],
+					"api": "openai-responses",
+					"provider": "github-copilot",
+					"model": "gpt-5.4",
+					"usage": {
+						"input": 1565,
+						"output": 107,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"reasoning": 76,
+						"totalTokens": 1672,
+						"cost": {
+							"input": 0.0039125,
+							"output": 0.001605,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"total": 0.0055175
+						}
+					},
+					"stopReason": "toolUse",
+					"timestamp": 0,
+					"responseId": ""
+				}
+			}
+		],
+		[
+			{
+				"type": "start",
+				"partialRef": 1
+			},
+			{
+				"type": "text_start",
+				"contentIndex": 0,
+				"partialRef": 1
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": "No",
+				"partialRef": 1
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": ",",
+				"partialRef": 1
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": " `",
+				"partialRef": 1
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": "does",
+				"partialRef": 1
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": "-not",
+				"partialRef": 1
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": "-ex",
+				"partialRef": 1
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": "ist",
+				"partialRef": 1
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": ".txt",
+				"partialRef": 1
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": "`",
+				"partialRef": 1
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": " does",
+				"partialRef": 1
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": " not",
+				"partialRef": 1
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": " exist",
+				"partialRef": 1
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": ".",
+				"partialRef": 1
+			},
+			{
+				"type": "text_end",
+				"contentIndex": 0,
+				"content": "No, `does-not-exist.txt` does not exist.",
+				"partialRef": 1
+			},
+			{
+				"type": "done",
+				"reason": "stop",
+				"message": {
+					"role": "assistant",
+					"content": [
+						{
+							"type": "text",
+							"text": "No, `does-not-exist.txt` does not exist.",
+							"textSignature": ""
+						}
+					],
+					"api": "openai-responses",
+					"provider": "github-copilot",
+					"model": "gpt-5.4",
+					"usage": {
+						"input": 1708,
+						"output": 17,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"reasoning": 0,
+						"totalTokens": 1725,
+						"cost": {
+							"input": 0.00427,
+							"output": 0.000255,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"total": 0.004525
+						}
+					},
+					"stopReason": "stop",
+					"timestamp": 0,
+					"responseId": ""
+				}
+			}
+		]
+	],
 	"events": [
 		{
 			"type": "agent_start"
@@ -42,8 +984,8 @@
 				"content": [
 					{
 						"type": "thinking",
-						"thinking": "",
-						"thinkingSignature": "{\"content\":[],\"encrypted_content\":\"iYddL2HMwrViF/R+ganBjJtdkrcLsJnedFfUvInY2hE/EGPFIdKa3bFfwMS74egZUcRCMFsTP6e38gJr3dON8SBvia1teHZCeRQf0hda2ttjfEzpS/8ES7Wcy/M5HFzmUjB/EzaEhbyRyAATK8+ZPNvtmaE37xzaZq40wGRlDav7MneP5q3SFBe6QCOWTVThHOUkmB8HCP2VS8OChpPin+F/Y0cEOLu5+iH7cdUgyadCPlISOqxcYgSPdxH5vLe1RNBpl0xtPBxH0wvjwQRsAbp7xu+n+loCe5zG0uzY4JrF/ksZi0rXWk7FiWqbDWDXMyhCvKHm5krjocCBLVQ/GUqYPZDlJSdxYjKU4WdoLtN8fg8uq9MBCsmjVKHdeHKr9zDbhGYp4HbvBlkp5WX48AmMaT9nRDuqgTss6FgcvogCCcFSAWS7/lsuVxFx+1aMnAJWO3PxjWnTxxw13/IxrO8UNmFw/T6/tljlw2n0TPxwbJ6p6EW84Pu3DUrRBM/wew9L0QXfvmibJ+YeM/MJ/lbcrSJNHUmEjkEPuny4Z6BrlzBPCFwP6vyP8mTwRk8kQ6OlvP8mrbP+jfX5zo8GUvvCRw4RcDxYRNJugXctefVVlRNBs2R/i46fXoa40Se1ugY31yCycpwYLJY2dnqDRkWV0NmOpgYVcQ/Z1ngzR9f16/hd1P2NRWOFn/8Lgdja/yVla2VUzOyJLZbRq74ommLxhyDaEVK4VyIqj4HKmYCBB6N5fHWJ+x3GEicTmyG1s6ois+yzLilKigztKiFXlbaTBgsSaYJ3hYBrkvjrhaflzkZ/OKIxzoQDFHDhvgUX+NEWAAVYF/NwG6I+fteyRLXlCo7EdCIyC2FUNPoxyv0yQ3f28HlPVXk2P5VVxuceNkoPFxD22L3yHiAGSg3CZiiVUubk3/R9dxw0AyiOiOAF+w3l+P8+i3Olwh+bgTXwglOJMV4t32fpvTtCXTwHxzO3y+9x2oevKYW3vZZBOAkfLhYBJryXkp6KD+YpAtbAGst++KgRHYIRjtHylXdsTctpG3h7/R9+w8YrFi2DIa8QehihraDUu+meZyWS7hK5J3zxssR+g65ieFWnPe0UgQai8EOZ+3ESdhoDJAmKoDpKQuWGeOIl8FAWBRPwgRBFzDTW6lziVS2f6uMPZeOitNRnvXtsK3sTiNDPWHzI3kRSbpmfeRB6hNpNbILti9dYbYBq9NLE581uXWqkbzzIGHCjNncTQdi/lrklgykI7KavEH7taIIsUbBq6uHFxNrf+IrO7UpYtlDtMm2Bl0wtKhu68NOIdofk45pUbRhu/y9/er99ih+JNMCTIMSwDB3n2VRV5VGVZ81CldmUVJSkvsm81oRMWQ6Mslj1FdtXtxnHHW0n5HlpHdTBn2euLsjXmHFrsgJYc0Mb75ySW9lUMczlAxA36UjUTJYoPLCHwA91cmhUL62IlU/Q8s5GSjgAlT1U0QfONipGvKliH7VqOzr8i7tQ9ofRFf/8tBowaprtgOAXYhewwd9Wv6ejy7ZBKWfi0vFR6ppigmC/as7E7A8DieRtW+jk8PY5SoYytOz7w8WWJEL3Zpfs4D8GkLk+G1lN76nXUvhP+Q5jOwVq8aOzn945Z1fri/n2FUNS/qTvfH7i+kuYauE/NRpmBp6earTlDCBwle4FlRvBuT1DX0D8P4QsMLfuYqf0qaOHXV8eLpfQaWTPFMHfKySJh6V2nURDp465ps9JbGh1LdI9GGFEmtfDavgZD5oVowoIO9FNPw==\",\"id\":\"c1WsJmMT6k/q4Eb3gWCt0SasFXhb6FX/arOY3VByRQOyhYpndYir+NG2MgToNaHnnb997YG99Gu6qvr/lHARFZdGqbZZAPt2waRr2UYk4n6zx3CCdwX2zcMAlF53kvQiSA1KVPRAuPvsP0czeDxjDHpyR2Che+Itm6D03E67DJWKQCwa/tng4fkJCdvPDv9/QZDcS+s779hiFk3q2GXIyegJHlpIci7PwxmeOsibpVK66nYQZjB0Oxky744zSSxV896dMOOpB8BccHXfqwip0fRKXx4AIT1CXXAL89yH88zrcEo+fpkBYNi8DQonZXUHGGJu/kDETICptoO9DJ3W5I9tisCRpP2aqjwpdFUq7h5rV6CWFUfW97eEtaHAGBMIisUqqh3PZ6PcMyYjTZq7qaJXl3c=\",\"summary\":[],\"type\":\"reasoning\"}"
+						"thinking": "**Considering inspection methods**\n\nI need to make sure I'm following the guidelines. I should check the PI environment variables for details about the current model and session. The guideline suggests using a command like `bash env | grep ^PI_`, but that might be more complex than the user needs. Since they asked a simple question, I wonder if I should skip that step. I think it’s best to read through first, look for any errors, and then provide a straightforward answer.",
+						"thinkingSignature": ""
 					},
 					{
 						"type": "toolCall",
@@ -52,13 +994,13 @@
 						"arguments": {
 							"path": "does-not-exist.txt",
 							"offset": 1,
-							"limit": 2000
+							"limit": 50
 						}
 					}
 				],
 				"api": "openai-responses",
 				"provider": "github-copilot",
-				"model": "gpt-5.6-sol",
+				"model": "gpt-5.4",
 				"usage": {
 					"input": 0,
 					"output": 0,
@@ -90,9 +1032,1021 @@
 		{
 			"type": "message_update",
 			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "**Considering inspection methods**\n\nI"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " need"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " to"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " make"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " sure"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I'm"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " following"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " the"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " guidelines"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "."
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " should"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " check"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " the"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " PI"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " environment"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " variables"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " for"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " details"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " about"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " the"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " current"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " model"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " and"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " session"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "."
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " The"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " guideline"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " suggests"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " using"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " a"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " command"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " like"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " `"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "bash"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " env"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " |"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " grep"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " ^"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "PI"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "_"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "`,"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " but"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " that"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " might"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " be"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " more"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " complex"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " than"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " the"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " user"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " needs"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "."
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " Since"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " they"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " asked"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " a"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " simple"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " question"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ","
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " wonder"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " if"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " should"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " skip"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " that"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " step"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "."
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " think"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " it"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "’s"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " best"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " to"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " read"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " through"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " first"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ","
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " look"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " for"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " any"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " errors"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ","
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " and"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " then"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " provide"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " a"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " straightforward"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " answer"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "."
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "\n\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
 				"type": "thinking_end",
 				"contentIndex": 0,
-				"content": ""
+				"content": "**Considering inspection methods**\n\nI need to make sure I'm following the guidelines. I should check the PI environment variables for details about the current model and session. The guideline suggests using a command like `bash env | grep ^PI_`, but that might be more complex than the user needs. Since they asked a simple question, I wonder if I should skip that step. I think it’s best to read through first, look for any errors, and then provide a straightforward answer."
 			},
 			"message": {
 				"role": "assistant"
@@ -108,8 +2062,8 @@
 					"content": [
 						{
 							"type": "thinking",
-							"thinking": "",
-							"thinkingSignature": "{\"content\":[],\"encrypted_content\":\"iYddL2HMwrViF/R+ganBjJtdkrcLsJnedFfUvInY2hE/EGPFIdKa3bFfwMS74egZUcRCMFsTP6e38gJr3dON8SBvia1teHZCeRQf0hda2ttjfEzpS/8ES7Wcy/M5HFzmUjB/EzaEhbyRyAATK8+ZPNvtmaE37xzaZq40wGRlDav7MneP5q3SFBe6QCOWTVThHOUkmB8HCP2VS8OChpPin+F/Y0cEOLu5+iH7cdUgyadCPlISOqxcYgSPdxH5vLe1RNBpl0xtPBxH0wvjwQRsAbp7xu+n+loCe5zG0uzY4JrF/ksZi0rXWk7FiWqbDWDXMyhCvKHm5krjocCBLVQ/GUqYPZDlJSdxYjKU4WdoLtN8fg8uq9MBCsmjVKHdeHKr9zDbhGYp4HbvBlkp5WX48AmMaT9nRDuqgTss6FgcvogCCcFSAWS7/lsuVxFx+1aMnAJWO3PxjWnTxxw13/IxrO8UNmFw/T6/tljlw2n0TPxwbJ6p6EW84Pu3DUrRBM/wew9L0QXfvmibJ+YeM/MJ/lbcrSJNHUmEjkEPuny4Z6BrlzBPCFwP6vyP8mTwRk8kQ6OlvP8mrbP+jfX5zo8GUvvCRw4RcDxYRNJugXctefVVlRNBs2R/i46fXoa40Se1ugY31yCycpwYLJY2dnqDRkWV0NmOpgYVcQ/Z1ngzR9f16/hd1P2NRWOFn/8Lgdja/yVla2VUzOyJLZbRq74ommLxhyDaEVK4VyIqj4HKmYCBB6N5fHWJ+x3GEicTmyG1s6ois+yzLilKigztKiFXlbaTBgsSaYJ3hYBrkvjrhaflzkZ/OKIxzoQDFHDhvgUX+NEWAAVYF/NwG6I+fteyRLXlCo7EdCIyC2FUNPoxyv0yQ3f28HlPVXk2P5VVxuceNkoPFxD22L3yHiAGSg3CZiiVUubk3/R9dxw0AyiOiOAF+w3l+P8+i3Olwh+bgTXwglOJMV4t32fpvTtCXTwHxzO3y+9x2oevKYW3vZZBOAkfLhYBJryXkp6KD+YpAtbAGst++KgRHYIRjtHylXdsTctpG3h7/R9+w8YrFi2DIa8QehihraDUu+meZyWS7hK5J3zxssR+g65ieFWnPe0UgQai8EOZ+3ESdhoDJAmKoDpKQuWGeOIl8FAWBRPwgRBFzDTW6lziVS2f6uMPZeOitNRnvXtsK3sTiNDPWHzI3kRSbpmfeRB6hNpNbILti9dYbYBq9NLE581uXWqkbzzIGHCjNncTQdi/lrklgykI7KavEH7taIIsUbBq6uHFxNrf+IrO7UpYtlDtMm2Bl0wtKhu68NOIdofk45pUbRhu/y9/er99ih+JNMCTIMSwDB3n2VRV5VGVZ81CldmUVJSkvsm81oRMWQ6Mslj1FdtXtxnHHW0n5HlpHdTBn2euLsjXmHFrsgJYc0Mb75ySW9lUMczlAxA36UjUTJYoPLCHwA91cmhUL62IlU/Q8s5GSjgAlT1U0QfONipGvKliH7VqOzr8i7tQ9ofRFf/8tBowaprtgOAXYhewwd9Wv6ejy7ZBKWfi0vFR6ppigmC/as7E7A8DieRtW+jk8PY5SoYytOz7w8WWJEL3Zpfs4D8GkLk+G1lN76nXUvhP+Q5jOwVq8aOzn945Z1fri/n2FUNS/qTvfH7i+kuYauE/NRpmBp6earTlDCBwle4FlRvBuT1DX0D8P4QsMLfuYqf0qaOHXV8eLpfQaWTPFMHfKySJh6V2nURDp465ps9JbGh1LdI9GGFEmtfDavgZD5oVowoIO9FNPw==\",\"id\":\"c1WsJmMT6k/q4Eb3gWCt0SasFXhb6FX/arOY3VByRQOyhYpndYir+NG2MgToNaHnnb997YG99Gu6qvr/lHARFZdGqbZZAPt2waRr2UYk4n6zx3CCdwX2zcMAlF53kvQiSA1KVPRAuPvsP0czeDxjDHpyR2Che+Itm6D03E67DJWKQCwa/tng4fkJCdvPDv9/QZDcS+s779hiFk3q2GXIyegJHlpIci7PwxmeOsibpVK66nYQZjB0Oxky744zSSxV896dMOOpB8BccHXfqwip0fRKXx4AIT1CXXAL89yH88zrcEo+fpkBYNi8DQonZXUHGGJu/kDETICptoO9DJ3W5I9tisCRpP2aqjwpdFUq7h5rV6CWFUfW97eEtaHAGBMIisUqqh3PZ6PcMyYjTZq7qaJXl3c=\",\"summary\":[],\"type\":\"reasoning\"}"
+							"thinking": "**Considering inspection methods**\n\nI need to make sure I'm following the guidelines. I should check the PI environment variables for details about the current model and session. The guideline suggests using a command like `bash env | grep ^PI_`, but that might be more complex than the user needs. Since they asked a simple question, I wonder if I should skip that step. I think it’s best to read through first, look for any errors, and then provide a straightforward answer.",
+							"thinkingSignature": ""
 						},
 						{
 							"type": "toolCall",
@@ -118,31 +2072,31 @@
 							"arguments": {
 								"path": "does-not-exist.txt",
 								"offset": 1,
-								"limit": 2000
+								"limit": 50
 							}
 						}
 					],
 					"api": "openai-responses",
 					"provider": "github-copilot",
-					"model": "gpt-5.6-sol",
+					"model": "gpt-5.4",
 					"usage": {
-						"input": 3,
-						"output": 54,
+						"input": 1565,
+						"output": 107,
 						"cacheRead": 0,
-						"cacheWrite": 2711,
-						"reasoning": 22,
-						"totalTokens": 2768,
+						"cacheWrite": 0,
+						"reasoning": 76,
+						"totalTokens": 1672,
 						"cost": {
-							"input": 0.000015000000000000002,
-							"output": 0.0016200000000000001,
+							"input": 0.0039125,
+							"output": 0.001605,
 							"cacheRead": 0,
-							"cacheWrite": 0.01694375,
-							"total": 0.01857875
+							"cacheWrite": 0,
+							"total": 0.0055175
 						}
 					},
 					"stopReason": "toolUse",
 					"timestamp": 0,
-					"responseId": "c+1hCT3kRjN5ny+qLOArZ1cvvsIIrUS4AFuKS9yv0Rs7aw1n6FAgaCs97KSea8N08yD3fgokFI2l69Fd7xkRosg22PS6tr59G8vHLH4lnNV8fpugN31sCzEcMROCzdAhEUcnfs0SsyZvYQcQsvxaz8YWIt72cRFybJ3jelsVALvWxhnkxXrFmZp08zzK7DuAXZyGgXltQUSCUEhQv65h2+4DvUOnTFgMjktfpYSsTqgc+zoKYX8QD4X+ndi91/BrnTEtC2Dz1zy13YERwo0hwVeWdfzYhKaDq0Hb4NpKr7U54wE20tFWzgQhJ1lNc0RiHDIbCbVbOaDjr6XDvEFwVu1RrKgo/uAb7/fZxWJN+kR3QjTuofhGZG1L4Q6OJWI09hlUB3lYs7oevw0tL5ZIYpK0XYof0Q=="
+					"responseId": ""
 				}
 			},
 			"message": {
@@ -319,18 +2273,7 @@
 			"assistantMessageEvent": {
 				"type": "toolcall_delta",
 				"contentIndex": 1,
-				"delta": "200"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "toolcall_delta",
-				"contentIndex": 1,
-				"delta": "0"
+				"delta": "50"
 			},
 			"message": {
 				"role": "assistant"
@@ -359,7 +2302,7 @@
 					"arguments": {
 						"path": "does-not-exist.txt",
 						"offset": 1,
-						"limit": 2000
+						"limit": 50
 					}
 				}
 			},
@@ -374,8 +2317,8 @@
 				"content": [
 					{
 						"type": "thinking",
-						"thinking": "",
-						"thinkingSignature": "{\"content\":[],\"encrypted_content\":\"iYddL2HMwrViF/R+ganBjJtdkrcLsJnedFfUvInY2hE/EGPFIdKa3bFfwMS74egZUcRCMFsTP6e38gJr3dON8SBvia1teHZCeRQf0hda2ttjfEzpS/8ES7Wcy/M5HFzmUjB/EzaEhbyRyAATK8+ZPNvtmaE37xzaZq40wGRlDav7MneP5q3SFBe6QCOWTVThHOUkmB8HCP2VS8OChpPin+F/Y0cEOLu5+iH7cdUgyadCPlISOqxcYgSPdxH5vLe1RNBpl0xtPBxH0wvjwQRsAbp7xu+n+loCe5zG0uzY4JrF/ksZi0rXWk7FiWqbDWDXMyhCvKHm5krjocCBLVQ/GUqYPZDlJSdxYjKU4WdoLtN8fg8uq9MBCsmjVKHdeHKr9zDbhGYp4HbvBlkp5WX48AmMaT9nRDuqgTss6FgcvogCCcFSAWS7/lsuVxFx+1aMnAJWO3PxjWnTxxw13/IxrO8UNmFw/T6/tljlw2n0TPxwbJ6p6EW84Pu3DUrRBM/wew9L0QXfvmibJ+YeM/MJ/lbcrSJNHUmEjkEPuny4Z6BrlzBPCFwP6vyP8mTwRk8kQ6OlvP8mrbP+jfX5zo8GUvvCRw4RcDxYRNJugXctefVVlRNBs2R/i46fXoa40Se1ugY31yCycpwYLJY2dnqDRkWV0NmOpgYVcQ/Z1ngzR9f16/hd1P2NRWOFn/8Lgdja/yVla2VUzOyJLZbRq74ommLxhyDaEVK4VyIqj4HKmYCBB6N5fHWJ+x3GEicTmyG1s6ois+yzLilKigztKiFXlbaTBgsSaYJ3hYBrkvjrhaflzkZ/OKIxzoQDFHDhvgUX+NEWAAVYF/NwG6I+fteyRLXlCo7EdCIyC2FUNPoxyv0yQ3f28HlPVXk2P5VVxuceNkoPFxD22L3yHiAGSg3CZiiVUubk3/R9dxw0AyiOiOAF+w3l+P8+i3Olwh+bgTXwglOJMV4t32fpvTtCXTwHxzO3y+9x2oevKYW3vZZBOAkfLhYBJryXkp6KD+YpAtbAGst++KgRHYIRjtHylXdsTctpG3h7/R9+w8YrFi2DIa8QehihraDUu+meZyWS7hK5J3zxssR+g65ieFWnPe0UgQai8EOZ+3ESdhoDJAmKoDpKQuWGeOIl8FAWBRPwgRBFzDTW6lziVS2f6uMPZeOitNRnvXtsK3sTiNDPWHzI3kRSbpmfeRB6hNpNbILti9dYbYBq9NLE581uXWqkbzzIGHCjNncTQdi/lrklgykI7KavEH7taIIsUbBq6uHFxNrf+IrO7UpYtlDtMm2Bl0wtKhu68NOIdofk45pUbRhu/y9/er99ih+JNMCTIMSwDB3n2VRV5VGVZ81CldmUVJSkvsm81oRMWQ6Mslj1FdtXtxnHHW0n5HlpHdTBn2euLsjXmHFrsgJYc0Mb75ySW9lUMczlAxA36UjUTJYoPLCHwA91cmhUL62IlU/Q8s5GSjgAlT1U0QfONipGvKliH7VqOzr8i7tQ9ofRFf/8tBowaprtgOAXYhewwd9Wv6ejy7ZBKWfi0vFR6ppigmC/as7E7A8DieRtW+jk8PY5SoYytOz7w8WWJEL3Zpfs4D8GkLk+G1lN76nXUvhP+Q5jOwVq8aOzn945Z1fri/n2FUNS/qTvfH7i+kuYauE/NRpmBp6earTlDCBwle4FlRvBuT1DX0D8P4QsMLfuYqf0qaOHXV8eLpfQaWTPFMHfKySJh6V2nURDp465ps9JbGh1LdI9GGFEmtfDavgZD5oVowoIO9FNPw==\",\"id\":\"c1WsJmMT6k/q4Eb3gWCt0SasFXhb6FX/arOY3VByRQOyhYpndYir+NG2MgToNaHnnb997YG99Gu6qvr/lHARFZdGqbZZAPt2waRr2UYk4n6zx3CCdwX2zcMAlF53kvQiSA1KVPRAuPvsP0czeDxjDHpyR2Che+Itm6D03E67DJWKQCwa/tng4fkJCdvPDv9/QZDcS+s779hiFk3q2GXIyegJHlpIci7PwxmeOsibpVK66nYQZjB0Oxky744zSSxV896dMOOpB8BccHXfqwip0fRKXx4AIT1CXXAL89yH88zrcEo+fpkBYNi8DQonZXUHGGJu/kDETICptoO9DJ3W5I9tisCRpP2aqjwpdFUq7h5rV6CWFUfW97eEtaHAGBMIisUqqh3PZ6PcMyYjTZq7qaJXl3c=\",\"summary\":[],\"type\":\"reasoning\"}"
+						"thinking": "**Considering inspection methods**\n\nI need to make sure I'm following the guidelines. I should check the PI environment variables for details about the current model and session. The guideline suggests using a command like `bash env | grep ^PI_`, but that might be more complex than the user needs. Since they asked a simple question, I wonder if I should skip that step. I think it’s best to read through first, look for any errors, and then provide a straightforward answer.",
+						"thinkingSignature": ""
 					},
 					{
 						"type": "toolCall",
@@ -384,31 +2327,31 @@
 						"arguments": {
 							"path": "does-not-exist.txt",
 							"offset": 1,
-							"limit": 2000
+							"limit": 50
 						}
 					}
 				],
 				"api": "openai-responses",
 				"provider": "github-copilot",
-				"model": "gpt-5.6-sol",
+				"model": "gpt-5.4",
 				"usage": {
-					"input": 3,
-					"output": 54,
+					"input": 1565,
+					"output": 107,
 					"cacheRead": 0,
-					"cacheWrite": 2711,
-					"reasoning": 22,
-					"totalTokens": 2768,
+					"cacheWrite": 0,
+					"reasoning": 76,
+					"totalTokens": 1672,
 					"cost": {
-						"input": 0.000015000000000000002,
-						"output": 0.0016200000000000001,
+						"input": 0.0039125,
+						"output": 0.001605,
 						"cacheRead": 0,
-						"cacheWrite": 0.01694375,
-						"total": 0.01857875
+						"cacheWrite": 0,
+						"total": 0.0055175
 					}
 				},
 				"stopReason": "toolUse",
 				"timestamp": 0,
-				"responseId": "c+1hCT3kRjN5ny+qLOArZ1cvvsIIrUS4AFuKS9yv0Rs7aw1n6FAgaCs97KSea8N08yD3fgokFI2l69Fd7xkRosg22PS6tr59G8vHLH4lnNV8fpugN31sCzEcMROCzdAhEUcnfs0SsyZvYQcQsvxaz8YWIt72cRFybJ3jelsVALvWxhnkxXrFmZp08zzK7DuAXZyGgXltQUSCUEhQv65h2+4DvUOnTFgMjktfpYSsTqgc+zoKYX8QD4X+ndi91/BrnTEtC2Dz1zy13YERwo0hwVeWdfzYhKaDq0Hb4NpKr7U54wE20tFWzgQhJ1lNc0RiHDIbCbVbOaDjr6XDvEFwVu1RrKgo/uAb7/fZxWJN+kR3QjTuofhGZG1L4Q6OJWI09hlUB3lYs7oevw0tL5ZIYpK0XYof0Q=="
+				"responseId": ""
 			}
 		},
 		{
@@ -418,7 +2361,7 @@
 			"args": {
 				"path": "does-not-exist.txt",
 				"offset": 1,
-				"limit": 2000
+				"limit": 50
 			}
 		},
 		{
@@ -429,7 +2372,7 @@
 				"content": [
 					{
 						"type": "text",
-						"text": "ENOENT: no such file or directory, access '${workdir}/does-not-exist.txt'"
+						"text": "ENOENT: no such file or directory, access '/tmp/pi-ahp-capture-tool-error/does-not-exist.txt'"
 					}
 				],
 				"details": {}
@@ -445,7 +2388,7 @@
 				"content": [
 					{
 						"type": "text",
-						"text": "ENOENT: no such file or directory, access '${workdir}/does-not-exist.txt'"
+						"text": "ENOENT: no such file or directory, access '/tmp/pi-ahp-capture-tool-error/does-not-exist.txt'"
 					}
 				],
 				"details": {},
@@ -462,7 +2405,7 @@
 				"content": [
 					{
 						"type": "text",
-						"text": "ENOENT: no such file or directory, access '${workdir}/does-not-exist.txt'"
+						"text": "ENOENT: no such file or directory, access '/tmp/pi-ahp-capture-tool-error/does-not-exist.txt'"
 					}
 				],
 				"details": {},
@@ -477,8 +2420,8 @@
 				"content": [
 					{
 						"type": "thinking",
-						"thinking": "",
-						"thinkingSignature": "{\"content\":[],\"encrypted_content\":\"iYddL2HMwrViF/R+ganBjJtdkrcLsJnedFfUvInY2hE/EGPFIdKa3bFfwMS74egZUcRCMFsTP6e38gJr3dON8SBvia1teHZCeRQf0hda2ttjfEzpS/8ES7Wcy/M5HFzmUjB/EzaEhbyRyAATK8+ZPNvtmaE37xzaZq40wGRlDav7MneP5q3SFBe6QCOWTVThHOUkmB8HCP2VS8OChpPin+F/Y0cEOLu5+iH7cdUgyadCPlISOqxcYgSPdxH5vLe1RNBpl0xtPBxH0wvjwQRsAbp7xu+n+loCe5zG0uzY4JrF/ksZi0rXWk7FiWqbDWDXMyhCvKHm5krjocCBLVQ/GUqYPZDlJSdxYjKU4WdoLtN8fg8uq9MBCsmjVKHdeHKr9zDbhGYp4HbvBlkp5WX48AmMaT9nRDuqgTss6FgcvogCCcFSAWS7/lsuVxFx+1aMnAJWO3PxjWnTxxw13/IxrO8UNmFw/T6/tljlw2n0TPxwbJ6p6EW84Pu3DUrRBM/wew9L0QXfvmibJ+YeM/MJ/lbcrSJNHUmEjkEPuny4Z6BrlzBPCFwP6vyP8mTwRk8kQ6OlvP8mrbP+jfX5zo8GUvvCRw4RcDxYRNJugXctefVVlRNBs2R/i46fXoa40Se1ugY31yCycpwYLJY2dnqDRkWV0NmOpgYVcQ/Z1ngzR9f16/hd1P2NRWOFn/8Lgdja/yVla2VUzOyJLZbRq74ommLxhyDaEVK4VyIqj4HKmYCBB6N5fHWJ+x3GEicTmyG1s6ois+yzLilKigztKiFXlbaTBgsSaYJ3hYBrkvjrhaflzkZ/OKIxzoQDFHDhvgUX+NEWAAVYF/NwG6I+fteyRLXlCo7EdCIyC2FUNPoxyv0yQ3f28HlPVXk2P5VVxuceNkoPFxD22L3yHiAGSg3CZiiVUubk3/R9dxw0AyiOiOAF+w3l+P8+i3Olwh+bgTXwglOJMV4t32fpvTtCXTwHxzO3y+9x2oevKYW3vZZBOAkfLhYBJryXkp6KD+YpAtbAGst++KgRHYIRjtHylXdsTctpG3h7/R9+w8YrFi2DIa8QehihraDUu+meZyWS7hK5J3zxssR+g65ieFWnPe0UgQai8EOZ+3ESdhoDJAmKoDpKQuWGeOIl8FAWBRPwgRBFzDTW6lziVS2f6uMPZeOitNRnvXtsK3sTiNDPWHzI3kRSbpmfeRB6hNpNbILti9dYbYBq9NLE581uXWqkbzzIGHCjNncTQdi/lrklgykI7KavEH7taIIsUbBq6uHFxNrf+IrO7UpYtlDtMm2Bl0wtKhu68NOIdofk45pUbRhu/y9/er99ih+JNMCTIMSwDB3n2VRV5VGVZ81CldmUVJSkvsm81oRMWQ6Mslj1FdtXtxnHHW0n5HlpHdTBn2euLsjXmHFrsgJYc0Mb75ySW9lUMczlAxA36UjUTJYoPLCHwA91cmhUL62IlU/Q8s5GSjgAlT1U0QfONipGvKliH7VqOzr8i7tQ9ofRFf/8tBowaprtgOAXYhewwd9Wv6ejy7ZBKWfi0vFR6ppigmC/as7E7A8DieRtW+jk8PY5SoYytOz7w8WWJEL3Zpfs4D8GkLk+G1lN76nXUvhP+Q5jOwVq8aOzn945Z1fri/n2FUNS/qTvfH7i+kuYauE/NRpmBp6earTlDCBwle4FlRvBuT1DX0D8P4QsMLfuYqf0qaOHXV8eLpfQaWTPFMHfKySJh6V2nURDp465ps9JbGh1LdI9GGFEmtfDavgZD5oVowoIO9FNPw==\",\"id\":\"c1WsJmMT6k/q4Eb3gWCt0SasFXhb6FX/arOY3VByRQOyhYpndYir+NG2MgToNaHnnb997YG99Gu6qvr/lHARFZdGqbZZAPt2waRr2UYk4n6zx3CCdwX2zcMAlF53kvQiSA1KVPRAuPvsP0czeDxjDHpyR2Che+Itm6D03E67DJWKQCwa/tng4fkJCdvPDv9/QZDcS+s779hiFk3q2GXIyegJHlpIci7PwxmeOsibpVK66nYQZjB0Oxky744zSSxV896dMOOpB8BccHXfqwip0fRKXx4AIT1CXXAL89yH88zrcEo+fpkBYNi8DQonZXUHGGJu/kDETICptoO9DJ3W5I9tisCRpP2aqjwpdFUq7h5rV6CWFUfW97eEtaHAGBMIisUqqh3PZ6PcMyYjTZq7qaJXl3c=\",\"summary\":[],\"type\":\"reasoning\"}"
+						"thinking": "**Considering inspection methods**\n\nI need to make sure I'm following the guidelines. I should check the PI environment variables for details about the current model and session. The guideline suggests using a command like `bash env | grep ^PI_`, but that might be more complex than the user needs. Since they asked a simple question, I wonder if I should skip that step. I think it’s best to read through first, look for any errors, and then provide a straightforward answer.",
+						"thinkingSignature": ""
 					},
 					{
 						"type": "toolCall",
@@ -487,31 +2430,31 @@
 						"arguments": {
 							"path": "does-not-exist.txt",
 							"offset": 1,
-							"limit": 2000
+							"limit": 50
 						}
 					}
 				],
 				"api": "openai-responses",
 				"provider": "github-copilot",
-				"model": "gpt-5.6-sol",
+				"model": "gpt-5.4",
 				"usage": {
-					"input": 3,
-					"output": 54,
+					"input": 1565,
+					"output": 107,
 					"cacheRead": 0,
-					"cacheWrite": 2711,
-					"reasoning": 22,
-					"totalTokens": 2768,
+					"cacheWrite": 0,
+					"reasoning": 76,
+					"totalTokens": 1672,
 					"cost": {
-						"input": 0.000015000000000000002,
-						"output": 0.0016200000000000001,
+						"input": 0.0039125,
+						"output": 0.001605,
 						"cacheRead": 0,
-						"cacheWrite": 0.01694375,
-						"total": 0.01857875
+						"cacheWrite": 0,
+						"total": 0.0055175
 					}
 				},
 				"stopReason": "toolUse",
 				"timestamp": 0,
-				"responseId": "c+1hCT3kRjN5ny+qLOArZ1cvvsIIrUS4AFuKS9yv0Rs7aw1n6FAgaCs97KSea8N08yD3fgokFI2l69Fd7xkRosg22PS6tr59G8vHLH4lnNV8fpugN31sCzEcMROCzdAhEUcnfs0SsyZvYQcQsvxaz8YWIt72cRFybJ3jelsVALvWxhnkxXrFmZp08zzK7DuAXZyGgXltQUSCUEhQv65h2+4DvUOnTFgMjktfpYSsTqgc+zoKYX8QD4X+ndi91/BrnTEtC2Dz1zy13YERwo0hwVeWdfzYhKaDq0Hb4NpKr7U54wE20tFWzgQhJ1lNc0RiHDIbCbVbOaDjr6XDvEFwVu1RrKgo/uAb7/fZxWJN+kR3QjTuofhGZG1L4Q6OJWI09hlUB3lYs7oevw0tL5ZIYpK0XYof0Q=="
+				"responseId": ""
 			},
 			"toolResults": [
 				{
@@ -521,7 +2464,7 @@
 					"content": [
 						{
 							"type": "text",
-							"text": "ENOENT: no such file or directory, access '${workdir}/does-not-exist.txt'"
+							"text": "ENOENT: no such file or directory, access '/tmp/pi-ahp-capture-tool-error/does-not-exist.txt'"
 						}
 					],
 					"details": {},
@@ -541,12 +2484,12 @@
 					{
 						"type": "text",
 						"text": "No, `does-not-exist.txt` does not exist.",
-						"textSignature": "{\"v\":1,\"id\":\"CMl6myQcvTUtmb9Q0iWblkwgjbm+ddE4QUf7CV2D1KxDR7BmQFwM8bQh8X6xxSBzgkLb3sqvTEX7uhIgQOQBIBgn/nTM7QbgtqRVcAG4GKpL9F045nPhOCDKBPl88oK8D0RGzdRz+uhlo7Y/O1bRnKZnEjSFjYgGJwkYdcV0ScgX87NWAVw2KboNjh9LYYrjz02OPFneO3Nc7AxvUqtu72hWcGH4RsGMW2h52ruTGMkrdpeN2QlpG6cTrup/AT9MmgfDi8OcczvpSH+hkn7L94Zn6y4xir25C+Sli0d8b2Oyd36UM0UR2oB7c/wg2XBEO9hM9MAr3SxqeF5kd2+x+iA1mShhSAcXDPDPM9hry4tsbn4E/vliGa662sCWLIAwltJl9FTECY8NJHik1MBGkjeHojUe\",\"phase\":\"final_answer\"}"
+						"textSignature": ""
 					}
 				],
 				"api": "openai-responses",
 				"provider": "github-copilot",
-				"model": "gpt-5.6-sol",
+				"model": "gpt-5.4",
 				"usage": {
 					"input": 0,
 					"output": 0,
@@ -737,30 +2680,30 @@
 					{
 						"type": "text",
 						"text": "No, `does-not-exist.txt` does not exist.",
-						"textSignature": "{\"v\":1,\"id\":\"CMl6myQcvTUtmb9Q0iWblkwgjbm+ddE4QUf7CV2D1KxDR7BmQFwM8bQh8X6xxSBzgkLb3sqvTEX7uhIgQOQBIBgn/nTM7QbgtqRVcAG4GKpL9F045nPhOCDKBPl88oK8D0RGzdRz+uhlo7Y/O1bRnKZnEjSFjYgGJwkYdcV0ScgX87NWAVw2KboNjh9LYYrjz02OPFneO3Nc7AxvUqtu72hWcGH4RsGMW2h52ruTGMkrdpeN2QlpG6cTrup/AT9MmgfDi8OcczvpSH+hkn7L94Zn6y4xir25C+Sli0d8b2Oyd36UM0UR2oB7c/wg2XBEO9hM9MAr3SxqeF5kd2+x+iA1mShhSAcXDPDPM9hry4tsbn4E/vliGa662sCWLIAwltJl9FTECY8NJHik1MBGkjeHojUe\",\"phase\":\"final_answer\"}"
+						"textSignature": ""
 					}
 				],
 				"api": "openai-responses",
 				"provider": "github-copilot",
-				"model": "gpt-5.6-sol",
+				"model": "gpt-5.4",
 				"usage": {
-					"input": 3,
+					"input": 1708,
 					"output": 17,
-					"cacheRead": 2711,
-					"cacheWrite": 94,
+					"cacheRead": 0,
+					"cacheWrite": 0,
 					"reasoning": 0,
-					"totalTokens": 2825,
+					"totalTokens": 1725,
 					"cost": {
-						"input": 0.000015000000000000002,
-						"output": 0.00051,
-						"cacheRead": 0.0013555,
-						"cacheWrite": 0.0005875,
-						"total": 0.002468
+						"input": 0.00427,
+						"output": 0.000255,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"total": 0.004525
 					}
 				},
 				"stopReason": "stop",
 				"timestamp": 0,
-				"responseId": "Z7SiRh13fdEKUZSvgT9PyhCgXAroTQUzXW4JW6I6rCV9M9iUvJfTzfeu4osF1tQJWK8jUmn395z5Qt9dTz3/RNBtiI/AiV6q75aFH5YiEMOqEmgAdfP5kph0CknFDIVM6mtGEkF705i+V1tS4N9LxuY+87uR1wRBVk1+gEE5I2kNtdFbwnVbUug0t0you/Rm+KJxGoKWg170Ebk6/lCxn+tzhart26liULYkPUf/ds6hAuauN6XpqPCN3rOEkkro3nxsTsd2eiX7xazv26KeHhp0A3a8eM5+IdN8lWMFRfQCDR1rVu4VTDf8HCu++L4cfrT7FVBFLkImDcLpsoTP34ZYmnROhCM3k6nXqVfKwV5zrAdy+qrPsggKnbnOXGKFqnMKEmU4jlTZP9sSfFORWcR2GdLnmA=="
+				"responseId": ""
 			}
 		},
 		{
@@ -771,30 +2714,30 @@
 					{
 						"type": "text",
 						"text": "No, `does-not-exist.txt` does not exist.",
-						"textSignature": "{\"v\":1,\"id\":\"CMl6myQcvTUtmb9Q0iWblkwgjbm+ddE4QUf7CV2D1KxDR7BmQFwM8bQh8X6xxSBzgkLb3sqvTEX7uhIgQOQBIBgn/nTM7QbgtqRVcAG4GKpL9F045nPhOCDKBPl88oK8D0RGzdRz+uhlo7Y/O1bRnKZnEjSFjYgGJwkYdcV0ScgX87NWAVw2KboNjh9LYYrjz02OPFneO3Nc7AxvUqtu72hWcGH4RsGMW2h52ruTGMkrdpeN2QlpG6cTrup/AT9MmgfDi8OcczvpSH+hkn7L94Zn6y4xir25C+Sli0d8b2Oyd36UM0UR2oB7c/wg2XBEO9hM9MAr3SxqeF5kd2+x+iA1mShhSAcXDPDPM9hry4tsbn4E/vliGa662sCWLIAwltJl9FTECY8NJHik1MBGkjeHojUe\",\"phase\":\"final_answer\"}"
+						"textSignature": ""
 					}
 				],
 				"api": "openai-responses",
 				"provider": "github-copilot",
-				"model": "gpt-5.6-sol",
+				"model": "gpt-5.4",
 				"usage": {
-					"input": 3,
+					"input": 1708,
 					"output": 17,
-					"cacheRead": 2711,
-					"cacheWrite": 94,
+					"cacheRead": 0,
+					"cacheWrite": 0,
 					"reasoning": 0,
-					"totalTokens": 2825,
+					"totalTokens": 1725,
 					"cost": {
-						"input": 0.000015000000000000002,
-						"output": 0.00051,
-						"cacheRead": 0.0013555,
-						"cacheWrite": 0.0005875,
-						"total": 0.002468
+						"input": 0.00427,
+						"output": 0.000255,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"total": 0.004525
 					}
 				},
 				"stopReason": "stop",
 				"timestamp": 0,
-				"responseId": "Z7SiRh13fdEKUZSvgT9PyhCgXAroTQUzXW4JW6I6rCV9M9iUvJfTzfeu4osF1tQJWK8jUmn395z5Qt9dTz3/RNBtiI/AiV6q75aFH5YiEMOqEmgAdfP5kph0CknFDIVM6mtGEkF705i+V1tS4N9LxuY+87uR1wRBVk1+gEE5I2kNtdFbwnVbUug0t0you/Rm+KJxGoKWg170Ebk6/lCxn+tzhart26liULYkPUf/ds6hAuauN6XpqPCN3rOEkkro3nxsTsd2eiX7xazv26KeHhp0A3a8eM5+IdN8lWMFRfQCDR1rVu4VTDf8HCu++L4cfrT7FVBFLkImDcLpsoTP34ZYmnROhCM3k6nXqVfKwV5zrAdy+qrPsggKnbnOXGKFqnMKEmU4jlTZP9sSfFORWcR2GdLnmA=="
+				"responseId": ""
 			},
 			"toolResults": []
 		},
@@ -816,8 +2759,8 @@
 					"content": [
 						{
 							"type": "thinking",
-							"thinking": "",
-							"thinkingSignature": "{\"content\":[],\"encrypted_content\":\"iYddL2HMwrViF/R+ganBjJtdkrcLsJnedFfUvInY2hE/EGPFIdKa3bFfwMS74egZUcRCMFsTP6e38gJr3dON8SBvia1teHZCeRQf0hda2ttjfEzpS/8ES7Wcy/M5HFzmUjB/EzaEhbyRyAATK8+ZPNvtmaE37xzaZq40wGRlDav7MneP5q3SFBe6QCOWTVThHOUkmB8HCP2VS8OChpPin+F/Y0cEOLu5+iH7cdUgyadCPlISOqxcYgSPdxH5vLe1RNBpl0xtPBxH0wvjwQRsAbp7xu+n+loCe5zG0uzY4JrF/ksZi0rXWk7FiWqbDWDXMyhCvKHm5krjocCBLVQ/GUqYPZDlJSdxYjKU4WdoLtN8fg8uq9MBCsmjVKHdeHKr9zDbhGYp4HbvBlkp5WX48AmMaT9nRDuqgTss6FgcvogCCcFSAWS7/lsuVxFx+1aMnAJWO3PxjWnTxxw13/IxrO8UNmFw/T6/tljlw2n0TPxwbJ6p6EW84Pu3DUrRBM/wew9L0QXfvmibJ+YeM/MJ/lbcrSJNHUmEjkEPuny4Z6BrlzBPCFwP6vyP8mTwRk8kQ6OlvP8mrbP+jfX5zo8GUvvCRw4RcDxYRNJugXctefVVlRNBs2R/i46fXoa40Se1ugY31yCycpwYLJY2dnqDRkWV0NmOpgYVcQ/Z1ngzR9f16/hd1P2NRWOFn/8Lgdja/yVla2VUzOyJLZbRq74ommLxhyDaEVK4VyIqj4HKmYCBB6N5fHWJ+x3GEicTmyG1s6ois+yzLilKigztKiFXlbaTBgsSaYJ3hYBrkvjrhaflzkZ/OKIxzoQDFHDhvgUX+NEWAAVYF/NwG6I+fteyRLXlCo7EdCIyC2FUNPoxyv0yQ3f28HlPVXk2P5VVxuceNkoPFxD22L3yHiAGSg3CZiiVUubk3/R9dxw0AyiOiOAF+w3l+P8+i3Olwh+bgTXwglOJMV4t32fpvTtCXTwHxzO3y+9x2oevKYW3vZZBOAkfLhYBJryXkp6KD+YpAtbAGst++KgRHYIRjtHylXdsTctpG3h7/R9+w8YrFi2DIa8QehihraDUu+meZyWS7hK5J3zxssR+g65ieFWnPe0UgQai8EOZ+3ESdhoDJAmKoDpKQuWGeOIl8FAWBRPwgRBFzDTW6lziVS2f6uMPZeOitNRnvXtsK3sTiNDPWHzI3kRSbpmfeRB6hNpNbILti9dYbYBq9NLE581uXWqkbzzIGHCjNncTQdi/lrklgykI7KavEH7taIIsUbBq6uHFxNrf+IrO7UpYtlDtMm2Bl0wtKhu68NOIdofk45pUbRhu/y9/er99ih+JNMCTIMSwDB3n2VRV5VGVZ81CldmUVJSkvsm81oRMWQ6Mslj1FdtXtxnHHW0n5HlpHdTBn2euLsjXmHFrsgJYc0Mb75ySW9lUMczlAxA36UjUTJYoPLCHwA91cmhUL62IlU/Q8s5GSjgAlT1U0QfONipGvKliH7VqOzr8i7tQ9ofRFf/8tBowaprtgOAXYhewwd9Wv6ejy7ZBKWfi0vFR6ppigmC/as7E7A8DieRtW+jk8PY5SoYytOz7w8WWJEL3Zpfs4D8GkLk+G1lN76nXUvhP+Q5jOwVq8aOzn945Z1fri/n2FUNS/qTvfH7i+kuYauE/NRpmBp6earTlDCBwle4FlRvBuT1DX0D8P4QsMLfuYqf0qaOHXV8eLpfQaWTPFMHfKySJh6V2nURDp465ps9JbGh1LdI9GGFEmtfDavgZD5oVowoIO9FNPw==\",\"id\":\"c1WsJmMT6k/q4Eb3gWCt0SasFXhb6FX/arOY3VByRQOyhYpndYir+NG2MgToNaHnnb997YG99Gu6qvr/lHARFZdGqbZZAPt2waRr2UYk4n6zx3CCdwX2zcMAlF53kvQiSA1KVPRAuPvsP0czeDxjDHpyR2Che+Itm6D03E67DJWKQCwa/tng4fkJCdvPDv9/QZDcS+s779hiFk3q2GXIyegJHlpIci7PwxmeOsibpVK66nYQZjB0Oxky744zSSxV896dMOOpB8BccHXfqwip0fRKXx4AIT1CXXAL89yH88zrcEo+fpkBYNi8DQonZXUHGGJu/kDETICptoO9DJ3W5I9tisCRpP2aqjwpdFUq7h5rV6CWFUfW97eEtaHAGBMIisUqqh3PZ6PcMyYjTZq7qaJXl3c=\",\"summary\":[],\"type\":\"reasoning\"}"
+							"thinking": "**Considering inspection methods**\n\nI need to make sure I'm following the guidelines. I should check the PI environment variables for details about the current model and session. The guideline suggests using a command like `bash env | grep ^PI_`, but that might be more complex than the user needs. Since they asked a simple question, I wonder if I should skip that step. I think it’s best to read through first, look for any errors, and then provide a straightforward answer.",
+							"thinkingSignature": ""
 						},
 						{
 							"type": "toolCall",
@@ -826,31 +2769,31 @@
 							"arguments": {
 								"path": "does-not-exist.txt",
 								"offset": 1,
-								"limit": 2000
+								"limit": 50
 							}
 						}
 					],
 					"api": "openai-responses",
 					"provider": "github-copilot",
-					"model": "gpt-5.6-sol",
+					"model": "gpt-5.4",
 					"usage": {
-						"input": 3,
-						"output": 54,
+						"input": 1565,
+						"output": 107,
 						"cacheRead": 0,
-						"cacheWrite": 2711,
-						"reasoning": 22,
-						"totalTokens": 2768,
+						"cacheWrite": 0,
+						"reasoning": 76,
+						"totalTokens": 1672,
 						"cost": {
-							"input": 0.000015000000000000002,
-							"output": 0.0016200000000000001,
+							"input": 0.0039125,
+							"output": 0.001605,
 							"cacheRead": 0,
-							"cacheWrite": 0.01694375,
-							"total": 0.01857875
+							"cacheWrite": 0,
+							"total": 0.0055175
 						}
 					},
 					"stopReason": "toolUse",
 					"timestamp": 0,
-					"responseId": "c+1hCT3kRjN5ny+qLOArZ1cvvsIIrUS4AFuKS9yv0Rs7aw1n6FAgaCs97KSea8N08yD3fgokFI2l69Fd7xkRosg22PS6tr59G8vHLH4lnNV8fpugN31sCzEcMROCzdAhEUcnfs0SsyZvYQcQsvxaz8YWIt72cRFybJ3jelsVALvWxhnkxXrFmZp08zzK7DuAXZyGgXltQUSCUEhQv65h2+4DvUOnTFgMjktfpYSsTqgc+zoKYX8QD4X+ndi91/BrnTEtC2Dz1zy13YERwo0hwVeWdfzYhKaDq0Hb4NpKr7U54wE20tFWzgQhJ1lNc0RiHDIbCbVbOaDjr6XDvEFwVu1RrKgo/uAb7/fZxWJN+kR3QjTuofhGZG1L4Q6OJWI09hlUB3lYs7oevw0tL5ZIYpK0XYof0Q=="
+					"responseId": ""
 				},
 				{
 					"role": "toolResult",
@@ -859,7 +2802,7 @@
 					"content": [
 						{
 							"type": "text",
-							"text": "ENOENT: no such file or directory, access '${workdir}/does-not-exist.txt'"
+							"text": "ENOENT: no such file or directory, access '/tmp/pi-ahp-capture-tool-error/does-not-exist.txt'"
 						}
 					],
 					"details": {},
@@ -872,30 +2815,30 @@
 						{
 							"type": "text",
 							"text": "No, `does-not-exist.txt` does not exist.",
-							"textSignature": "{\"v\":1,\"id\":\"CMl6myQcvTUtmb9Q0iWblkwgjbm+ddE4QUf7CV2D1KxDR7BmQFwM8bQh8X6xxSBzgkLb3sqvTEX7uhIgQOQBIBgn/nTM7QbgtqRVcAG4GKpL9F045nPhOCDKBPl88oK8D0RGzdRz+uhlo7Y/O1bRnKZnEjSFjYgGJwkYdcV0ScgX87NWAVw2KboNjh9LYYrjz02OPFneO3Nc7AxvUqtu72hWcGH4RsGMW2h52ruTGMkrdpeN2QlpG6cTrup/AT9MmgfDi8OcczvpSH+hkn7L94Zn6y4xir25C+Sli0d8b2Oyd36UM0UR2oB7c/wg2XBEO9hM9MAr3SxqeF5kd2+x+iA1mShhSAcXDPDPM9hry4tsbn4E/vliGa662sCWLIAwltJl9FTECY8NJHik1MBGkjeHojUe\",\"phase\":\"final_answer\"}"
+							"textSignature": ""
 						}
 					],
 					"api": "openai-responses",
 					"provider": "github-copilot",
-					"model": "gpt-5.6-sol",
+					"model": "gpt-5.4",
 					"usage": {
-						"input": 3,
+						"input": 1708,
 						"output": 17,
-						"cacheRead": 2711,
-						"cacheWrite": 94,
+						"cacheRead": 0,
+						"cacheWrite": 0,
 						"reasoning": 0,
-						"totalTokens": 2825,
+						"totalTokens": 1725,
 						"cost": {
-							"input": 0.000015000000000000002,
-							"output": 0.00051,
-							"cacheRead": 0.0013555,
-							"cacheWrite": 0.0005875,
-							"total": 0.002468
+							"input": 0.00427,
+							"output": 0.000255,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"total": 0.004525
 						}
 					},
 					"stopReason": "stop",
 					"timestamp": 0,
-					"responseId": "Z7SiRh13fdEKUZSvgT9PyhCgXAroTQUzXW4JW6I6rCV9M9iUvJfTzfeu4osF1tQJWK8jUmn395z5Qt9dTz3/RNBtiI/AiV6q75aFH5YiEMOqEmgAdfP5kph0CknFDIVM6mtGEkF705i+V1tS4N9LxuY+87uR1wRBVk1+gEE5I2kNtdFbwnVbUug0t0you/Rm+KJxGoKWg170Ebk6/lCxn+tzhart26liULYkPUf/ds6hAuauN6XpqPCN3rOEkkro3nxsTsd2eiX7xazv26KeHhp0A3a8eM5+IdN8lWMFRfQCDR1rVu4VTDf8HCu++L4cfrT7FVBFLkImDcLpsoTP34ZYmnROhCM3k6nXqVfKwV5zrAdy+qrPsggKnbnOXGKFqnMKEmU4jlTZP9sSfFORWcR2GdLnmA=="
+					"responseId": ""
 				}
 			],
 			"willRetry": false

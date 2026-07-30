@@ -1,7 +1,7 @@
 {
-	"name": "tool-loop",
-	"description": "Two or more assistant messages in one turn — the case where contentIndex restarts and partIds must not collide.",
-	"prompt": "First list the files under the data directory, then read the file you find there, then reply with its contents only.",
+	"name": "tool-write",
+	"description": "A `write` call — a whole new file rather than an edit to one.",
+	"prompt": "Create a file called haiku.txt containing exactly three short lines. Then reply DONE.",
 	"partials": [
 		{
 			"role": "assistant",
@@ -14,10 +14,10 @@
 				{
 					"type": "toolCall",
 					"id": "toolcall_0",
-					"name": "ls",
+					"name": "write",
 					"arguments": {
-						"path": "data",
-						"limit": 100
+						"path": "haiku.txt",
+						"content": "Soft dawn warms the grass\nA sparrow cuts through still air\nDay opens in light\n"
 					}
 				}
 			],
@@ -25,59 +25,18 @@
 			"provider": "github-copilot",
 			"model": "gpt-5.4",
 			"usage": {
-				"input": 1572,
-				"output": 142,
+				"input": 1565,
+				"output": 139,
 				"cacheRead": 0,
 				"cacheWrite": 0,
-				"reasoning": 118,
-				"totalTokens": 1714,
+				"reasoning": 96,
+				"totalTokens": 1704,
 				"cost": {
-					"input": 0.00393,
-					"output": 0.00213,
+					"input": 0.0039125,
+					"output": 0.002085,
 					"cacheRead": 0,
 					"cacheWrite": 0,
-					"total": 0.00606
-				}
-			},
-			"stopReason": "toolUse",
-			"timestamp": 0,
-			"responseId": ""
-		},
-		{
-			"role": "assistant",
-			"content": [
-				{
-					"type": "thinking",
-					"thinking": "",
-					"thinkingSignature": ""
-				},
-				{
-					"type": "toolCall",
-					"id": "toolcall_1",
-					"name": "read",
-					"arguments": {
-						"path": "data/values.txt",
-						"offset": 1,
-						"limit": 2000
-					}
-				}
-			],
-			"api": "openai-responses",
-			"provider": "github-copilot",
-			"model": "gpt-5.4",
-			"usage": {
-				"input": 1727,
-				"output": 39,
-				"cacheRead": 0,
-				"cacheWrite": 0,
-				"reasoning": 8,
-				"totalTokens": 1766,
-				"cost": {
-					"input": 0.0043175,
-					"output": 0.000585,
-					"cacheRead": 0,
-					"cacheWrite": 0,
-					"total": 0.004902500000000001
+					"total": 0.0059975
 				}
 			},
 			"stopReason": "toolUse",
@@ -89,7 +48,7 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "42",
+					"text": "DONE",
 					"textSignature": ""
 				}
 			],
@@ -97,18 +56,18 @@
 			"provider": "github-copilot",
 			"model": "gpt-5.4",
 			"usage": {
-				"input": 242,
+				"input": 1723,
 				"output": 5,
-				"cacheRead": 1536,
+				"cacheRead": 0,
 				"cacheWrite": 0,
 				"reasoning": 0,
-				"totalTokens": 1783,
+				"totalTokens": 1728,
 				"cost": {
-					"input": 0.0006050000000000001,
+					"input": 0.0043075000000000006,
 					"output": 0.00007500000000000001,
-					"cacheRead": 0.000384,
+					"cacheRead": 0,
 					"cacheWrite": 0,
-					"total": 0.001064
+					"total": 0.004382500000000001
 				}
 			},
 			"stopReason": "stop",
@@ -159,7 +118,19 @@
 			{
 				"type": "toolcall_delta",
 				"contentIndex": 1,
-				"delta": "data",
+				"delta": "ha",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "iku",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": ".txt",
 				"partialRef": 0
 			},
 			{
@@ -171,25 +142,133 @@
 			{
 				"type": "toolcall_delta",
 				"contentIndex": 1,
-				"delta": "limit",
+				"delta": "content",
 				"partialRef": 0
 			},
 			{
 				"type": "toolcall_delta",
 				"contentIndex": 1,
-				"delta": "\":",
+				"delta": "\":\"",
 				"partialRef": 0
 			},
 			{
 				"type": "toolcall_delta",
 				"contentIndex": 1,
-				"delta": "100",
+				"delta": "Soft",
 				"partialRef": 0
 			},
 			{
 				"type": "toolcall_delta",
 				"contentIndex": 1,
-				"delta": "}",
+				"delta": " dawn",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " warms",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " the",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " grass",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\\n",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "A",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " spar",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "row",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " cuts",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " through",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " still",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " air",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\\n",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "Day",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " opens",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " in",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " light",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\\n",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\"}",
 				"partialRef": 0
 			},
 			{
@@ -198,10 +277,10 @@
 				"toolCall": {
 					"type": "toolCall",
 					"id": "toolcall_0",
-					"name": "ls",
+					"name": "write",
 					"arguments": {
-						"path": "data",
-						"limit": 100
+						"path": "haiku.txt",
+						"content": "Soft dawn warms the grass\nA sparrow cuts through still air\nDay opens in light\n"
 					}
 				},
 				"partialRef": 0
@@ -220,10 +299,10 @@
 						{
 							"type": "toolCall",
 							"id": "toolcall_0",
-							"name": "ls",
+							"name": "write",
 							"arguments": {
-								"path": "data",
-								"limit": 100
+								"path": "haiku.txt",
+								"content": "Soft dawn warms the grass\nA sparrow cuts through still air\nDay opens in light\n"
 							}
 						}
 					],
@@ -231,18 +310,18 @@
 					"provider": "github-copilot",
 					"model": "gpt-5.4",
 					"usage": {
-						"input": 1572,
-						"output": 142,
+						"input": 1565,
+						"output": 139,
 						"cacheRead": 0,
 						"cacheWrite": 0,
-						"reasoning": 118,
-						"totalTokens": 1714,
+						"reasoning": 96,
+						"totalTokens": 1704,
 						"cost": {
-							"input": 0.00393,
-							"output": 0.00213,
+							"input": 0.0039125,
+							"output": 0.002085,
 							"cacheRead": 0,
 							"cacheWrite": 0,
-							"total": 0.00606
+							"total": 0.0059975
 						}
 					},
 					"stopReason": "toolUse",
@@ -255,207 +334,23 @@
 			{
 				"type": "start",
 				"partialRef": 1
-			},
-			{
-				"type": "thinking_start",
-				"contentIndex": 0,
-				"partialRef": 1
-			},
-			{
-				"type": "thinking_end",
-				"contentIndex": 0,
-				"content": "",
-				"partialRef": 1
-			},
-			{
-				"type": "toolcall_start",
-				"contentIndex": 1,
-				"partialRef": 1
-			},
-			{
-				"type": "toolcall_delta",
-				"contentIndex": 1,
-				"delta": "{\"",
-				"partialRef": 1
-			},
-			{
-				"type": "toolcall_delta",
-				"contentIndex": 1,
-				"delta": "path",
-				"partialRef": 1
-			},
-			{
-				"type": "toolcall_delta",
-				"contentIndex": 1,
-				"delta": "\":\"",
-				"partialRef": 1
-			},
-			{
-				"type": "toolcall_delta",
-				"contentIndex": 1,
-				"delta": "data",
-				"partialRef": 1
-			},
-			{
-				"type": "toolcall_delta",
-				"contentIndex": 1,
-				"delta": "/",
-				"partialRef": 1
-			},
-			{
-				"type": "toolcall_delta",
-				"contentIndex": 1,
-				"delta": "values",
-				"partialRef": 1
-			},
-			{
-				"type": "toolcall_delta",
-				"contentIndex": 1,
-				"delta": ".txt",
-				"partialRef": 1
-			},
-			{
-				"type": "toolcall_delta",
-				"contentIndex": 1,
-				"delta": "\",\"",
-				"partialRef": 1
-			},
-			{
-				"type": "toolcall_delta",
-				"contentIndex": 1,
-				"delta": "offset",
-				"partialRef": 1
-			},
-			{
-				"type": "toolcall_delta",
-				"contentIndex": 1,
-				"delta": "\":",
-				"partialRef": 1
-			},
-			{
-				"type": "toolcall_delta",
-				"contentIndex": 1,
-				"delta": "1",
-				"partialRef": 1
-			},
-			{
-				"type": "toolcall_delta",
-				"contentIndex": 1,
-				"delta": ",\"",
-				"partialRef": 1
-			},
-			{
-				"type": "toolcall_delta",
-				"contentIndex": 1,
-				"delta": "limit",
-				"partialRef": 1
-			},
-			{
-				"type": "toolcall_delta",
-				"contentIndex": 1,
-				"delta": "\":",
-				"partialRef": 1
-			},
-			{
-				"type": "toolcall_delta",
-				"contentIndex": 1,
-				"delta": "200",
-				"partialRef": 1
-			},
-			{
-				"type": "toolcall_delta",
-				"contentIndex": 1,
-				"delta": "0",
-				"partialRef": 1
-			},
-			{
-				"type": "toolcall_delta",
-				"contentIndex": 1,
-				"delta": "}",
-				"partialRef": 1
-			},
-			{
-				"type": "toolcall_end",
-				"contentIndex": 1,
-				"toolCall": {
-					"type": "toolCall",
-					"id": "toolcall_1",
-					"name": "read",
-					"arguments": {
-						"path": "data/values.txt",
-						"offset": 1,
-						"limit": 2000
-					}
-				},
-				"partialRef": 1
-			},
-			{
-				"type": "done",
-				"reason": "toolUse",
-				"message": {
-					"role": "assistant",
-					"content": [
-						{
-							"type": "thinking",
-							"thinking": "",
-							"thinkingSignature": ""
-						},
-						{
-							"type": "toolCall",
-							"id": "toolcall_1",
-							"name": "read",
-							"arguments": {
-								"path": "data/values.txt",
-								"offset": 1,
-								"limit": 2000
-							}
-						}
-					],
-					"api": "openai-responses",
-					"provider": "github-copilot",
-					"model": "gpt-5.4",
-					"usage": {
-						"input": 1727,
-						"output": 39,
-						"cacheRead": 0,
-						"cacheWrite": 0,
-						"reasoning": 8,
-						"totalTokens": 1766,
-						"cost": {
-							"input": 0.0043175,
-							"output": 0.000585,
-							"cacheRead": 0,
-							"cacheWrite": 0,
-							"total": 0.004902500000000001
-						}
-					},
-					"stopReason": "toolUse",
-					"timestamp": 0,
-					"responseId": ""
-				}
-			}
-		],
-		[
-			{
-				"type": "start",
-				"partialRef": 2
 			},
 			{
 				"type": "text_start",
 				"contentIndex": 0,
-				"partialRef": 2
+				"partialRef": 1
 			},
 			{
 				"type": "text_delta",
 				"contentIndex": 0,
-				"delta": "42",
-				"partialRef": 2
+				"delta": "DONE",
+				"partialRef": 1
 			},
 			{
 				"type": "text_end",
 				"contentIndex": 0,
-				"content": "42",
-				"partialRef": 2
+				"content": "DONE",
+				"partialRef": 1
 			},
 			{
 				"type": "done",
@@ -465,7 +360,7 @@
 					"content": [
 						{
 							"type": "text",
-							"text": "42",
+							"text": "DONE",
 							"textSignature": ""
 						}
 					],
@@ -473,18 +368,18 @@
 					"provider": "github-copilot",
 					"model": "gpt-5.4",
 					"usage": {
-						"input": 242,
+						"input": 1723,
 						"output": 5,
-						"cacheRead": 1536,
+						"cacheRead": 0,
 						"cacheWrite": 0,
 						"reasoning": 0,
-						"totalTokens": 1783,
+						"totalTokens": 1728,
 						"cost": {
-							"input": 0.0006050000000000001,
+							"input": 0.0043075000000000006,
 							"output": 0.00007500000000000001,
-							"cacheRead": 0.000384,
+							"cacheRead": 0,
 							"cacheWrite": 0,
-							"total": 0.001064
+							"total": 0.004382500000000001
 						}
 					},
 					"stopReason": "stop",
@@ -508,7 +403,7 @@
 				"content": [
 					{
 						"type": "text",
-						"text": "First list the files under the data directory, then read the file you find there, then reply with its contents only."
+						"text": "Create a file called haiku.txt containing exactly three short lines. Then reply DONE."
 					}
 				],
 				"timestamp": 0
@@ -521,7 +416,7 @@
 				"content": [
 					{
 						"type": "text",
-						"text": "First list the files under the data directory, then read the file you find there, then reply with its contents only."
+						"text": "Create a file called haiku.txt containing exactly three short lines. Then reply DONE."
 					}
 				],
 				"timestamp": 0
@@ -540,10 +435,10 @@
 					{
 						"type": "toolCall",
 						"id": "toolcall_0",
-						"name": "ls",
+						"name": "write",
 						"arguments": {
-							"path": "data",
-							"limit": 100
+							"path": "haiku.txt",
+							"content": "Soft dawn warms the grass\nA sparrow cuts through still air\nDay opens in light\n"
 						}
 					}
 				],
@@ -605,10 +500,10 @@
 						{
 							"type": "toolCall",
 							"id": "toolcall_0",
-							"name": "ls",
+							"name": "write",
 							"arguments": {
-								"path": "data",
-								"limit": 100
+								"path": "haiku.txt",
+								"content": "Soft dawn warms the grass\nA sparrow cuts through still air\nDay opens in light\n"
 							}
 						}
 					],
@@ -616,18 +511,18 @@
 					"provider": "github-copilot",
 					"model": "gpt-5.4",
 					"usage": {
-						"input": 1572,
-						"output": 142,
+						"input": 1565,
+						"output": 139,
 						"cacheRead": 0,
 						"cacheWrite": 0,
-						"reasoning": 118,
-						"totalTokens": 1714,
+						"reasoning": 96,
+						"totalTokens": 1704,
 						"cost": {
-							"input": 0.00393,
-							"output": 0.00213,
+							"input": 0.0039125,
+							"output": 0.002085,
 							"cacheRead": 0,
 							"cacheWrite": 0,
-							"total": 0.00606
+							"total": 0.0059975
 						}
 					},
 					"stopReason": "toolUse",
@@ -677,7 +572,7 @@
 			"assistantMessageEvent": {
 				"type": "toolcall_delta",
 				"contentIndex": 1,
-				"delta": "data"
+				"delta": "ha"
 			},
 			"message": {
 				"role": "assistant"
@@ -688,409 +583,7 @@
 			"assistantMessageEvent": {
 				"type": "toolcall_delta",
 				"contentIndex": 1,
-				"delta": "\",\""
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "toolcall_delta",
-				"contentIndex": 1,
-				"delta": "limit"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "toolcall_delta",
-				"contentIndex": 1,
-				"delta": "\":"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "toolcall_delta",
-				"contentIndex": 1,
-				"delta": "100"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "toolcall_delta",
-				"contentIndex": 1,
-				"delta": "}"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "toolcall_end",
-				"contentIndex": 1,
-				"toolCall": {
-					"type": "toolCall",
-					"id": "toolcall_0",
-					"name": "ls",
-					"arguments": {
-						"path": "data",
-						"limit": 100
-					}
-				}
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_end",
-			"message": {
-				"role": "assistant",
-				"content": [
-					{
-						"type": "thinking",
-						"thinking": "",
-						"thinkingSignature": ""
-					},
-					{
-						"type": "toolCall",
-						"id": "toolcall_0",
-						"name": "ls",
-						"arguments": {
-							"path": "data",
-							"limit": 100
-						}
-					}
-				],
-				"api": "openai-responses",
-				"provider": "github-copilot",
-				"model": "gpt-5.4",
-				"usage": {
-					"input": 1572,
-					"output": 142,
-					"cacheRead": 0,
-					"cacheWrite": 0,
-					"reasoning": 118,
-					"totalTokens": 1714,
-					"cost": {
-						"input": 0.00393,
-						"output": 0.00213,
-						"cacheRead": 0,
-						"cacheWrite": 0,
-						"total": 0.00606
-					}
-				},
-				"stopReason": "toolUse",
-				"timestamp": 0,
-				"responseId": ""
-			}
-		},
-		{
-			"type": "tool_execution_start",
-			"toolCallId": "toolcall_0",
-			"toolName": "ls",
-			"args": {
-				"path": "data",
-				"limit": 100
-			}
-		},
-		{
-			"type": "tool_execution_end",
-			"toolCallId": "toolcall_0",
-			"toolName": "ls",
-			"result": {
-				"content": [
-					{
-						"type": "text",
-						"text": "values.txt"
-					}
-				]
-			},
-			"isError": false
-		},
-		{
-			"type": "message_start",
-			"message": {
-				"role": "toolResult",
-				"toolCallId": "toolcall_0",
-				"toolName": "ls",
-				"content": [
-					{
-						"type": "text",
-						"text": "values.txt"
-					}
-				],
-				"isError": false,
-				"timestamp": 0
-			}
-		},
-		{
-			"type": "message_end",
-			"message": {
-				"role": "toolResult",
-				"toolCallId": "toolcall_0",
-				"toolName": "ls",
-				"content": [
-					{
-						"type": "text",
-						"text": "values.txt"
-					}
-				],
-				"isError": false,
-				"timestamp": 0
-			}
-		},
-		{
-			"type": "turn_end",
-			"message": {
-				"role": "assistant",
-				"content": [
-					{
-						"type": "thinking",
-						"thinking": "",
-						"thinkingSignature": ""
-					},
-					{
-						"type": "toolCall",
-						"id": "toolcall_0",
-						"name": "ls",
-						"arguments": {
-							"path": "data",
-							"limit": 100
-						}
-					}
-				],
-				"api": "openai-responses",
-				"provider": "github-copilot",
-				"model": "gpt-5.4",
-				"usage": {
-					"input": 1572,
-					"output": 142,
-					"cacheRead": 0,
-					"cacheWrite": 0,
-					"reasoning": 118,
-					"totalTokens": 1714,
-					"cost": {
-						"input": 0.00393,
-						"output": 0.00213,
-						"cacheRead": 0,
-						"cacheWrite": 0,
-						"total": 0.00606
-					}
-				},
-				"stopReason": "toolUse",
-				"timestamp": 0,
-				"responseId": ""
-			},
-			"toolResults": [
-				{
-					"role": "toolResult",
-					"toolCallId": "toolcall_0",
-					"toolName": "ls",
-					"content": [
-						{
-							"type": "text",
-							"text": "values.txt"
-						}
-					],
-					"isError": false,
-					"timestamp": 0
-				}
-			]
-		},
-		{
-			"type": "turn_start"
-		},
-		{
-			"type": "message_start",
-			"message": {
-				"role": "assistant",
-				"content": [
-					{
-						"type": "thinking",
-						"thinking": "",
-						"thinkingSignature": ""
-					},
-					{
-						"type": "toolCall",
-						"id": "toolcall_1",
-						"name": "read",
-						"arguments": {
-							"path": "data/values.txt",
-							"offset": 1,
-							"limit": 2000
-						}
-					}
-				],
-				"api": "openai-responses",
-				"provider": "github-copilot",
-				"model": "gpt-5.4",
-				"usage": {
-					"input": 0,
-					"output": 0,
-					"cacheRead": 0,
-					"cacheWrite": 0,
-					"totalTokens": 0,
-					"cost": {
-						"input": 0,
-						"output": 0,
-						"cacheRead": 0,
-						"cacheWrite": 0,
-						"total": 0
-					}
-				},
-				"stopReason": "stop",
-				"timestamp": 0
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_start",
-				"contentIndex": 0
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_end",
-				"contentIndex": 0,
-				"content": ""
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "toolcall_start",
-				"contentIndex": 1,
-				"partial": {
-					"role": "assistant",
-					"content": [
-						{
-							"type": "thinking",
-							"thinking": "",
-							"thinkingSignature": ""
-						},
-						{
-							"type": "toolCall",
-							"id": "toolcall_1",
-							"name": "read",
-							"arguments": {
-								"path": "data/values.txt",
-								"offset": 1,
-								"limit": 2000
-							}
-						}
-					],
-					"api": "openai-responses",
-					"provider": "github-copilot",
-					"model": "gpt-5.4",
-					"usage": {
-						"input": 1727,
-						"output": 39,
-						"cacheRead": 0,
-						"cacheWrite": 0,
-						"reasoning": 8,
-						"totalTokens": 1766,
-						"cost": {
-							"input": 0.0043175,
-							"output": 0.000585,
-							"cacheRead": 0,
-							"cacheWrite": 0,
-							"total": 0.004902500000000001
-						}
-					},
-					"stopReason": "toolUse",
-					"timestamp": 0,
-					"responseId": ""
-				}
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "toolcall_delta",
-				"contentIndex": 1,
-				"delta": "{\""
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "toolcall_delta",
-				"contentIndex": 1,
-				"delta": "path"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "toolcall_delta",
-				"contentIndex": 1,
-				"delta": "\":\""
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "toolcall_delta",
-				"contentIndex": 1,
-				"delta": "data"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "toolcall_delta",
-				"contentIndex": 1,
-				"delta": "/"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "toolcall_delta",
-				"contentIndex": 1,
-				"delta": "values"
+				"delta": "iku"
 			},
 			"message": {
 				"role": "assistant"
@@ -1123,7 +616,7 @@
 			"assistantMessageEvent": {
 				"type": "toolcall_delta",
 				"contentIndex": 1,
-				"delta": "offset"
+				"delta": "content"
 			},
 			"message": {
 				"role": "assistant"
@@ -1134,7 +627,7 @@
 			"assistantMessageEvent": {
 				"type": "toolcall_delta",
 				"contentIndex": 1,
-				"delta": "\":"
+				"delta": "\":\""
 			},
 			"message": {
 				"role": "assistant"
@@ -1145,7 +638,7 @@
 			"assistantMessageEvent": {
 				"type": "toolcall_delta",
 				"contentIndex": 1,
-				"delta": "1"
+				"delta": "Soft"
 			},
 			"message": {
 				"role": "assistant"
@@ -1156,7 +649,7 @@
 			"assistantMessageEvent": {
 				"type": "toolcall_delta",
 				"contentIndex": 1,
-				"delta": ",\""
+				"delta": " dawn"
 			},
 			"message": {
 				"role": "assistant"
@@ -1167,7 +660,7 @@
 			"assistantMessageEvent": {
 				"type": "toolcall_delta",
 				"contentIndex": 1,
-				"delta": "limit"
+				"delta": " warms"
 			},
 			"message": {
 				"role": "assistant"
@@ -1178,7 +671,7 @@
 			"assistantMessageEvent": {
 				"type": "toolcall_delta",
 				"contentIndex": 1,
-				"delta": "\":"
+				"delta": " the"
 			},
 			"message": {
 				"role": "assistant"
@@ -1189,7 +682,7 @@
 			"assistantMessageEvent": {
 				"type": "toolcall_delta",
 				"contentIndex": 1,
-				"delta": "200"
+				"delta": " grass"
 			},
 			"message": {
 				"role": "assistant"
@@ -1200,7 +693,7 @@
 			"assistantMessageEvent": {
 				"type": "toolcall_delta",
 				"contentIndex": 1,
-				"delta": "0"
+				"delta": "\\n"
 			},
 			"message": {
 				"role": "assistant"
@@ -1211,7 +704,150 @@
 			"assistantMessageEvent": {
 				"type": "toolcall_delta",
 				"contentIndex": 1,
-				"delta": "}"
+				"delta": "A"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " spar"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "row"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " cuts"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " through"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " still"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " air"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "Day"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " opens"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " in"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " light"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\"}"
 			},
 			"message": {
 				"role": "assistant"
@@ -1224,12 +860,11 @@
 				"contentIndex": 1,
 				"toolCall": {
 					"type": "toolCall",
-					"id": "toolcall_1",
-					"name": "read",
+					"id": "toolcall_0",
+					"name": "write",
 					"arguments": {
-						"path": "data/values.txt",
-						"offset": 1,
-						"limit": 2000
+						"path": "haiku.txt",
+						"content": "Soft dawn warms the grass\nA sparrow cuts through still air\nDay opens in light\n"
 					}
 				}
 			},
@@ -1249,12 +884,11 @@
 					},
 					{
 						"type": "toolCall",
-						"id": "toolcall_1",
-						"name": "read",
+						"id": "toolcall_0",
+						"name": "write",
 						"arguments": {
-							"path": "data/values.txt",
-							"offset": 1,
-							"limit": 2000
+							"path": "haiku.txt",
+							"content": "Soft dawn warms the grass\nA sparrow cuts through still air\nDay opens in light\n"
 						}
 					}
 				],
@@ -1262,18 +896,18 @@
 				"provider": "github-copilot",
 				"model": "gpt-5.4",
 				"usage": {
-					"input": 1727,
-					"output": 39,
+					"input": 1565,
+					"output": 139,
 					"cacheRead": 0,
 					"cacheWrite": 0,
-					"reasoning": 8,
-					"totalTokens": 1766,
+					"reasoning": 96,
+					"totalTokens": 1704,
 					"cost": {
-						"input": 0.0043175,
-						"output": 0.000585,
+						"input": 0.0039125,
+						"output": 0.002085,
 						"cacheRead": 0,
 						"cacheWrite": 0,
-						"total": 0.004902500000000001
+						"total": 0.0059975
 					}
 				},
 				"stopReason": "toolUse",
@@ -1283,23 +917,22 @@
 		},
 		{
 			"type": "tool_execution_start",
-			"toolCallId": "toolcall_1",
-			"toolName": "read",
+			"toolCallId": "toolcall_0",
+			"toolName": "write",
 			"args": {
-				"path": "data/values.txt",
-				"offset": 1,
-				"limit": 2000
+				"path": "haiku.txt",
+				"content": "Soft dawn warms the grass\nA sparrow cuts through still air\nDay opens in light\n"
 			}
 		},
 		{
 			"type": "tool_execution_end",
-			"toolCallId": "toolcall_1",
-			"toolName": "read",
+			"toolCallId": "toolcall_0",
+			"toolName": "write",
 			"result": {
 				"content": [
 					{
 						"type": "text",
-						"text": "42\n"
+						"text": "Successfully wrote 78 bytes to haiku.txt"
 					}
 				]
 			},
@@ -1309,12 +942,12 @@
 			"type": "message_start",
 			"message": {
 				"role": "toolResult",
-				"toolCallId": "toolcall_1",
-				"toolName": "read",
+				"toolCallId": "toolcall_0",
+				"toolName": "write",
 				"content": [
 					{
 						"type": "text",
-						"text": "42\n"
+						"text": "Successfully wrote 78 bytes to haiku.txt"
 					}
 				],
 				"isError": false,
@@ -1325,12 +958,12 @@
 			"type": "message_end",
 			"message": {
 				"role": "toolResult",
-				"toolCallId": "toolcall_1",
-				"toolName": "read",
+				"toolCallId": "toolcall_0",
+				"toolName": "write",
 				"content": [
 					{
 						"type": "text",
-						"text": "42\n"
+						"text": "Successfully wrote 78 bytes to haiku.txt"
 					}
 				],
 				"isError": false,
@@ -1349,12 +982,11 @@
 					},
 					{
 						"type": "toolCall",
-						"id": "toolcall_1",
-						"name": "read",
+						"id": "toolcall_0",
+						"name": "write",
 						"arguments": {
-							"path": "data/values.txt",
-							"offset": 1,
-							"limit": 2000
+							"path": "haiku.txt",
+							"content": "Soft dawn warms the grass\nA sparrow cuts through still air\nDay opens in light\n"
 						}
 					}
 				],
@@ -1362,18 +994,18 @@
 				"provider": "github-copilot",
 				"model": "gpt-5.4",
 				"usage": {
-					"input": 1727,
-					"output": 39,
+					"input": 1565,
+					"output": 139,
 					"cacheRead": 0,
 					"cacheWrite": 0,
-					"reasoning": 8,
-					"totalTokens": 1766,
+					"reasoning": 96,
+					"totalTokens": 1704,
 					"cost": {
-						"input": 0.0043175,
-						"output": 0.000585,
+						"input": 0.0039125,
+						"output": 0.002085,
 						"cacheRead": 0,
 						"cacheWrite": 0,
-						"total": 0.004902500000000001
+						"total": 0.0059975
 					}
 				},
 				"stopReason": "toolUse",
@@ -1383,12 +1015,12 @@
 			"toolResults": [
 				{
 					"role": "toolResult",
-					"toolCallId": "toolcall_1",
-					"toolName": "read",
+					"toolCallId": "toolcall_0",
+					"toolName": "write",
 					"content": [
 						{
 							"type": "text",
-							"text": "42\n"
+							"text": "Successfully wrote 78 bytes to haiku.txt"
 						}
 					],
 					"isError": false,
@@ -1406,7 +1038,7 @@
 				"content": [
 					{
 						"type": "text",
-						"text": "42",
+						"text": "DONE",
 						"textSignature": ""
 					}
 				],
@@ -1446,7 +1078,7 @@
 			"assistantMessageEvent": {
 				"type": "text_delta",
 				"contentIndex": 0,
-				"delta": "42"
+				"delta": "DONE"
 			},
 			"message": {
 				"role": "assistant"
@@ -1457,7 +1089,7 @@
 			"assistantMessageEvent": {
 				"type": "text_end",
 				"contentIndex": 0,
-				"content": "42"
+				"content": "DONE"
 			},
 			"message": {
 				"role": "assistant"
@@ -1470,7 +1102,7 @@
 				"content": [
 					{
 						"type": "text",
-						"text": "42",
+						"text": "DONE",
 						"textSignature": ""
 					}
 				],
@@ -1478,18 +1110,18 @@
 				"provider": "github-copilot",
 				"model": "gpt-5.4",
 				"usage": {
-					"input": 242,
+					"input": 1723,
 					"output": 5,
-					"cacheRead": 1536,
+					"cacheRead": 0,
 					"cacheWrite": 0,
 					"reasoning": 0,
-					"totalTokens": 1783,
+					"totalTokens": 1728,
 					"cost": {
-						"input": 0.0006050000000000001,
+						"input": 0.0043075000000000006,
 						"output": 0.00007500000000000001,
-						"cacheRead": 0.000384,
+						"cacheRead": 0,
 						"cacheWrite": 0,
-						"total": 0.001064
+						"total": 0.004382500000000001
 					}
 				},
 				"stopReason": "stop",
@@ -1504,7 +1136,7 @@
 				"content": [
 					{
 						"type": "text",
-						"text": "42",
+						"text": "DONE",
 						"textSignature": ""
 					}
 				],
@@ -1512,18 +1144,18 @@
 				"provider": "github-copilot",
 				"model": "gpt-5.4",
 				"usage": {
-					"input": 242,
+					"input": 1723,
 					"output": 5,
-					"cacheRead": 1536,
+					"cacheRead": 0,
 					"cacheWrite": 0,
 					"reasoning": 0,
-					"totalTokens": 1783,
+					"totalTokens": 1728,
 					"cost": {
-						"input": 0.0006050000000000001,
+						"input": 0.0043075000000000006,
 						"output": 0.00007500000000000001,
-						"cacheRead": 0.000384,
+						"cacheRead": 0,
 						"cacheWrite": 0,
-						"total": 0.001064
+						"total": 0.004382500000000001
 					}
 				},
 				"stopReason": "stop",
@@ -1540,7 +1172,7 @@
 					"content": [
 						{
 							"type": "text",
-							"text": "First list the files under the data directory, then read the file you find there, then reply with its contents only."
+							"text": "Create a file called haiku.txt containing exactly three short lines. Then reply DONE."
 						}
 					],
 					"timestamp": 0
@@ -1556,10 +1188,10 @@
 						{
 							"type": "toolCall",
 							"id": "toolcall_0",
-							"name": "ls",
+							"name": "write",
 							"arguments": {
-								"path": "data",
-								"limit": 100
+								"path": "haiku.txt",
+								"content": "Soft dawn warms the grass\nA sparrow cuts through still air\nDay opens in light\n"
 							}
 						}
 					],
@@ -1567,18 +1199,18 @@
 					"provider": "github-copilot",
 					"model": "gpt-5.4",
 					"usage": {
-						"input": 1572,
-						"output": 142,
+						"input": 1565,
+						"output": 139,
 						"cacheRead": 0,
 						"cacheWrite": 0,
-						"reasoning": 118,
-						"totalTokens": 1714,
+						"reasoning": 96,
+						"totalTokens": 1704,
 						"cost": {
-							"input": 0.00393,
-							"output": 0.00213,
+							"input": 0.0039125,
+							"output": 0.002085,
 							"cacheRead": 0,
 							"cacheWrite": 0,
-							"total": 0.00606
+							"total": 0.0059975
 						}
 					},
 					"stopReason": "toolUse",
@@ -1588,65 +1220,11 @@
 				{
 					"role": "toolResult",
 					"toolCallId": "toolcall_0",
-					"toolName": "ls",
+					"toolName": "write",
 					"content": [
 						{
 							"type": "text",
-							"text": "values.txt"
-						}
-					],
-					"isError": false,
-					"timestamp": 0
-				},
-				{
-					"role": "assistant",
-					"content": [
-						{
-							"type": "thinking",
-							"thinking": "",
-							"thinkingSignature": ""
-						},
-						{
-							"type": "toolCall",
-							"id": "toolcall_1",
-							"name": "read",
-							"arguments": {
-								"path": "data/values.txt",
-								"offset": 1,
-								"limit": 2000
-							}
-						}
-					],
-					"api": "openai-responses",
-					"provider": "github-copilot",
-					"model": "gpt-5.4",
-					"usage": {
-						"input": 1727,
-						"output": 39,
-						"cacheRead": 0,
-						"cacheWrite": 0,
-						"reasoning": 8,
-						"totalTokens": 1766,
-						"cost": {
-							"input": 0.0043175,
-							"output": 0.000585,
-							"cacheRead": 0,
-							"cacheWrite": 0,
-							"total": 0.004902500000000001
-						}
-					},
-					"stopReason": "toolUse",
-					"timestamp": 0,
-					"responseId": ""
-				},
-				{
-					"role": "toolResult",
-					"toolCallId": "toolcall_1",
-					"toolName": "read",
-					"content": [
-						{
-							"type": "text",
-							"text": "42\n"
+							"text": "Successfully wrote 78 bytes to haiku.txt"
 						}
 					],
 					"isError": false,
@@ -1657,7 +1235,7 @@
 					"content": [
 						{
 							"type": "text",
-							"text": "42",
+							"text": "DONE",
 							"textSignature": ""
 						}
 					],
@@ -1665,18 +1243,18 @@
 					"provider": "github-copilot",
 					"model": "gpt-5.4",
 					"usage": {
-						"input": 242,
+						"input": 1723,
 						"output": 5,
-						"cacheRead": 1536,
+						"cacheRead": 0,
 						"cacheWrite": 0,
 						"reasoning": 0,
-						"totalTokens": 1783,
+						"totalTokens": 1728,
 						"cost": {
-							"input": 0.0006050000000000001,
+							"input": 0.0043075000000000006,
 							"output": 0.00007500000000000001,
-							"cacheRead": 0.000384,
+							"cacheRead": 0,
 							"cacheWrite": 0,
-							"total": 0.001064
+							"total": 0.004382500000000001
 						}
 					},
 					"stopReason": "stop",

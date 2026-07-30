@@ -1,34 +1,28 @@
 {
-	"name": "parallel-tools",
-	"description": "Several tool calls in one assistant message — exercises contentIndex fan-out.",
-	"prompt": "Read both a.txt and b.txt, then reply with their contents separated by a comma.",
+	"name": "tool-grep",
+	"description": "A `grep` call — match counts and line truncation live in its details.",
+	"prompt": "Use the grep tool to search for BEACON here. Reply with the matching file names only.",
 	"partials": [
 		{
 			"role": "assistant",
 			"content": [
 				{
 					"type": "thinking",
-					"thinking": "**Considering reading methods**\n\nI need to comply with the guidelines, and I can't just bash a cat to read. I could use parallel methods since they are independent, but should I inspect the PI_* environment variables for specific session details? I'm not sure if that's mandatory each time. The user has a simple request, so maybe I could ignore it. However, I might want to use commentary for the tool call. Let's think about reading directly or listing both options.",
+					"thinking": "**Adjusting grep tool usage**\n\nI need to use the grep tool instead of bash for this task. It seems there might be many matches, so I should return only the matching file names. I think I can use grep in a literal way, and the default will be case-sensitive, which is fine. The search will be conducted in the current directory. Let's ensure I'm getting that right to avoid any issues later!",
 					"thinkingSignature": ""
 				},
 				{
 					"type": "toolCall",
 					"id": "toolcall_0",
-					"name": "read",
+					"name": "grep",
 					"arguments": {
-						"path": "a.txt",
-						"offset": 1,
-						"limit": 2000
-					}
-				},
-				{
-					"type": "toolCall",
-					"id": "toolcall_1",
-					"name": "read",
-					"arguments": {
-						"path": "b.txt",
-						"offset": 1,
-						"limit": 2000
+						"pattern": "BEACON",
+						"path": ".",
+						"glob": "**/*",
+						"ignoreCase": false,
+						"literal": true,
+						"context": 0,
+						"limit": 100
 					}
 				}
 			],
@@ -36,18 +30,18 @@
 			"provider": "github-copilot",
 			"model": "gpt-5.4",
 			"usage": {
-				"input": 1567,
-				"output": 146,
+				"input": 1569,
+				"output": 86,
 				"cacheRead": 0,
 				"cacheWrite": 0,
-				"reasoning": 78,
-				"totalTokens": 1713,
+				"reasoning": 38,
+				"totalTokens": 1655,
 				"cost": {
-					"input": 0.0039175,
-					"output": 0.00219,
+					"input": 0.003922500000000001,
+					"output": 0.0012900000000000001,
 					"cacheRead": 0,
 					"cacheWrite": 0,
-					"total": 0.0061075
+					"total": 0.005212500000000001
 				}
 			},
 			"stopReason": "toolUse",
@@ -59,7 +53,7 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "FIRST, SECOND",
+					"text": "three.txt\none.txt",
 					"textSignature": ""
 				}
 			],
@@ -67,18 +61,18 @@
 			"provider": "github-copilot",
 			"model": "gpt-5.4",
 			"usage": {
-				"input": 1735,
-				"output": 7,
+				"input": 1685,
+				"output": 9,
 				"cacheRead": 0,
 				"cacheWrite": 0,
 				"reasoning": 0,
-				"totalTokens": 1742,
+				"totalTokens": 1694,
 				"cost": {
-					"input": 0.0043375,
-					"output": 0.000105,
+					"input": 0.0042125,
+					"output": 0.000135,
 					"cacheRead": 0,
 					"cacheWrite": 0,
-					"total": 0.0044425
+					"total": 0.0043475
 				}
 			},
 			"stopReason": "stop",
@@ -100,7 +94,7 @@
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": "**Considering reading methods**\n\nI",
+				"delta": "**Adjusting grep tool usage**\n\nI",
 				"partialRef": 0
 			},
 			{
@@ -118,13 +112,7 @@
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " comply",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " with",
+				"delta": " use",
 				"partialRef": 0
 			},
 			{
@@ -136,37 +124,25 @@
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " guidelines",
+				"delta": " grep",
 				"partialRef": 0
 			},
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": ",",
+				"delta": " tool",
 				"partialRef": 0
 			},
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " and",
+				"delta": " instead",
 				"partialRef": 0
 			},
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " I",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " can't",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " just",
+				"delta": " of",
 				"partialRef": 0
 			},
 			{
@@ -178,223 +154,19 @@
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " a",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " cat",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " to",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " read",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": ".",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " I",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " could",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " use",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " parallel",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " methods",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " since",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " they",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " are",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " independent",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": ",",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " but",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " should",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " I",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " inspect",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " the",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " PI",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": "_*",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " environment",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " variables",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
 				"delta": " for",
 				"partialRef": 0
 			},
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " specific",
+				"delta": " this",
 				"partialRef": 0
 			},
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " session",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " details",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": "?",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " I'm",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " not",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " sure",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " if",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " that's",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " mandatory",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " each",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " time",
+				"delta": " task",
 				"partialRef": 0
 			},
 			{
@@ -406,37 +178,43 @@
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " The",
+				"delta": " It",
 				"partialRef": 0
 			},
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " user",
+				"delta": " seems",
 				"partialRef": 0
 			},
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " has",
+				"delta": " there",
 				"partialRef": 0
 			},
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " a",
+				"delta": " might",
 				"partialRef": 0
 			},
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " simple",
+				"delta": " be",
 				"partialRef": 0
 			},
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " request",
+				"delta": " many",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " matches",
 				"partialRef": 0
 			},
 			{
@@ -454,91 +232,25 @@
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " maybe",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
 				"delta": " I",
 				"partialRef": 0
 			},
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " could",
+				"delta": " should",
 				"partialRef": 0
 			},
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " ignore",
+				"delta": " return",
 				"partialRef": 0
 			},
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " it",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": ".",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " However",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": ",",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " I",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " might",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " want",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " to",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " use",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " commentary",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " for",
+				"delta": " only",
 				"partialRef": 0
 			},
 			{
@@ -550,13 +262,217 @@
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " tool",
+				"delta": " matching",
 				"partialRef": 0
 			},
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " call",
+				"delta": " file",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " names",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ".",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " think",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " can",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " use",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " grep",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " in",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " a",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " literal",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " way",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ",",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " and",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " the",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " default",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " will",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " be",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " case",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "-sensitive",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ",",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " which",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " is",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " fine",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ".",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " The",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " search",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " will",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " be",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " conducted",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " in",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " the",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " current",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " directory",
 				"partialRef": 0
 			},
 			{
@@ -574,55 +490,67 @@
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " think",
+				"delta": " ensure",
 				"partialRef": 0
 			},
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " about",
+				"delta": " I'm",
 				"partialRef": 0
 			},
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " reading",
+				"delta": " getting",
 				"partialRef": 0
 			},
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " directly",
+				"delta": " that",
 				"partialRef": 0
 			},
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " or",
+				"delta": " right",
 				"partialRef": 0
 			},
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " listing",
+				"delta": " to",
 				"partialRef": 0
 			},
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " both",
+				"delta": " avoid",
 				"partialRef": 0
 			},
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " options",
+				"delta": " any",
 				"partialRef": 0
 			},
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": ".",
+				"delta": " issues",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " later",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "!",
 				"partialRef": 0
 			},
 			{
@@ -634,7 +562,7 @@
 			{
 				"type": "thinking_end",
 				"contentIndex": 0,
-				"content": "**Considering reading methods**\n\nI need to comply with the guidelines, and I can't just bash a cat to read. I could use parallel methods since they are independent, but should I inspect the PI_* environment variables for specific session details? I'm not sure if that's mandatory each time. The user has a simple request, so maybe I could ignore it. However, I might want to use commentary for the tool call. Let's think about reading directly or listing both options.",
+				"content": "**Adjusting grep tool usage**\n\nI need to use the grep tool instead of bash for this task. It seems there might be many matches, so I should return only the matching file names. I think I can use grep in a literal way, and the default will be case-sensitive, which is fine. The search will be conducted in the current directory. Let's ensure I'm getting that right to avoid any issues later!",
 				"partialRef": 0
 			},
 			{
@@ -645,7 +573,199 @@
 			{
 				"type": "toolcall_delta",
 				"contentIndex": 1,
-				"delta": "{\"path\":\"a.txt\",\"offset\":1,\"limit\":2000}",
+				"delta": "{\"",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "pattern",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\":\"",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "BE",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "AC",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "ON",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\",\"",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "path",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\":",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\".",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\",\"",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "glob",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\":\"",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "**",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "/*",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\",\"",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "ignore",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "Case",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\":",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "false",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": ",\"",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "literal",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\":",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "true",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": ",\"",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "context",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\":",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "0",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": ",\"",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "limit",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\":",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "100",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "}",
 				"partialRef": 0
 			},
 			{
@@ -654,37 +774,15 @@
 				"toolCall": {
 					"type": "toolCall",
 					"id": "toolcall_0",
-					"name": "read",
+					"name": "grep",
 					"arguments": {
-						"path": "a.txt",
-						"offset": 1,
-						"limit": 2000
-					}
-				},
-				"partialRef": 0
-			},
-			{
-				"type": "toolcall_start",
-				"contentIndex": 2,
-				"partialRef": 0
-			},
-			{
-				"type": "toolcall_delta",
-				"contentIndex": 2,
-				"delta": "{\"path\":\"b.txt\",\"offset\":1,\"limit\":2000}",
-				"partialRef": 0
-			},
-			{
-				"type": "toolcall_end",
-				"contentIndex": 2,
-				"toolCall": {
-					"type": "toolCall",
-					"id": "toolcall_1",
-					"name": "read",
-					"arguments": {
-						"path": "b.txt",
-						"offset": 1,
-						"limit": 2000
+						"pattern": "BEACON",
+						"path": ".",
+						"glob": "**/*",
+						"ignoreCase": false,
+						"literal": true,
+						"context": 0,
+						"limit": 100
 					}
 				},
 				"partialRef": 0
@@ -697,27 +795,21 @@
 					"content": [
 						{
 							"type": "thinking",
-							"thinking": "**Considering reading methods**\n\nI need to comply with the guidelines, and I can't just bash a cat to read. I could use parallel methods since they are independent, but should I inspect the PI_* environment variables for specific session details? I'm not sure if that's mandatory each time. The user has a simple request, so maybe I could ignore it. However, I might want to use commentary for the tool call. Let's think about reading directly or listing both options.",
+							"thinking": "**Adjusting grep tool usage**\n\nI need to use the grep tool instead of bash for this task. It seems there might be many matches, so I should return only the matching file names. I think I can use grep in a literal way, and the default will be case-sensitive, which is fine. The search will be conducted in the current directory. Let's ensure I'm getting that right to avoid any issues later!",
 							"thinkingSignature": ""
 						},
 						{
 							"type": "toolCall",
 							"id": "toolcall_0",
-							"name": "read",
+							"name": "grep",
 							"arguments": {
-								"path": "a.txt",
-								"offset": 1,
-								"limit": 2000
-							}
-						},
-						{
-							"type": "toolCall",
-							"id": "toolcall_1",
-							"name": "read",
-							"arguments": {
-								"path": "b.txt",
-								"offset": 1,
-								"limit": 2000
+								"pattern": "BEACON",
+								"path": ".",
+								"glob": "**/*",
+								"ignoreCase": false,
+								"literal": true,
+								"context": 0,
+								"limit": 100
 							}
 						}
 					],
@@ -725,18 +817,18 @@
 					"provider": "github-copilot",
 					"model": "gpt-5.4",
 					"usage": {
-						"input": 1567,
-						"output": 146,
+						"input": 1569,
+						"output": 86,
 						"cacheRead": 0,
 						"cacheWrite": 0,
-						"reasoning": 78,
-						"totalTokens": 1713,
+						"reasoning": 38,
+						"totalTokens": 1655,
 						"cost": {
-							"input": 0.0039175,
-							"output": 0.00219,
+							"input": 0.003922500000000001,
+							"output": 0.0012900000000000001,
 							"cacheRead": 0,
 							"cacheWrite": 0,
-							"total": 0.0061075
+							"total": 0.005212500000000001
 						}
 					},
 					"stopReason": "toolUse",
@@ -758,25 +850,37 @@
 			{
 				"type": "text_delta",
 				"contentIndex": 0,
-				"delta": "FIRST",
+				"delta": "three",
 				"partialRef": 1
 			},
 			{
 				"type": "text_delta",
 				"contentIndex": 0,
-				"delta": ",",
+				"delta": ".txt",
 				"partialRef": 1
 			},
 			{
 				"type": "text_delta",
 				"contentIndex": 0,
-				"delta": " SECOND",
+				"delta": "\n",
+				"partialRef": 1
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": "one",
+				"partialRef": 1
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": ".txt",
 				"partialRef": 1
 			},
 			{
 				"type": "text_end",
 				"contentIndex": 0,
-				"content": "FIRST, SECOND",
+				"content": "three.txt\none.txt",
 				"partialRef": 1
 			},
 			{
@@ -787,7 +891,7 @@
 					"content": [
 						{
 							"type": "text",
-							"text": "FIRST, SECOND",
+							"text": "three.txt\none.txt",
 							"textSignature": ""
 						}
 					],
@@ -795,18 +899,18 @@
 					"provider": "github-copilot",
 					"model": "gpt-5.4",
 					"usage": {
-						"input": 1735,
-						"output": 7,
+						"input": 1685,
+						"output": 9,
 						"cacheRead": 0,
 						"cacheWrite": 0,
 						"reasoning": 0,
-						"totalTokens": 1742,
+						"totalTokens": 1694,
 						"cost": {
-							"input": 0.0043375,
-							"output": 0.000105,
+							"input": 0.0042125,
+							"output": 0.000135,
 							"cacheRead": 0,
 							"cacheWrite": 0,
-							"total": 0.0044425
+							"total": 0.0043475
 						}
 					},
 					"stopReason": "stop",
@@ -830,7 +934,7 @@
 				"content": [
 					{
 						"type": "text",
-						"text": "Read both a.txt and b.txt, then reply with their contents separated by a comma."
+						"text": "Use the grep tool to search for BEACON here. Reply with the matching file names only."
 					}
 				],
 				"timestamp": 0
@@ -843,7 +947,7 @@
 				"content": [
 					{
 						"type": "text",
-						"text": "Read both a.txt and b.txt, then reply with their contents separated by a comma."
+						"text": "Use the grep tool to search for BEACON here. Reply with the matching file names only."
 					}
 				],
 				"timestamp": 0
@@ -856,27 +960,21 @@
 				"content": [
 					{
 						"type": "thinking",
-						"thinking": "**Considering reading methods**\n\nI need to comply with the guidelines, and I can't just bash a cat to read. I could use parallel methods since they are independent, but should I inspect the PI_* environment variables for specific session details? I'm not sure if that's mandatory each time. The user has a simple request, so maybe I could ignore it. However, I might want to use commentary for the tool call. Let's think about reading directly or listing both options.",
+						"thinking": "**Adjusting grep tool usage**\n\nI need to use the grep tool instead of bash for this task. It seems there might be many matches, so I should return only the matching file names. I think I can use grep in a literal way, and the default will be case-sensitive, which is fine. The search will be conducted in the current directory. Let's ensure I'm getting that right to avoid any issues later!",
 						"thinkingSignature": ""
 					},
 					{
 						"type": "toolCall",
 						"id": "toolcall_0",
-						"name": "read",
+						"name": "grep",
 						"arguments": {
-							"path": "a.txt",
-							"offset": 1,
-							"limit": 2000
-						}
-					},
-					{
-						"type": "toolCall",
-						"id": "toolcall_1",
-						"name": "read",
-						"arguments": {
-							"path": "b.txt",
-							"offset": 1,
-							"limit": 2000
+							"pattern": "BEACON",
+							"path": ".",
+							"glob": "**/*",
+							"ignoreCase": false,
+							"literal": true,
+							"context": 0,
+							"limit": 100
 						}
 					}
 				],
@@ -916,7 +1014,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": "**Considering reading methods**\n\nI"
+				"delta": "**Adjusting grep tool usage**\n\nI"
 			},
 			"message": {
 				"role": "assistant"
@@ -949,18 +1047,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " comply"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " with"
+				"delta": " use"
 			},
 			"message": {
 				"role": "assistant"
@@ -982,7 +1069,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " guidelines"
+				"delta": " grep"
 			},
 			"message": {
 				"role": "assistant"
@@ -993,7 +1080,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": ","
+				"delta": " tool"
 			},
 			"message": {
 				"role": "assistant"
@@ -1004,7 +1091,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " and"
+				"delta": " instead"
 			},
 			"message": {
 				"role": "assistant"
@@ -1015,29 +1102,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " I"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " can't"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " just"
+				"delta": " of"
 			},
 			"message": {
 				"role": "assistant"
@@ -1059,270 +1124,6 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " a"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " cat"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " to"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " read"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": "."
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " I"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " could"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " use"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " parallel"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " methods"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " since"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " they"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " are"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " independent"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": ","
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " but"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " should"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " I"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " inspect"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " the"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " PI"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": "_*"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " environment"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " variables"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
 				"delta": " for"
 			},
 			"message": {
@@ -1334,7 +1135,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " specific"
+				"delta": " this"
 			},
 			"message": {
 				"role": "assistant"
@@ -1345,117 +1146,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " session"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " details"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": "?"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " I'm"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " not"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " sure"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " if"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " that's"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " mandatory"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " each"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " time"
+				"delta": " task"
 			},
 			"message": {
 				"role": "assistant"
@@ -1477,7 +1168,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " The"
+				"delta": " It"
 			},
 			"message": {
 				"role": "assistant"
@@ -1488,7 +1179,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " user"
+				"delta": " seems"
 			},
 			"message": {
 				"role": "assistant"
@@ -1499,7 +1190,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " has"
+				"delta": " there"
 			},
 			"message": {
 				"role": "assistant"
@@ -1510,7 +1201,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " a"
+				"delta": " might"
 			},
 			"message": {
 				"role": "assistant"
@@ -1521,7 +1212,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " simple"
+				"delta": " be"
 			},
 			"message": {
 				"role": "assistant"
@@ -1532,7 +1223,18 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " request"
+				"delta": " many"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " matches"
 			},
 			"message": {
 				"role": "assistant"
@@ -1565,17 +1267,6 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " maybe"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
 				"delta": " I"
 			},
 			"message": {
@@ -1587,7 +1278,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " could"
+				"delta": " should"
 			},
 			"message": {
 				"role": "assistant"
@@ -1598,7 +1289,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " ignore"
+				"delta": " return"
 			},
 			"message": {
 				"role": "assistant"
@@ -1609,117 +1300,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " it"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": "."
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " However"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": ","
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " I"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " might"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " want"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " to"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " use"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " commentary"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " for"
+				"delta": " only"
 			},
 			"message": {
 				"role": "assistant"
@@ -1741,7 +1322,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " tool"
+				"delta": " matching"
 			},
 			"message": {
 				"role": "assistant"
@@ -1752,7 +1333,381 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " call"
+				"delta": " file"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " names"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "."
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " think"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " can"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " use"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " grep"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " in"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " a"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " literal"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " way"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ","
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " and"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " the"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " default"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " will"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " be"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " case"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "-sensitive"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ","
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " which"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " is"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " fine"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "."
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " The"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " search"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " will"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " be"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " conducted"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " in"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " the"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " current"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " directory"
 			},
 			"message": {
 				"role": "assistant"
@@ -1785,7 +1740,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " think"
+				"delta": " ensure"
 			},
 			"message": {
 				"role": "assistant"
@@ -1796,7 +1751,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " about"
+				"delta": " I'm"
 			},
 			"message": {
 				"role": "assistant"
@@ -1807,7 +1762,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " reading"
+				"delta": " getting"
 			},
 			"message": {
 				"role": "assistant"
@@ -1818,7 +1773,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " directly"
+				"delta": " that"
 			},
 			"message": {
 				"role": "assistant"
@@ -1829,7 +1784,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " or"
+				"delta": " right"
 			},
 			"message": {
 				"role": "assistant"
@@ -1840,7 +1795,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " listing"
+				"delta": " to"
 			},
 			"message": {
 				"role": "assistant"
@@ -1851,7 +1806,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " both"
+				"delta": " avoid"
 			},
 			"message": {
 				"role": "assistant"
@@ -1862,7 +1817,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " options"
+				"delta": " any"
 			},
 			"message": {
 				"role": "assistant"
@@ -1873,7 +1828,29 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": "."
+				"delta": " issues"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " later"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "!"
 			},
 			"message": {
 				"role": "assistant"
@@ -1895,7 +1872,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_end",
 				"contentIndex": 0,
-				"content": "**Considering reading methods**\n\nI need to comply with the guidelines, and I can't just bash a cat to read. I could use parallel methods since they are independent, but should I inspect the PI_* environment variables for specific session details? I'm not sure if that's mandatory each time. The user has a simple request, so maybe I could ignore it. However, I might want to use commentary for the tool call. Let's think about reading directly or listing both options."
+				"content": "**Adjusting grep tool usage**\n\nI need to use the grep tool instead of bash for this task. It seems there might be many matches, so I should return only the matching file names. I think I can use grep in a literal way, and the default will be case-sensitive, which is fine. The search will be conducted in the current directory. Let's ensure I'm getting that right to avoid any issues later!"
 			},
 			"message": {
 				"role": "assistant"
@@ -1911,27 +1888,21 @@
 					"content": [
 						{
 							"type": "thinking",
-							"thinking": "**Considering reading methods**\n\nI need to comply with the guidelines, and I can't just bash a cat to read. I could use parallel methods since they are independent, but should I inspect the PI_* environment variables for specific session details? I'm not sure if that's mandatory each time. The user has a simple request, so maybe I could ignore it. However, I might want to use commentary for the tool call. Let's think about reading directly or listing both options.",
+							"thinking": "**Adjusting grep tool usage**\n\nI need to use the grep tool instead of bash for this task. It seems there might be many matches, so I should return only the matching file names. I think I can use grep in a literal way, and the default will be case-sensitive, which is fine. The search will be conducted in the current directory. Let's ensure I'm getting that right to avoid any issues later!",
 							"thinkingSignature": ""
 						},
 						{
 							"type": "toolCall",
 							"id": "toolcall_0",
-							"name": "read",
+							"name": "grep",
 							"arguments": {
-								"path": "a.txt",
-								"offset": 1,
-								"limit": 2000
-							}
-						},
-						{
-							"type": "toolCall",
-							"id": "toolcall_1",
-							"name": "read",
-							"arguments": {
-								"path": "b.txt",
-								"offset": 1,
-								"limit": 2000
+								"pattern": "BEACON",
+								"path": ".",
+								"glob": "**/*",
+								"ignoreCase": false,
+								"literal": true,
+								"context": 0,
+								"limit": 100
 							}
 						}
 					],
@@ -1939,18 +1910,18 @@
 					"provider": "github-copilot",
 					"model": "gpt-5.4",
 					"usage": {
-						"input": 1567,
-						"output": 146,
+						"input": 1569,
+						"output": 86,
 						"cacheRead": 0,
 						"cacheWrite": 0,
-						"reasoning": 78,
-						"totalTokens": 1713,
+						"reasoning": 38,
+						"totalTokens": 1655,
 						"cost": {
-							"input": 0.0039175,
-							"output": 0.00219,
+							"input": 0.003922500000000001,
+							"output": 0.0012900000000000001,
 							"cacheRead": 0,
 							"cacheWrite": 0,
-							"total": 0.0061075
+							"total": 0.005212500000000001
 						}
 					},
 					"stopReason": "toolUse",
@@ -1967,7 +1938,359 @@
 			"assistantMessageEvent": {
 				"type": "toolcall_delta",
 				"contentIndex": 1,
-				"delta": "{\"path\":\"a.txt\",\"offset\":1,\"limit\":2000}"
+				"delta": "{\""
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "pattern"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\":\""
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "BE"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "AC"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "ON"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\",\""
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "path"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\":"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\"."
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\",\""
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "glob"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\":\""
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "**"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "/*"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\",\""
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "ignore"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "Case"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\":"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "false"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": ",\""
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "literal"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\":"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "true"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": ",\""
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "context"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\":"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "0"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": ",\""
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "limit"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\":"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "100"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "}"
 			},
 			"message": {
 				"role": "assistant"
@@ -1981,103 +2304,15 @@
 				"toolCall": {
 					"type": "toolCall",
 					"id": "toolcall_0",
-					"name": "read",
+					"name": "grep",
 					"arguments": {
-						"path": "a.txt",
-						"offset": 1,
-						"limit": 2000
-					}
-				}
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "toolcall_start",
-				"contentIndex": 2,
-				"partial": {
-					"role": "assistant",
-					"content": [
-						{
-							"type": "thinking",
-							"thinking": "**Considering reading methods**\n\nI need to comply with the guidelines, and I can't just bash a cat to read. I could use parallel methods since they are independent, but should I inspect the PI_* environment variables for specific session details? I'm not sure if that's mandatory each time. The user has a simple request, so maybe I could ignore it. However, I might want to use commentary for the tool call. Let's think about reading directly or listing both options.",
-							"thinkingSignature": ""
-						},
-						{
-							"type": "toolCall",
-							"id": "toolcall_0",
-							"name": "read",
-							"arguments": {
-								"path": "a.txt",
-								"offset": 1,
-								"limit": 2000
-							}
-						},
-						{
-							"type": "toolCall",
-							"id": "toolcall_1",
-							"name": "read",
-							"arguments": {
-								"path": "b.txt",
-								"offset": 1,
-								"limit": 2000
-							}
-						}
-					],
-					"api": "openai-responses",
-					"provider": "github-copilot",
-					"model": "gpt-5.4",
-					"usage": {
-						"input": 1567,
-						"output": 146,
-						"cacheRead": 0,
-						"cacheWrite": 0,
-						"reasoning": 78,
-						"totalTokens": 1713,
-						"cost": {
-							"input": 0.0039175,
-							"output": 0.00219,
-							"cacheRead": 0,
-							"cacheWrite": 0,
-							"total": 0.0061075
-						}
-					},
-					"stopReason": "toolUse",
-					"timestamp": 0,
-					"responseId": ""
-				}
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "toolcall_delta",
-				"contentIndex": 2,
-				"delta": "{\"path\":\"b.txt\",\"offset\":1,\"limit\":2000}"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "toolcall_end",
-				"contentIndex": 2,
-				"toolCall": {
-					"type": "toolCall",
-					"id": "toolcall_1",
-					"name": "read",
-					"arguments": {
-						"path": "b.txt",
-						"offset": 1,
-						"limit": 2000
+						"pattern": "BEACON",
+						"path": ".",
+						"glob": "**/*",
+						"ignoreCase": false,
+						"literal": true,
+						"context": 0,
+						"limit": 100
 					}
 				}
 			},
@@ -2092,27 +2327,21 @@
 				"content": [
 					{
 						"type": "thinking",
-						"thinking": "**Considering reading methods**\n\nI need to comply with the guidelines, and I can't just bash a cat to read. I could use parallel methods since they are independent, but should I inspect the PI_* environment variables for specific session details? I'm not sure if that's mandatory each time. The user has a simple request, so maybe I could ignore it. However, I might want to use commentary for the tool call. Let's think about reading directly or listing both options.",
+						"thinking": "**Adjusting grep tool usage**\n\nI need to use the grep tool instead of bash for this task. It seems there might be many matches, so I should return only the matching file names. I think I can use grep in a literal way, and the default will be case-sensitive, which is fine. The search will be conducted in the current directory. Let's ensure I'm getting that right to avoid any issues later!",
 						"thinkingSignature": ""
 					},
 					{
 						"type": "toolCall",
 						"id": "toolcall_0",
-						"name": "read",
+						"name": "grep",
 						"arguments": {
-							"path": "a.txt",
-							"offset": 1,
-							"limit": 2000
-						}
-					},
-					{
-						"type": "toolCall",
-						"id": "toolcall_1",
-						"name": "read",
-						"arguments": {
-							"path": "b.txt",
-							"offset": 1,
-							"limit": 2000
+							"pattern": "BEACON",
+							"path": ".",
+							"glob": "**/*",
+							"ignoreCase": false,
+							"literal": true,
+							"context": 0,
+							"limit": 100
 						}
 					}
 				],
@@ -2120,18 +2349,18 @@
 				"provider": "github-copilot",
 				"model": "gpt-5.4",
 				"usage": {
-					"input": 1567,
-					"output": 146,
+					"input": 1569,
+					"output": 86,
 					"cacheRead": 0,
 					"cacheWrite": 0,
-					"reasoning": 78,
-					"totalTokens": 1713,
+					"reasoning": 38,
+					"totalTokens": 1655,
 					"cost": {
-						"input": 0.0039175,
-						"output": 0.00219,
+						"input": 0.003922500000000001,
+						"output": 0.0012900000000000001,
 						"cacheRead": 0,
 						"cacheWrite": 0,
-						"total": 0.0061075
+						"total": 0.005212500000000001
 					}
 				},
 				"stopReason": "toolUse",
@@ -2142,46 +2371,26 @@
 		{
 			"type": "tool_execution_start",
 			"toolCallId": "toolcall_0",
-			"toolName": "read",
+			"toolName": "grep",
 			"args": {
-				"path": "a.txt",
-				"offset": 1,
-				"limit": 2000
-			}
-		},
-		{
-			"type": "tool_execution_start",
-			"toolCallId": "toolcall_1",
-			"toolName": "read",
-			"args": {
-				"path": "b.txt",
-				"offset": 1,
-				"limit": 2000
+				"pattern": "BEACON",
+				"path": ".",
+				"glob": "**/*",
+				"ignoreCase": false,
+				"literal": true,
+				"context": 0,
+				"limit": 100
 			}
 		},
 		{
 			"type": "tool_execution_end",
 			"toolCallId": "toolcall_0",
-			"toolName": "read",
+			"toolName": "grep",
 			"result": {
 				"content": [
 					{
 						"type": "text",
-						"text": "FIRST\n"
-					}
-				]
-			},
-			"isError": false
-		},
-		{
-			"type": "tool_execution_end",
-			"toolCallId": "toolcall_1",
-			"toolName": "read",
-			"result": {
-				"content": [
-					{
-						"type": "text",
-						"text": "SECOND\n"
+						"text": "three.txt:1: BEACON again\none.txt:2: BEACON here"
 					}
 				]
 			},
@@ -2192,11 +2401,11 @@
 			"message": {
 				"role": "toolResult",
 				"toolCallId": "toolcall_0",
-				"toolName": "read",
+				"toolName": "grep",
 				"content": [
 					{
 						"type": "text",
-						"text": "FIRST\n"
+						"text": "three.txt:1: BEACON again\none.txt:2: BEACON here"
 					}
 				],
 				"isError": false,
@@ -2208,43 +2417,11 @@
 			"message": {
 				"role": "toolResult",
 				"toolCallId": "toolcall_0",
-				"toolName": "read",
+				"toolName": "grep",
 				"content": [
 					{
 						"type": "text",
-						"text": "FIRST\n"
-					}
-				],
-				"isError": false,
-				"timestamp": 0
-			}
-		},
-		{
-			"type": "message_start",
-			"message": {
-				"role": "toolResult",
-				"toolCallId": "toolcall_1",
-				"toolName": "read",
-				"content": [
-					{
-						"type": "text",
-						"text": "SECOND\n"
-					}
-				],
-				"isError": false,
-				"timestamp": 0
-			}
-		},
-		{
-			"type": "message_end",
-			"message": {
-				"role": "toolResult",
-				"toolCallId": "toolcall_1",
-				"toolName": "read",
-				"content": [
-					{
-						"type": "text",
-						"text": "SECOND\n"
+						"text": "three.txt:1: BEACON again\none.txt:2: BEACON here"
 					}
 				],
 				"isError": false,
@@ -2258,27 +2435,21 @@
 				"content": [
 					{
 						"type": "thinking",
-						"thinking": "**Considering reading methods**\n\nI need to comply with the guidelines, and I can't just bash a cat to read. I could use parallel methods since they are independent, but should I inspect the PI_* environment variables for specific session details? I'm not sure if that's mandatory each time. The user has a simple request, so maybe I could ignore it. However, I might want to use commentary for the tool call. Let's think about reading directly or listing both options.",
+						"thinking": "**Adjusting grep tool usage**\n\nI need to use the grep tool instead of bash for this task. It seems there might be many matches, so I should return only the matching file names. I think I can use grep in a literal way, and the default will be case-sensitive, which is fine. The search will be conducted in the current directory. Let's ensure I'm getting that right to avoid any issues later!",
 						"thinkingSignature": ""
 					},
 					{
 						"type": "toolCall",
 						"id": "toolcall_0",
-						"name": "read",
+						"name": "grep",
 						"arguments": {
-							"path": "a.txt",
-							"offset": 1,
-							"limit": 2000
-						}
-					},
-					{
-						"type": "toolCall",
-						"id": "toolcall_1",
-						"name": "read",
-						"arguments": {
-							"path": "b.txt",
-							"offset": 1,
-							"limit": 2000
+							"pattern": "BEACON",
+							"path": ".",
+							"glob": "**/*",
+							"ignoreCase": false,
+							"literal": true,
+							"context": 0,
+							"limit": 100
 						}
 					}
 				],
@@ -2286,18 +2457,18 @@
 				"provider": "github-copilot",
 				"model": "gpt-5.4",
 				"usage": {
-					"input": 1567,
-					"output": 146,
+					"input": 1569,
+					"output": 86,
 					"cacheRead": 0,
 					"cacheWrite": 0,
-					"reasoning": 78,
-					"totalTokens": 1713,
+					"reasoning": 38,
+					"totalTokens": 1655,
 					"cost": {
-						"input": 0.0039175,
-						"output": 0.00219,
+						"input": 0.003922500000000001,
+						"output": 0.0012900000000000001,
 						"cacheRead": 0,
 						"cacheWrite": 0,
-						"total": 0.0061075
+						"total": 0.005212500000000001
 					}
 				},
 				"stopReason": "toolUse",
@@ -2308,24 +2479,11 @@
 				{
 					"role": "toolResult",
 					"toolCallId": "toolcall_0",
-					"toolName": "read",
+					"toolName": "grep",
 					"content": [
 						{
 							"type": "text",
-							"text": "FIRST\n"
-						}
-					],
-					"isError": false,
-					"timestamp": 0
-				},
-				{
-					"role": "toolResult",
-					"toolCallId": "toolcall_1",
-					"toolName": "read",
-					"content": [
-						{
-							"type": "text",
-							"text": "SECOND\n"
+							"text": "three.txt:1: BEACON again\none.txt:2: BEACON here"
 						}
 					],
 					"isError": false,
@@ -2343,7 +2501,7 @@
 				"content": [
 					{
 						"type": "text",
-						"text": "FIRST, SECOND",
+						"text": "three.txt\none.txt",
 						"textSignature": ""
 					}
 				],
@@ -2383,7 +2541,7 @@
 			"assistantMessageEvent": {
 				"type": "text_delta",
 				"contentIndex": 0,
-				"delta": "FIRST"
+				"delta": "three"
 			},
 			"message": {
 				"role": "assistant"
@@ -2394,7 +2552,7 @@
 			"assistantMessageEvent": {
 				"type": "text_delta",
 				"contentIndex": 0,
-				"delta": ","
+				"delta": ".txt"
 			},
 			"message": {
 				"role": "assistant"
@@ -2405,7 +2563,29 @@
 			"assistantMessageEvent": {
 				"type": "text_delta",
 				"contentIndex": 0,
-				"delta": " SECOND"
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": "one"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": ".txt"
 			},
 			"message": {
 				"role": "assistant"
@@ -2416,7 +2596,7 @@
 			"assistantMessageEvent": {
 				"type": "text_end",
 				"contentIndex": 0,
-				"content": "FIRST, SECOND"
+				"content": "three.txt\none.txt"
 			},
 			"message": {
 				"role": "assistant"
@@ -2429,7 +2609,7 @@
 				"content": [
 					{
 						"type": "text",
-						"text": "FIRST, SECOND",
+						"text": "three.txt\none.txt",
 						"textSignature": ""
 					}
 				],
@@ -2437,18 +2617,18 @@
 				"provider": "github-copilot",
 				"model": "gpt-5.4",
 				"usage": {
-					"input": 1735,
-					"output": 7,
+					"input": 1685,
+					"output": 9,
 					"cacheRead": 0,
 					"cacheWrite": 0,
 					"reasoning": 0,
-					"totalTokens": 1742,
+					"totalTokens": 1694,
 					"cost": {
-						"input": 0.0043375,
-						"output": 0.000105,
+						"input": 0.0042125,
+						"output": 0.000135,
 						"cacheRead": 0,
 						"cacheWrite": 0,
-						"total": 0.0044425
+						"total": 0.0043475
 					}
 				},
 				"stopReason": "stop",
@@ -2463,7 +2643,7 @@
 				"content": [
 					{
 						"type": "text",
-						"text": "FIRST, SECOND",
+						"text": "three.txt\none.txt",
 						"textSignature": ""
 					}
 				],
@@ -2471,18 +2651,18 @@
 				"provider": "github-copilot",
 				"model": "gpt-5.4",
 				"usage": {
-					"input": 1735,
-					"output": 7,
+					"input": 1685,
+					"output": 9,
 					"cacheRead": 0,
 					"cacheWrite": 0,
 					"reasoning": 0,
-					"totalTokens": 1742,
+					"totalTokens": 1694,
 					"cost": {
-						"input": 0.0043375,
-						"output": 0.000105,
+						"input": 0.0042125,
+						"output": 0.000135,
 						"cacheRead": 0,
 						"cacheWrite": 0,
-						"total": 0.0044425
+						"total": 0.0043475
 					}
 				},
 				"stopReason": "stop",
@@ -2499,7 +2679,7 @@
 					"content": [
 						{
 							"type": "text",
-							"text": "Read both a.txt and b.txt, then reply with their contents separated by a comma."
+							"text": "Use the grep tool to search for BEACON here. Reply with the matching file names only."
 						}
 					],
 					"timestamp": 0
@@ -2509,27 +2689,21 @@
 					"content": [
 						{
 							"type": "thinking",
-							"thinking": "**Considering reading methods**\n\nI need to comply with the guidelines, and I can't just bash a cat to read. I could use parallel methods since they are independent, but should I inspect the PI_* environment variables for specific session details? I'm not sure if that's mandatory each time. The user has a simple request, so maybe I could ignore it. However, I might want to use commentary for the tool call. Let's think about reading directly or listing both options.",
+							"thinking": "**Adjusting grep tool usage**\n\nI need to use the grep tool instead of bash for this task. It seems there might be many matches, so I should return only the matching file names. I think I can use grep in a literal way, and the default will be case-sensitive, which is fine. The search will be conducted in the current directory. Let's ensure I'm getting that right to avoid any issues later!",
 							"thinkingSignature": ""
 						},
 						{
 							"type": "toolCall",
 							"id": "toolcall_0",
-							"name": "read",
+							"name": "grep",
 							"arguments": {
-								"path": "a.txt",
-								"offset": 1,
-								"limit": 2000
-							}
-						},
-						{
-							"type": "toolCall",
-							"id": "toolcall_1",
-							"name": "read",
-							"arguments": {
-								"path": "b.txt",
-								"offset": 1,
-								"limit": 2000
+								"pattern": "BEACON",
+								"path": ".",
+								"glob": "**/*",
+								"ignoreCase": false,
+								"literal": true,
+								"context": 0,
+								"limit": 100
 							}
 						}
 					],
@@ -2537,18 +2711,18 @@
 					"provider": "github-copilot",
 					"model": "gpt-5.4",
 					"usage": {
-						"input": 1567,
-						"output": 146,
+						"input": 1569,
+						"output": 86,
 						"cacheRead": 0,
 						"cacheWrite": 0,
-						"reasoning": 78,
-						"totalTokens": 1713,
+						"reasoning": 38,
+						"totalTokens": 1655,
 						"cost": {
-							"input": 0.0039175,
-							"output": 0.00219,
+							"input": 0.003922500000000001,
+							"output": 0.0012900000000000001,
 							"cacheRead": 0,
 							"cacheWrite": 0,
-							"total": 0.0061075
+							"total": 0.005212500000000001
 						}
 					},
 					"stopReason": "toolUse",
@@ -2558,24 +2732,11 @@
 				{
 					"role": "toolResult",
 					"toolCallId": "toolcall_0",
-					"toolName": "read",
+					"toolName": "grep",
 					"content": [
 						{
 							"type": "text",
-							"text": "FIRST\n"
-						}
-					],
-					"isError": false,
-					"timestamp": 0
-				},
-				{
-					"role": "toolResult",
-					"toolCallId": "toolcall_1",
-					"toolName": "read",
-					"content": [
-						{
-							"type": "text",
-							"text": "SECOND\n"
+							"text": "three.txt:1: BEACON again\none.txt:2: BEACON here"
 						}
 					],
 					"isError": false,
@@ -2586,7 +2747,7 @@
 					"content": [
 						{
 							"type": "text",
-							"text": "FIRST, SECOND",
+							"text": "three.txt\none.txt",
 							"textSignature": ""
 						}
 					],
@@ -2594,18 +2755,18 @@
 					"provider": "github-copilot",
 					"model": "gpt-5.4",
 					"usage": {
-						"input": 1735,
-						"output": 7,
+						"input": 1685,
+						"output": 9,
 						"cacheRead": 0,
 						"cacheWrite": 0,
 						"reasoning": 0,
-						"totalTokens": 1742,
+						"totalTokens": 1694,
 						"cost": {
-							"input": 0.0043375,
-							"output": 0.000105,
+							"input": 0.0042125,
+							"output": 0.000135,
 							"cacheRead": 0,
 							"cacheWrite": 0,
-							"total": 0.0044425
+							"total": 0.0043475
 						}
 					},
 					"stopReason": "stop",

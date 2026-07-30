@@ -17,14 +17,17 @@
  * per API dialect and change without notice.
  */
 
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { copyFileSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir, userInfo } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createAssistantMessageEventStream } from "@earendil-works/pi-ai";
 import { type AgentSessionEvent, SessionManager } from "@earendil-works/pi-coding-agent";
 import { InProcessPiBackend } from "../src/pi/in-process-backend.ts";
 
-const FIXTURE_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "test", "fixtures");
+const ROOT_DIR = join(dirname(fileURLToPath(import.meta.url)), "..");
+const FIXTURE_DIR = join(ROOT_DIR, "test", "fixtures");
 
 /** How long to wait for `agent_settled` before giving up on a scenario. */
 const SETTLE_TIMEOUT_MS = 120_000;
@@ -35,8 +38,12 @@ interface Scenario {
 	/** Files to create in the scenario's workspace. */
 	readonly files?: Record<string, string>;
 	readonly prompt: string;
+	/** Model to run on, when the default cannot serve the scenario. */
+	readonly model?: string;
 	/** Optional interaction while the turn is in flight. */
 	readonly during?: (backend: InProcessPiBackend) => Promise<void>;
+	/** Optional interaction once the turn has settled, for events a prompt cannot provoke. */
+	readonly after?: (backend: InProcessPiBackend) => Promise<void>;
 }
 
 const SCENARIOS: Scenario[] = [
@@ -88,6 +95,63 @@ const SCENARIOS: Scenario[] = [
 			await backend.steer("Stop counting. Reply with the word STOPPED and nothing else.");
 		},
 	},
+	{
+		name: "tool-edit",
+		description: "An `edit` call — the one tool whose result carries a diff and a patch.",
+		// biome-ignore lint/suspicious/noTemplateCurlyInString: file contents, not a template
+		files: { "greet.ts": "export function greet(name: string) {\n\treturn `Hi ${name}`;\n}\n" },
+		prompt: "In greet.ts, change the greeting from `Hi` to `Hello`. Use the edit tool. Then reply DONE.",
+	},
+	{
+		name: "tool-write",
+		description: "A `write` call — a whole new file rather than an edit to one.",
+		prompt: "Create a file called haiku.txt containing exactly three short lines. Then reply DONE.",
+	},
+	{
+		name: "tool-bash",
+		description: "A `bash` call — stdout, exit status, and pi's truncation metadata.",
+		files: { "data.txt": "one\ntwo\nthree\n" },
+		prompt: "Use bash to count the lines in data.txt. Reply with just the number.",
+	},
+	{
+		name: "tool-ls",
+		description: "An `ls` call — a directory listing, which reports its own entry limit.",
+		files: { "a.txt": "a\n", "b.txt": "b\n", "sub/c.txt": "c\n" },
+		prompt: "Use the ls tool to list this directory. Reply with the entry names separated by commas.",
+	},
+	{
+		name: "tool-grep",
+		description: "A `grep` call — match counts and line truncation live in its details.",
+		files: {
+			"one.txt": "alpha\nBEACON here\ngamma\n",
+			"two.txt": "delta\nnothing\n",
+			"three.txt": "BEACON again\n",
+		},
+		prompt: "Use the grep tool to search for BEACON here. Reply with the matching file names only.",
+	},
+	{
+		name: "tool-find",
+		description: "A `find` call — path globbing, with its own result limit.",
+		files: { "src/x.ts": "//x\n", "src/y.ts": "//y\n", "docs/z.md": "# z\n" },
+		prompt: "Use the find tool to locate every .ts file under src. Reply with their paths only.",
+	},
+	{
+		name: "compaction",
+		description:
+			"A manual compaction — `buildContextEntries` starts from the newest one, so this is the boundary history rebuilding and turn paging are built around.",
+		files: { "note.txt": "ALPHA\n" },
+		prompt: "Read note.txt and reply with its contents only.",
+		after: async (backend) => {
+			await backend.prompt("Use bash to run `seq 1 400`. Reply DONE.");
+			await backend.prompt("Reply with the word TWO.");
+			await backend.session.compact();
+		},
+	},
+	{
+		name: "bash-long-output",
+		description: "A bash call whose output is large enough for pi to stream updates and report truncation.",
+		prompt: "Use bash to run `seq 1 20000`. Then reply with the word DONE.",
+	},
 ];
 
 /**
@@ -104,17 +168,23 @@ const SCENARIOS: Scenario[] = [
  * substitution; anything left over is reported by {@link auditFixture} for a
  * human to look at rather than mangled automatically.
  */
-function createScrubber(workspace: string) {
+/**
+ * Fields the provider fills with an opaque blob that changes every run.
+ *
+ * Emptied rather than removed: their presence is part of the event shape the
+ * mapper is handed, their contents are not.
+ */
+const OPAQUE_SIGNATURES = new Set(["thinkingSignature", "textSignature", "responseId"]);
+
+function createScrubber(_workspace: string) {
 	const home = homedir();
 	const toolCallIds = new Map<string, string>();
 
 	const scrubString = (value: string): string => {
-		// The `${...}` text is the fixture's placeholder syntax, not an unescaped
-		// template literal.
+		// Only the home directory is left to rewrite: the workspace, the agent
+		// directory, and the session id are fixed at the source now.
 		// biome-ignore lint/suspicious/noTemplateCurlyInString: placeholder text
-		let out = value.split(workspace).join("${workdir}");
-		// biome-ignore lint/suspicious/noTemplateCurlyInString: placeholder text
-		out = out.split(home).join("${homedir}");
+		let out = value.split(home).join("${homedir}");
 		for (const [real, stable] of toolCallIds) {
 			out = out.split(real).join(stable);
 		}
@@ -159,8 +229,17 @@ function createScrubber(workspace: string) {
 		}
 		const out: Record<string, unknown> = {};
 		for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
-			// Wall-clock timestamps would make every re-capture a diff.
-			out[key] = key === "timestamp" && typeof value === "number" ? 0 : apply(value);
+			if (key === "timestamp" && typeof value === "number") {
+				// Wall-clock timestamps would make every re-capture a diff.
+				out[key] = 0;
+			} else if (OPAQUE_SIGNATURES.has(key) && typeof value === "string") {
+				// Kilobytes of server-side blobs — encrypted reasoning, response
+				// correlation — opaque and different on every run. The mapper reads
+				// none of them, so the fixture keeps the field and drops the payload.
+				out[key] = "";
+			} else {
+				out[key] = apply(value);
+			}
 		}
 		return out;
 	};
@@ -206,6 +285,44 @@ function pruneAccumulated(events: AgentSessionEvent[]): AgentSessionEvent[] {
 	});
 }
 
+/**
+ * Replaces each event's `partial` with an index into a table of distinct ones.
+ *
+ * Every streamed event carries the message accumulated so far, and pi reads it:
+ * dropping the field stops `message_update` from being emitted at all.
+ *
+ * Within one turn those are not snapshots but repeated references to a single
+ * object pi mutates in place, so by the time the capture is serialised they all
+ * hold the finished message. The intermediate states are therefore never
+ * recorded — not because of this table, but because they no longer exist once
+ * the stream ends. What the table removes is only writing that one object out
+ * once per event, which is 1.5 MB across the corpus against 23 KB.
+ *
+ * A turn contributes one entry, and `replayTurns` puts them back.
+ */
+function dedupePartials(turns: unknown[][]): { turns: unknown[][]; partials: unknown[] } {
+	const partials: unknown[] = [];
+	const index = new Map<string, number>();
+	const next = turns.map((turn) =>
+		turn.map((event) => {
+			const record = event as Record<string, unknown>;
+			if (!("partial" in record)) {
+				return event;
+			}
+			const key = JSON.stringify(record.partial);
+			let at = index.get(key);
+			if (at === undefined) {
+				at = partials.length;
+				index.set(key, at);
+				partials.push(record.partial);
+			}
+			const { partial: _replaced, ...rest } = record;
+			return { ...rest, partialRef: at };
+		}),
+	);
+	return { turns: next, partials };
+}
+
 /** Reports anything that still looks machine-specific, for human review. */
 function auditFixture(name: string, serialised: string): void {
 	const problems: string[] = [];
@@ -214,8 +331,12 @@ function auditFixture(name: string, serialised: string): void {
 	if (serialised.includes(home)) {
 		problems.push(`raw home directory (${home})`);
 	}
-	if (serialised.includes("/tmp/pi-ahp-capture-")) {
-		problems.push("raw capture workspace path");
+	// The capture paths are fixed and carry no identity, so they are allowed to
+	// appear — `tool-error` records an ENOENT message that names one. What is
+	// still worth reporting is a path from some *other* run, which would mean
+	// the fixed-path scheme stopped holding.
+	for (const stray of serialised.match(/\/tmp\/pi-ahp-capture-[a-z-]*-[A-Za-z0-9]{6}/g) ?? []) {
+		problems.push(`randomised capture path (${stray})`);
 	}
 	// Reported, never auto-replaced — see createScrubber.
 	if (new RegExp(`\\b${user}\\b`).test(serialised) && user !== "user") {
@@ -226,8 +347,14 @@ function auditFixture(name: string, serialised: string): void {
 	}
 }
 
-async function runScenario(scenario: Scenario): Promise<AgentSessionEvent[]> {
-	const workspace = mkdtempSync(join(tmpdir(), `pi-ahp-capture-${scenario.name}-`));
+async function runScenario(
+	scenario: Scenario,
+): Promise<{ turns: unknown[][]; partials: unknown[]; events: AgentSessionEvent[] }> {
+	// Fixed path and session id, for the same reason as the agent directory:
+	// what is deterministic at the source needs no scrubbing afterwards.
+	const workspace = join(tmpdir(), `pi-ahp-capture-${scenario.name}`);
+	rmSync(workspace, { recursive: true, force: true });
+	mkdirSync(workspace, { recursive: true });
 	try {
 		for (const [name, contents] of Object.entries(scenario.files ?? {})) {
 			const target = join(workspace, name);
@@ -237,8 +364,38 @@ async function runScenario(scenario: Scenario): Promise<AgentSessionEvent[]> {
 
 		const backend = await InProcessPiBackend.create({
 			cwd: workspace,
-			sessionManager: SessionManager.create(workspace),
+			sessionManager: SessionManager.create(workspace, undefined, { id: `capture-${scenario.name}` }),
 		});
+
+		// pi ships seven tools but activates four; the rest are in the registry
+		// and have to be asked for. A fixture that only ever saw the default set
+		// is why `grep`/`find`/`ls` results were never mapped.
+		backend.session.setActiveToolsByName(backend.session.getAllTools().map((tool) => tool.name));
+		if (scenario.model) {
+			await backend.selectModel({ id: scenario.model });
+		}
+
+		// The provider's own event stream, recorded by relaying it through a
+		// stream of our own. This is what pi is *fed*; `events` below is what pi
+		// *emits* in response. Replaying the former runs the real `AgentSession`,
+		// so a change in pi's semantics shows up as a diff instead of passing
+		// silently against a frozen recording of its output.
+		const turns: unknown[][] = [];
+		const upstream = backend.session.agent.streamFunction;
+		backend.session.agent.streamFunction = (model, context, options) => {
+			const turn: unknown[] = [];
+			turns.push(turn);
+			const relay = createAssistantMessageEventStream();
+			void (async () => {
+				const source = await upstream(model, context, options);
+				for await (const event of source) {
+					turn.push(event);
+					relay.push(event);
+				}
+				relay.end(await source.result());
+			})();
+			return relay;
+		};
 
 		const events: AgentSessionEvent[] = [];
 		let settled = false;
@@ -263,31 +420,96 @@ async function runScenario(scenario: Scenario): Promise<AgentSessionEvent[]> {
 			throw new Error(`${scenario.name}: never settled`);
 		}
 
+		if (scenario.after) {
+			settled = false;
+			await scenario.after(backend);
+			// `compact()` resolves before the session settles again.
+			const secondDeadline = Date.now() + SETTLE_TIMEOUT_MS;
+			while (!settled && Date.now() < secondDeadline) {
+				await new Promise((resolve) => setTimeout(resolve, 50));
+			}
+		}
+
 		backend.dispose();
 		const scrubber = createScrubber(workspace);
 		scrubber.collect(events);
-		return pruneAccumulated(scrubber.apply(events) as AgentSessionEvent[]);
+		scrubber.collect(turns);
+		const deduped = dedupePartials(scrubber.apply(turns) as unknown[][]);
+		return {
+			turns: deduped.turns,
+			partials: deduped.partials,
+			events: pruneAccumulated(scrubber.apply(events) as AgentSessionEvent[]),
+		};
 	} finally {
 		rmSync(workspace, { recursive: true, force: true });
 	}
 }
 
+/**
+ * Points pi at a throwaway agent directory holding only credentials.
+ *
+ * Extensions are loaded from the *user's* `~/.pi/agent`, not the project, so
+ * project trust does not keep them out. Without this a fixture records whoever
+ * happens to be capturing it: an earlier run picked up a personal plugin's
+ * `workflow` tools and would have baked them into the corpus.
+ */
+function isolateAgentDir(): void {
+	// Fixed rather than `mkdtemp`: the path reaches the capture through session
+	// paths and the env block pi records, so a random one turns every re-capture
+	// into a diff of nothing.
+	const dir = join(tmpdir(), "pi-ahp-capture-agent");
+	rmSync(dir, { recursive: true, force: true });
+	mkdirSync(dir, { recursive: true });
+	// The model catalogue travels with the credentials. `models-store.json` is
+	// the refreshed provider listing and carries each model's base URL; without
+	// it pi falls back to its built-in catalogue, which points Copilot at the
+	// individual endpoint and answers an enterprise key with a bare
+	// `421 Misdirected Request`.
+	for (const file of ["auth.json", "models.json", "models-store.json"]) {
+		const source = join(homedir(), ".pi", "agent", file);
+		if (existsSync(source)) {
+			copyFileSync(source, join(dir, file));
+		}
+	}
+	// `compact()` cuts at `keepRecentTokens` and refuses a session that never
+	// reaches it. The default 20k would need a conversation far larger than any
+	// scenario here; what the fixture is for is the *shape* of the compaction
+	// events, so the threshold is lowered instead of the transcript inflated.
+	writeFileSync(join(dir, "settings.json"), `${JSON.stringify({ compaction: { keepRecentTokens: 200 } }, null, 2)}\n`);
+	process.env.PI_CODING_AGENT_DIR = dir;
+}
+
 async function main(): Promise<void> {
+	isolateAgentDir();
 	const only = process.argv.slice(2).filter((arg) => !arg.startsWith("--"));
 	const selected = only.length > 0 ? SCENARIOS.filter((s) => only.includes(s.name)) : SCENARIOS;
 	mkdirSync(FIXTURE_DIR, { recursive: true });
 
+	const written: string[] = [];
 	for (const scenario of selected) {
 		process.stderr.write(`capturing ${scenario.name}… `);
 		try {
-			const events = await runScenario(scenario);
-			const serialised = `${JSON.stringify({ name: scenario.name, description: scenario.description, prompt: scenario.prompt, events }, null, "\t")}\n`;
-			writeFileSync(join(FIXTURE_DIR, `${scenario.name}.json`), serialised);
-			process.stderr.write(`${events.length} events, ${Math.round(serialised.length / 1024)} KB\n`);
+			const { turns, partials, events } = await runScenario(scenario);
+			const serialised = `${JSON.stringify({ name: scenario.name, description: scenario.description, prompt: scenario.prompt, partials, turns, events }, null, "\t")}\n`;
+			const path = join(FIXTURE_DIR, `${scenario.name}.json`);
+			writeFileSync(path, serialised);
+			written.push(path);
+			process.stderr.write(
+				`${turns.length} turns / ${events.length} events, ${Math.round(serialised.length / 1024)} KB\n`,
+			);
 			auditFixture(scenario.name, serialised);
 		} catch (error) {
 			process.stderr.write(`FAILED: ${error instanceof Error ? error.message : String(error)}\n`);
 		}
+	}
+
+	// Written through the formatter the repository already checks with, so a
+	// capture lands in the form `pnpm run lint` expects instead of needing the
+	// directory excluded from it.
+	if (written.length > 0) {
+		execFileSync(join(ROOT_DIR, "node_modules", ".bin", "biome"), ["format", "--write", ...written], {
+			stdio: "ignore",
+		});
 	}
 }
 

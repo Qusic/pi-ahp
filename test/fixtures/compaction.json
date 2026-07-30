@@ -1,0 +1,6285 @@
+{
+	"name": "compaction",
+	"description": "A manual compaction — `buildContextEntries` starts from the newest one, so this is the boundary history rebuilding and turn paging are built around.",
+	"prompt": "Read note.txt and reply with its contents only.",
+	"partials": [
+		{
+			"role": "assistant",
+			"content": [
+				{
+					"type": "thinking",
+					"thinking": "**Reading file contents**\n\nI need to be precise here. The user's asking for the file's contents, so I’ll focus on that. I should consider the developer's advice about checking the PI_* environment variables, but it seems like that might not be necessary unless I’m operating in a specific context. I think I can just read the file without using more complex commands like `cat`. I'll use the `read` function instead!",
+					"thinkingSignature": ""
+				},
+				{
+					"type": "toolCall",
+					"id": "toolcall_0",
+					"name": "read",
+					"arguments": {
+						"path": "note.txt",
+						"offset": 1,
+						"limit": 2000
+					}
+				}
+			],
+			"api": "openai-responses",
+			"provider": "github-copilot",
+			"model": "gpt-5.4",
+			"usage": {
+				"input": 1558,
+				"output": 93,
+				"cacheRead": 0,
+				"cacheWrite": 0,
+				"reasoning": 64,
+				"totalTokens": 1651,
+				"cost": {
+					"input": 0.0038950000000000005,
+					"output": 0.001395,
+					"cacheRead": 0,
+					"cacheWrite": 0,
+					"total": 0.00529
+				}
+			},
+			"stopReason": "toolUse",
+			"timestamp": 0,
+			"responseId": ""
+		},
+		{
+			"role": "assistant",
+			"content": [
+				{
+					"type": "text",
+					"text": "ALPHA",
+					"textSignature": ""
+				}
+			],
+			"api": "openai-responses",
+			"provider": "github-copilot",
+			"model": "gpt-5.4",
+			"usage": {
+				"input": 1664,
+				"output": 6,
+				"cacheRead": 0,
+				"cacheWrite": 0,
+				"reasoning": 0,
+				"totalTokens": 1670,
+				"cost": {
+					"input": 0.0041600000000000005,
+					"output": 0.00009,
+					"cacheRead": 0,
+					"cacheWrite": 0,
+					"total": 0.00425
+				}
+			},
+			"stopReason": "stop",
+			"timestamp": 0,
+			"responseId": ""
+		},
+		{
+			"role": "assistant",
+			"content": [
+				{
+					"type": "thinking",
+					"thinking": "",
+					"thinkingSignature": ""
+				},
+				{
+					"type": "toolCall",
+					"id": "toolcall_1",
+					"name": "bash",
+					"arguments": {
+						"command": "seq 1 400",
+						"timeout": 10
+					}
+				}
+			],
+			"api": "openai-responses",
+			"provider": "github-copilot",
+			"model": "gpt-5.4",
+			"usage": {
+				"input": 88,
+				"output": 44,
+				"cacheRead": 1536,
+				"cacheWrite": 0,
+				"reasoning": 16,
+				"totalTokens": 1668,
+				"cost": {
+					"input": 0.00022,
+					"output": 0.00066,
+					"cacheRead": 0.000384,
+					"cacheWrite": 0,
+					"total": 0.001264
+				}
+			},
+			"stopReason": "toolUse",
+			"timestamp": 0,
+			"responseId": ""
+		},
+		{
+			"role": "assistant",
+			"content": [
+				{
+					"type": "text",
+					"text": "DONE",
+					"textSignature": ""
+				}
+			],
+			"api": "openai-responses",
+			"provider": "github-copilot",
+			"model": "gpt-5.4",
+			"usage": {
+				"input": 943,
+				"output": 5,
+				"cacheRead": 1536,
+				"cacheWrite": 0,
+				"reasoning": 0,
+				"totalTokens": 2484,
+				"cost": {
+					"input": 0.0023575000000000002,
+					"output": 0.00007500000000000001,
+					"cacheRead": 0.000384,
+					"cacheWrite": 0,
+					"total": 0.0028165000000000004
+				}
+			},
+			"stopReason": "stop",
+			"timestamp": 0,
+			"responseId": ""
+		},
+		{
+			"role": "assistant",
+			"content": [
+				{
+					"type": "text",
+					"text": "TWO",
+					"textSignature": ""
+				}
+			],
+			"api": "openai-responses",
+			"provider": "github-copilot",
+			"model": "gpt-5.4",
+			"usage": {
+				"input": 942,
+				"output": 6,
+				"cacheRead": 1536,
+				"cacheWrite": 0,
+				"reasoning": 0,
+				"totalTokens": 2484,
+				"cost": {
+					"input": 0.0023550000000000003,
+					"output": 0.00009,
+					"cacheRead": 0.000384,
+					"cacheWrite": 0,
+					"total": 0.002829
+				}
+			},
+			"stopReason": "stop",
+			"timestamp": 0,
+			"responseId": ""
+		},
+		{
+			"role": "assistant",
+			"content": [
+				{
+					"type": "thinking",
+					"thinking": "",
+					"thinkingSignature": ""
+				},
+				{
+					"type": "text",
+					"text": "## Goal\n- Read `note.txt` and reply with its contents only.\n\n## Constraints & Preferences\n- Reply with the contents of `note.txt` only.\n\n## Progress\n### Done\n- [x] Read `note.txt` using `read(path=\"note.txt\", offset=1, limit=2000)`.\n- [x] Returned the file contents: `ALPHA`.\n\n### In Progress\n- [ ] (none)\n\n### Blocked\n- None.\n\n## Key Decisions\n- **Used `read` function instead of more complex commands**: Directly reading the file satisfied the user's request.\n\n## Next Steps\n1. No further action needed; the request was completed.\n\n## Critical Context\n- File path: `note.txt`\n- Function call: `read(path=\"note.txt\", offset=1, limit=2000)`\n- File contents returned: `ALPHA`",
+					"textSignature": ""
+				}
+			],
+			"api": "openai-responses",
+			"provider": "github-copilot",
+			"model": "gpt-5.4",
+			"usage": {
+				"input": 406,
+				"output": 200,
+				"cacheRead": 0,
+				"cacheWrite": 0,
+				"reasoning": 13,
+				"totalTokens": 606,
+				"cost": {
+					"input": 0.001015,
+					"output": 0.003,
+					"cacheRead": 0,
+					"cacheWrite": 0,
+					"total": 0.004015
+				}
+			},
+			"stopReason": "stop",
+			"timestamp": 0,
+			"responseId": ""
+		},
+		{
+			"role": "assistant",
+			"content": [
+				{
+					"type": "thinking",
+					"thinking": "**Formatting output summary**\n\nI need to structure the summary of our conversation clearly. The user asked me to use bash to run the command `seq 1 400`, and then I should reply with \"DONE.\" I successfully ran the command, which generated the numbers 1 to 400. It's important to mention the intended final reply in this output since it captures the user's request accurately. Keeping everything aligned helps ensure clarity in communication!",
+					"thinkingSignature": ""
+				},
+				{
+					"type": "text",
+					"text": "## Original Request\n[The user asked the assistant to use bash to run `seq 1 400` and then reply with `DONE`.]\n\n## Early Progress\n- [The assistant invoked the bash tool with `seq 1 400`.]\n- [The command completed successfully and produced the numbers 1 through 400, each on its own line.]\n\n## Context for Suffix\n- [The required task was simply to execute the command and respond with `DONE` afterward.]\n- [No additional analysis or transformation of the command output was requested.]",
+					"textSignature": ""
+				}
+			],
+			"api": "openai-responses",
+			"provider": "github-copilot",
+			"model": "gpt-5.4",
+			"usage": {
+				"input": 1015,
+				"output": 166,
+				"cacheRead": 0,
+				"cacheWrite": 0,
+				"reasoning": 48,
+				"totalTokens": 1181,
+				"cost": {
+					"input": 0.0025375000000000003,
+					"output": 0.00249,
+					"cacheRead": 0,
+					"cacheWrite": 0,
+					"total": 0.005027500000000001
+				}
+			},
+			"stopReason": "stop",
+			"timestamp": 0,
+			"responseId": ""
+		}
+	],
+	"turns": [
+		[
+			{
+				"type": "start",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_start",
+				"contentIndex": 0,
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "**Reading file contents**\n\nI",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " need",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " to",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " be",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " precise",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " here",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ".",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " The",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " user's",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " asking",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " for",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " the",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " file",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "'s",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " contents",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ",",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " so",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "’ll",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " focus",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " on",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " that",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ".",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " should",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " consider",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " the",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " developer",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "'s",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " advice",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " about",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " checking",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " the",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " PI",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "_*",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " environment",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " variables",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ",",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " but",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " it",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " seems",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " like",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " that",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " might",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " not",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " be",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " necessary",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " unless",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "’m",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " operating",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " in",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " a",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " specific",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " context",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ".",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " think",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " can",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " just",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " read",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " the",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " file",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " without",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " using",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " more",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " complex",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " commands",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " like",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " `",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "cat",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "`.",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I'll",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " use",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " the",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " `",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "read",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "`",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " function",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " instead",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "!",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "\n\n",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_end",
+				"contentIndex": 0,
+				"content": "**Reading file contents**\n\nI need to be precise here. The user's asking for the file's contents, so I’ll focus on that. I should consider the developer's advice about checking the PI_* environment variables, but it seems like that might not be necessary unless I’m operating in a specific context. I think I can just read the file without using more complex commands like `cat`. I'll use the `read` function instead!",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_start",
+				"contentIndex": 1,
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "{\"",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "path",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\":\"",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "note",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": ".txt",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\",\"",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "offset",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\":",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "1",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": ",\"",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "limit",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\":",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "200",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "0",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "}",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_end",
+				"contentIndex": 1,
+				"toolCall": {
+					"type": "toolCall",
+					"id": "toolcall_0",
+					"name": "read",
+					"arguments": {
+						"path": "note.txt",
+						"offset": 1,
+						"limit": 2000
+					}
+				},
+				"partialRef": 0
+			},
+			{
+				"type": "done",
+				"reason": "toolUse",
+				"message": {
+					"role": "assistant",
+					"content": [
+						{
+							"type": "thinking",
+							"thinking": "**Reading file contents**\n\nI need to be precise here. The user's asking for the file's contents, so I’ll focus on that. I should consider the developer's advice about checking the PI_* environment variables, but it seems like that might not be necessary unless I’m operating in a specific context. I think I can just read the file without using more complex commands like `cat`. I'll use the `read` function instead!",
+							"thinkingSignature": ""
+						},
+						{
+							"type": "toolCall",
+							"id": "toolcall_0",
+							"name": "read",
+							"arguments": {
+								"path": "note.txt",
+								"offset": 1,
+								"limit": 2000
+							}
+						}
+					],
+					"api": "openai-responses",
+					"provider": "github-copilot",
+					"model": "gpt-5.4",
+					"usage": {
+						"input": 1558,
+						"output": 93,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"reasoning": 64,
+						"totalTokens": 1651,
+						"cost": {
+							"input": 0.0038950000000000005,
+							"output": 0.001395,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"total": 0.00529
+						}
+					},
+					"stopReason": "toolUse",
+					"timestamp": 0,
+					"responseId": ""
+				}
+			}
+		],
+		[
+			{
+				"type": "start",
+				"partialRef": 1
+			},
+			{
+				"type": "text_start",
+				"contentIndex": 0,
+				"partialRef": 1
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": "AL",
+				"partialRef": 1
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": "PHA",
+				"partialRef": 1
+			},
+			{
+				"type": "text_end",
+				"contentIndex": 0,
+				"content": "ALPHA",
+				"partialRef": 1
+			},
+			{
+				"type": "done",
+				"reason": "stop",
+				"message": {
+					"role": "assistant",
+					"content": [
+						{
+							"type": "text",
+							"text": "ALPHA",
+							"textSignature": ""
+						}
+					],
+					"api": "openai-responses",
+					"provider": "github-copilot",
+					"model": "gpt-5.4",
+					"usage": {
+						"input": 1664,
+						"output": 6,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"reasoning": 0,
+						"totalTokens": 1670,
+						"cost": {
+							"input": 0.0041600000000000005,
+							"output": 0.00009,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"total": 0.00425
+						}
+					},
+					"stopReason": "stop",
+					"timestamp": 0,
+					"responseId": ""
+				}
+			}
+		],
+		[
+			{
+				"type": "start",
+				"partialRef": 2
+			},
+			{
+				"type": "thinking_start",
+				"contentIndex": 0,
+				"partialRef": 2
+			},
+			{
+				"type": "thinking_end",
+				"contentIndex": 0,
+				"content": "",
+				"partialRef": 2
+			},
+			{
+				"type": "toolcall_start",
+				"contentIndex": 1,
+				"partialRef": 2
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "{\"",
+				"partialRef": 2
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "command",
+				"partialRef": 2
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\":\"",
+				"partialRef": 2
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "seq",
+				"partialRef": 2
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " ",
+				"partialRef": 2
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "1",
+				"partialRef": 2
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " ",
+				"partialRef": 2
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "400",
+				"partialRef": 2
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\",\"",
+				"partialRef": 2
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "timeout",
+				"partialRef": 2
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\":",
+				"partialRef": 2
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "10",
+				"partialRef": 2
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "}",
+				"partialRef": 2
+			},
+			{
+				"type": "toolcall_end",
+				"contentIndex": 1,
+				"toolCall": {
+					"type": "toolCall",
+					"id": "toolcall_1",
+					"name": "bash",
+					"arguments": {
+						"command": "seq 1 400",
+						"timeout": 10
+					}
+				},
+				"partialRef": 2
+			},
+			{
+				"type": "done",
+				"reason": "toolUse",
+				"message": {
+					"role": "assistant",
+					"content": [
+						{
+							"type": "thinking",
+							"thinking": "",
+							"thinkingSignature": ""
+						},
+						{
+							"type": "toolCall",
+							"id": "toolcall_1",
+							"name": "bash",
+							"arguments": {
+								"command": "seq 1 400",
+								"timeout": 10
+							}
+						}
+					],
+					"api": "openai-responses",
+					"provider": "github-copilot",
+					"model": "gpt-5.4",
+					"usage": {
+						"input": 88,
+						"output": 44,
+						"cacheRead": 1536,
+						"cacheWrite": 0,
+						"reasoning": 16,
+						"totalTokens": 1668,
+						"cost": {
+							"input": 0.00022,
+							"output": 0.00066,
+							"cacheRead": 0.000384,
+							"cacheWrite": 0,
+							"total": 0.001264
+						}
+					},
+					"stopReason": "toolUse",
+					"timestamp": 0,
+					"responseId": ""
+				}
+			}
+		],
+		[
+			{
+				"type": "start",
+				"partialRef": 3
+			},
+			{
+				"type": "text_start",
+				"contentIndex": 0,
+				"partialRef": 3
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": "DONE",
+				"partialRef": 3
+			},
+			{
+				"type": "text_end",
+				"contentIndex": 0,
+				"content": "DONE",
+				"partialRef": 3
+			},
+			{
+				"type": "done",
+				"reason": "stop",
+				"message": {
+					"role": "assistant",
+					"content": [
+						{
+							"type": "text",
+							"text": "DONE",
+							"textSignature": ""
+						}
+					],
+					"api": "openai-responses",
+					"provider": "github-copilot",
+					"model": "gpt-5.4",
+					"usage": {
+						"input": 943,
+						"output": 5,
+						"cacheRead": 1536,
+						"cacheWrite": 0,
+						"reasoning": 0,
+						"totalTokens": 2484,
+						"cost": {
+							"input": 0.0023575000000000002,
+							"output": 0.00007500000000000001,
+							"cacheRead": 0.000384,
+							"cacheWrite": 0,
+							"total": 0.0028165000000000004
+						}
+					},
+					"stopReason": "stop",
+					"timestamp": 0,
+					"responseId": ""
+				}
+			}
+		],
+		[
+			{
+				"type": "start",
+				"partialRef": 4
+			},
+			{
+				"type": "text_start",
+				"contentIndex": 0,
+				"partialRef": 4
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": "T",
+				"partialRef": 4
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": "WO",
+				"partialRef": 4
+			},
+			{
+				"type": "text_end",
+				"contentIndex": 0,
+				"content": "TWO",
+				"partialRef": 4
+			},
+			{
+				"type": "done",
+				"reason": "stop",
+				"message": {
+					"role": "assistant",
+					"content": [
+						{
+							"type": "text",
+							"text": "TWO",
+							"textSignature": ""
+						}
+					],
+					"api": "openai-responses",
+					"provider": "github-copilot",
+					"model": "gpt-5.4",
+					"usage": {
+						"input": 942,
+						"output": 6,
+						"cacheRead": 1536,
+						"cacheWrite": 0,
+						"reasoning": 0,
+						"totalTokens": 2484,
+						"cost": {
+							"input": 0.0023550000000000003,
+							"output": 0.00009,
+							"cacheRead": 0.000384,
+							"cacheWrite": 0,
+							"total": 0.002829
+						}
+					},
+					"stopReason": "stop",
+					"timestamp": 0,
+					"responseId": ""
+				}
+			}
+		],
+		[
+			{
+				"type": "start",
+				"partialRef": 5
+			},
+			{
+				"type": "thinking_start",
+				"contentIndex": 0,
+				"partialRef": 5
+			},
+			{
+				"type": "thinking_end",
+				"contentIndex": 0,
+				"content": "",
+				"partialRef": 5
+			},
+			{
+				"type": "text_start",
+				"contentIndex": 1,
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "##",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " Goal",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "-",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " Read",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " `",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "note",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": ".txt",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "`",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " and",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " reply",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " with",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " its",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " contents",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " only",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": ".\n\n",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "##",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " Constraints",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " &",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " Preferences",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "-",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " Reply",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " with",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " the",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " contents",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " of",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " `",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "note",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": ".txt",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "`",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " only",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": ".\n\n",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "##",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " Progress",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "###",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " Done",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "-",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " [",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "x",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "]",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " Read",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " `",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "note",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": ".txt",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "`",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " using",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " `",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "read",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "(path",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "=\"",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "note",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": ".txt",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\",",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " offset",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "=",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "1",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": ",",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " limit",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "=",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "200",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "0",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": ")",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "`.\n",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "-",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " [",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "x",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "]",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " Returned",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " the",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " file",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " contents",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": ":",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " `",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "AL",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "PHA",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "`.\n\n",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "###",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " In",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " Progress",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "-",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " [",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " ]",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " (",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "none",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": ")\n\n",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "###",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " Block",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "ed",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "-",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " None",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": ".\n\n",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "##",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " Key",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " Decisions",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "-",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " **",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "Used",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " `",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "read",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "`",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " function",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " instead",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " of",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " more",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " complex",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " commands",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "**",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": ":",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " Direct",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "ly",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " reading",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " the",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " file",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " satisfied",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " the",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " user's",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " request",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": ".\n\n",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "##",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " Next",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " Steps",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "1",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": ".",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " No",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " further",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " action",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " needed",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": ";",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " the",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " request",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " was",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " completed",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": ".\n\n",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "##",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " Critical",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " Context",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "-",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " File",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " path",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": ":",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " `",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "note",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": ".txt",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "`\n",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "-",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " Function",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " call",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": ":",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " `",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "read",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "(path",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "=\"",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "note",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": ".txt",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\",",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " offset",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "=",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "1",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": ",",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " limit",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "=",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "200",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "0",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": ")`\n",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "-",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " File",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " contents",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " returned",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": ":",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " `",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "AL",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "PHA",
+				"partialRef": 5
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "`",
+				"partialRef": 5
+			},
+			{
+				"type": "text_end",
+				"contentIndex": 1,
+				"content": "## Goal\n- Read `note.txt` and reply with its contents only.\n\n## Constraints & Preferences\n- Reply with the contents of `note.txt` only.\n\n## Progress\n### Done\n- [x] Read `note.txt` using `read(path=\"note.txt\", offset=1, limit=2000)`.\n- [x] Returned the file contents: `ALPHA`.\n\n### In Progress\n- [ ] (none)\n\n### Blocked\n- None.\n\n## Key Decisions\n- **Used `read` function instead of more complex commands**: Directly reading the file satisfied the user's request.\n\n## Next Steps\n1. No further action needed; the request was completed.\n\n## Critical Context\n- File path: `note.txt`\n- Function call: `read(path=\"note.txt\", offset=1, limit=2000)`\n- File contents returned: `ALPHA`",
+				"partialRef": 5
+			},
+			{
+				"type": "done",
+				"reason": "stop",
+				"message": {
+					"role": "assistant",
+					"content": [
+						{
+							"type": "thinking",
+							"thinking": "",
+							"thinkingSignature": ""
+						},
+						{
+							"type": "text",
+							"text": "## Goal\n- Read `note.txt` and reply with its contents only.\n\n## Constraints & Preferences\n- Reply with the contents of `note.txt` only.\n\n## Progress\n### Done\n- [x] Read `note.txt` using `read(path=\"note.txt\", offset=1, limit=2000)`.\n- [x] Returned the file contents: `ALPHA`.\n\n### In Progress\n- [ ] (none)\n\n### Blocked\n- None.\n\n## Key Decisions\n- **Used `read` function instead of more complex commands**: Directly reading the file satisfied the user's request.\n\n## Next Steps\n1. No further action needed; the request was completed.\n\n## Critical Context\n- File path: `note.txt`\n- Function call: `read(path=\"note.txt\", offset=1, limit=2000)`\n- File contents returned: `ALPHA`",
+							"textSignature": ""
+						}
+					],
+					"api": "openai-responses",
+					"provider": "github-copilot",
+					"model": "gpt-5.4",
+					"usage": {
+						"input": 406,
+						"output": 200,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"reasoning": 13,
+						"totalTokens": 606,
+						"cost": {
+							"input": 0.001015,
+							"output": 0.003,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"total": 0.004015
+						}
+					},
+					"stopReason": "stop",
+					"timestamp": 0,
+					"responseId": ""
+				}
+			}
+		],
+		[
+			{
+				"type": "start",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_start",
+				"contentIndex": 0,
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "**Formatting output summary**\n\nI",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " need",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " to",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " structure",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " the",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " summary",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " of",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " our",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " conversation",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " clearly",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ".",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " The",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " user",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " asked",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " me",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " to",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " use",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " bash",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " to",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " run",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " the",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " command",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " `",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "seq",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " 1",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " 400",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "`,",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " and",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " then",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " should",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " reply",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " with",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " \"",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "DONE",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ".\"",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " successfully",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " ran",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " the",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " command",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ",",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " which",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " generated",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " the",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " numbers",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " 1",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " to",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " 400",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ".",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " It's",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " important",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " to",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " mention",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " the",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " intended",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " final",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " reply",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " in",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " this",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " output",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " since",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " it",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " captures",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " the",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " user's",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " request",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " accurately",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ".",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " Keeping",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " everything",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " aligned",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " helps",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " ensure",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " clarity",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " in",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " communication",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "!",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "\n\n",
+				"partialRef": 6
+			},
+			{
+				"type": "thinking_end",
+				"contentIndex": 0,
+				"content": "**Formatting output summary**\n\nI need to structure the summary of our conversation clearly. The user asked me to use bash to run the command `seq 1 400`, and then I should reply with \"DONE.\" I successfully ran the command, which generated the numbers 1 to 400. It's important to mention the intended final reply in this output since it captures the user's request accurately. Keeping everything aligned helps ensure clarity in communication!",
+				"partialRef": 6
+			},
+			{
+				"type": "text_start",
+				"contentIndex": 1,
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "##",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " Original",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " Request",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "[",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "The",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " user",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " asked",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " the",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " assistant",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " to",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " use",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " bash",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " to",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " run",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " `",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "seq",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " ",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "1",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " ",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "400",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "`",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " and",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " then",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " reply",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " with",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " `",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "DONE",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "`.",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "]\n\n",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "##",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " Early",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " Progress",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "-",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " [",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "The",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " assistant",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " invoked",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " the",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " bash",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " tool",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " with",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " `",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "seq",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " ",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "1",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " ",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "400",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "`.",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "]\n",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "-",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " [",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "The",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " command",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " completed",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " successfully",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " and",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " produced",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " the",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " numbers",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " ",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "1",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " through",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " ",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "400",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": ",",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " each",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " on",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " its",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " own",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " line",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": ".]\n\n",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "##",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " Context",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " for",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " S",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "uffix",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "-",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " [",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "The",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " required",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " task",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " was",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " simply",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " to",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " execute",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " the",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " command",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " and",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " respond",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " with",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " `",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "DONE",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "`",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " afterward",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": ".]\n",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "-",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " [",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "No",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " additional",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " analysis",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " or",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " transformation",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " of",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " the",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " command",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " output",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " was",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": " requested",
+				"partialRef": 6
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": ".]",
+				"partialRef": 6
+			},
+			{
+				"type": "text_end",
+				"contentIndex": 1,
+				"content": "## Original Request\n[The user asked the assistant to use bash to run `seq 1 400` and then reply with `DONE`.]\n\n## Early Progress\n- [The assistant invoked the bash tool with `seq 1 400`.]\n- [The command completed successfully and produced the numbers 1 through 400, each on its own line.]\n\n## Context for Suffix\n- [The required task was simply to execute the command and respond with `DONE` afterward.]\n- [No additional analysis or transformation of the command output was requested.]",
+				"partialRef": 6
+			},
+			{
+				"type": "done",
+				"reason": "stop",
+				"message": {
+					"role": "assistant",
+					"content": [
+						{
+							"type": "thinking",
+							"thinking": "**Formatting output summary**\n\nI need to structure the summary of our conversation clearly. The user asked me to use bash to run the command `seq 1 400`, and then I should reply with \"DONE.\" I successfully ran the command, which generated the numbers 1 to 400. It's important to mention the intended final reply in this output since it captures the user's request accurately. Keeping everything aligned helps ensure clarity in communication!",
+							"thinkingSignature": ""
+						},
+						{
+							"type": "text",
+							"text": "## Original Request\n[The user asked the assistant to use bash to run `seq 1 400` and then reply with `DONE`.]\n\n## Early Progress\n- [The assistant invoked the bash tool with `seq 1 400`.]\n- [The command completed successfully and produced the numbers 1 through 400, each on its own line.]\n\n## Context for Suffix\n- [The required task was simply to execute the command and respond with `DONE` afterward.]\n- [No additional analysis or transformation of the command output was requested.]",
+							"textSignature": ""
+						}
+					],
+					"api": "openai-responses",
+					"provider": "github-copilot",
+					"model": "gpt-5.4",
+					"usage": {
+						"input": 1015,
+						"output": 166,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"reasoning": 48,
+						"totalTokens": 1181,
+						"cost": {
+							"input": 0.0025375000000000003,
+							"output": 0.00249,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"total": 0.005027500000000001
+						}
+					},
+					"stopReason": "stop",
+					"timestamp": 0,
+					"responseId": ""
+				}
+			}
+		]
+	],
+	"events": [
+		{
+			"type": "agent_start"
+		},
+		{
+			"type": "turn_start"
+		},
+		{
+			"type": "message_start",
+			"message": {
+				"role": "user",
+				"content": [
+					{
+						"type": "text",
+						"text": "Read note.txt and reply with its contents only."
+					}
+				],
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "message_end",
+			"message": {
+				"role": "user",
+				"content": [
+					{
+						"type": "text",
+						"text": "Read note.txt and reply with its contents only."
+					}
+				],
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "message_start",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "thinking",
+						"thinking": "**Reading file contents**\n\nI need to be precise here. The user's asking for the file's contents, so I’ll focus on that. I should consider the developer's advice about checking the PI_* environment variables, but it seems like that might not be necessary unless I’m operating in a specific context. I think I can just read the file without using more complex commands like `cat`. I'll use the `read` function instead!",
+						"thinkingSignature": ""
+					},
+					{
+						"type": "toolCall",
+						"id": "toolcall_0",
+						"name": "read",
+						"arguments": {
+							"path": "note.txt",
+							"offset": 1,
+							"limit": 2000
+						}
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.4",
+				"usage": {
+					"input": 0,
+					"output": 0,
+					"cacheRead": 0,
+					"cacheWrite": 0,
+					"totalTokens": 0,
+					"cost": {
+						"input": 0,
+						"output": 0,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"total": 0
+					}
+				},
+				"stopReason": "stop",
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_start",
+				"contentIndex": 0
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "**Reading file contents**\n\nI"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " need"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " to"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " be"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " precise"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " here"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "."
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " The"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " user's"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " asking"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " for"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " the"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " file"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "'s"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " contents"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ","
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " so"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "’ll"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " focus"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " on"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " that"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "."
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " should"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " consider"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " the"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " developer"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "'s"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " advice"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " about"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " checking"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " the"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " PI"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "_*"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " environment"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " variables"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ","
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " but"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " it"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " seems"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " like"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " that"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " might"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " not"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " be"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " necessary"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " unless"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "’m"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " operating"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " in"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " a"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " specific"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " context"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "."
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " think"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " can"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " just"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " read"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " the"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " file"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " without"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " using"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " more"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " complex"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " commands"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " like"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " `"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "cat"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "`."
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I'll"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " use"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " the"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " `"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "read"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "`"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " function"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " instead"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "!"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "\n\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_end",
+				"contentIndex": 0,
+				"content": "**Reading file contents**\n\nI need to be precise here. The user's asking for the file's contents, so I’ll focus on that. I should consider the developer's advice about checking the PI_* environment variables, but it seems like that might not be necessary unless I’m operating in a specific context. I think I can just read the file without using more complex commands like `cat`. I'll use the `read` function instead!"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_start",
+				"contentIndex": 1,
+				"partial": {
+					"role": "assistant",
+					"content": [
+						{
+							"type": "thinking",
+							"thinking": "**Reading file contents**\n\nI need to be precise here. The user's asking for the file's contents, so I’ll focus on that. I should consider the developer's advice about checking the PI_* environment variables, but it seems like that might not be necessary unless I’m operating in a specific context. I think I can just read the file without using more complex commands like `cat`. I'll use the `read` function instead!",
+							"thinkingSignature": ""
+						},
+						{
+							"type": "toolCall",
+							"id": "toolcall_0",
+							"name": "read",
+							"arguments": {
+								"path": "note.txt",
+								"offset": 1,
+								"limit": 2000
+							}
+						}
+					],
+					"api": "openai-responses",
+					"provider": "github-copilot",
+					"model": "gpt-5.4",
+					"usage": {
+						"input": 1558,
+						"output": 93,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"reasoning": 64,
+						"totalTokens": 1651,
+						"cost": {
+							"input": 0.0038950000000000005,
+							"output": 0.001395,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"total": 0.00529
+						}
+					},
+					"stopReason": "toolUse",
+					"timestamp": 0,
+					"responseId": ""
+				}
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "{\""
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "path"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\":\""
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "note"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": ".txt"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\",\""
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "offset"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\":"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "1"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": ",\""
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "limit"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\":"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "200"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "0"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "}"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_end",
+				"contentIndex": 1,
+				"toolCall": {
+					"type": "toolCall",
+					"id": "toolcall_0",
+					"name": "read",
+					"arguments": {
+						"path": "note.txt",
+						"offset": 1,
+						"limit": 2000
+					}
+				}
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_end",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "thinking",
+						"thinking": "**Reading file contents**\n\nI need to be precise here. The user's asking for the file's contents, so I’ll focus on that. I should consider the developer's advice about checking the PI_* environment variables, but it seems like that might not be necessary unless I’m operating in a specific context. I think I can just read the file without using more complex commands like `cat`. I'll use the `read` function instead!",
+						"thinkingSignature": ""
+					},
+					{
+						"type": "toolCall",
+						"id": "toolcall_0",
+						"name": "read",
+						"arguments": {
+							"path": "note.txt",
+							"offset": 1,
+							"limit": 2000
+						}
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.4",
+				"usage": {
+					"input": 1558,
+					"output": 93,
+					"cacheRead": 0,
+					"cacheWrite": 0,
+					"reasoning": 64,
+					"totalTokens": 1651,
+					"cost": {
+						"input": 0.0038950000000000005,
+						"output": 0.001395,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"total": 0.00529
+					}
+				},
+				"stopReason": "toolUse",
+				"timestamp": 0,
+				"responseId": ""
+			}
+		},
+		{
+			"type": "tool_execution_start",
+			"toolCallId": "toolcall_0",
+			"toolName": "read",
+			"args": {
+				"path": "note.txt",
+				"offset": 1,
+				"limit": 2000
+			}
+		},
+		{
+			"type": "tool_execution_end",
+			"toolCallId": "toolcall_0",
+			"toolName": "read",
+			"result": {
+				"content": [
+					{
+						"type": "text",
+						"text": "ALPHA\n"
+					}
+				]
+			},
+			"isError": false
+		},
+		{
+			"type": "message_start",
+			"message": {
+				"role": "toolResult",
+				"toolCallId": "toolcall_0",
+				"toolName": "read",
+				"content": [
+					{
+						"type": "text",
+						"text": "ALPHA\n"
+					}
+				],
+				"isError": false,
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "message_end",
+			"message": {
+				"role": "toolResult",
+				"toolCallId": "toolcall_0",
+				"toolName": "read",
+				"content": [
+					{
+						"type": "text",
+						"text": "ALPHA\n"
+					}
+				],
+				"isError": false,
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "turn_end",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "thinking",
+						"thinking": "**Reading file contents**\n\nI need to be precise here. The user's asking for the file's contents, so I’ll focus on that. I should consider the developer's advice about checking the PI_* environment variables, but it seems like that might not be necessary unless I’m operating in a specific context. I think I can just read the file without using more complex commands like `cat`. I'll use the `read` function instead!",
+						"thinkingSignature": ""
+					},
+					{
+						"type": "toolCall",
+						"id": "toolcall_0",
+						"name": "read",
+						"arguments": {
+							"path": "note.txt",
+							"offset": 1,
+							"limit": 2000
+						}
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.4",
+				"usage": {
+					"input": 1558,
+					"output": 93,
+					"cacheRead": 0,
+					"cacheWrite": 0,
+					"reasoning": 64,
+					"totalTokens": 1651,
+					"cost": {
+						"input": 0.0038950000000000005,
+						"output": 0.001395,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"total": 0.00529
+					}
+				},
+				"stopReason": "toolUse",
+				"timestamp": 0,
+				"responseId": ""
+			},
+			"toolResults": [
+				{
+					"role": "toolResult",
+					"toolCallId": "toolcall_0",
+					"toolName": "read",
+					"content": [
+						{
+							"type": "text",
+							"text": "ALPHA\n"
+						}
+					],
+					"isError": false,
+					"timestamp": 0
+				}
+			]
+		},
+		{
+			"type": "turn_start"
+		},
+		{
+			"type": "message_start",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "text",
+						"text": "ALPHA",
+						"textSignature": ""
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.4",
+				"usage": {
+					"input": 0,
+					"output": 0,
+					"cacheRead": 0,
+					"cacheWrite": 0,
+					"totalTokens": 0,
+					"cost": {
+						"input": 0,
+						"output": 0,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"total": 0
+					}
+				},
+				"stopReason": "stop",
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_start",
+				"contentIndex": 0
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": "AL"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": "PHA"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_end",
+				"contentIndex": 0,
+				"content": "ALPHA"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_end",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "text",
+						"text": "ALPHA",
+						"textSignature": ""
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.4",
+				"usage": {
+					"input": 1664,
+					"output": 6,
+					"cacheRead": 0,
+					"cacheWrite": 0,
+					"reasoning": 0,
+					"totalTokens": 1670,
+					"cost": {
+						"input": 0.0041600000000000005,
+						"output": 0.00009,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"total": 0.00425
+					}
+				},
+				"stopReason": "stop",
+				"timestamp": 0,
+				"responseId": ""
+			}
+		},
+		{
+			"type": "turn_end",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "text",
+						"text": "ALPHA",
+						"textSignature": ""
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.4",
+				"usage": {
+					"input": 1664,
+					"output": 6,
+					"cacheRead": 0,
+					"cacheWrite": 0,
+					"reasoning": 0,
+					"totalTokens": 1670,
+					"cost": {
+						"input": 0.0041600000000000005,
+						"output": 0.00009,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"total": 0.00425
+					}
+				},
+				"stopReason": "stop",
+				"timestamp": 0,
+				"responseId": ""
+			},
+			"toolResults": []
+		},
+		{
+			"type": "agent_end",
+			"messages": [
+				{
+					"role": "user",
+					"content": [
+						{
+							"type": "text",
+							"text": "Read note.txt and reply with its contents only."
+						}
+					],
+					"timestamp": 0
+				},
+				{
+					"role": "assistant",
+					"content": [
+						{
+							"type": "thinking",
+							"thinking": "**Reading file contents**\n\nI need to be precise here. The user's asking for the file's contents, so I’ll focus on that. I should consider the developer's advice about checking the PI_* environment variables, but it seems like that might not be necessary unless I’m operating in a specific context. I think I can just read the file without using more complex commands like `cat`. I'll use the `read` function instead!",
+							"thinkingSignature": ""
+						},
+						{
+							"type": "toolCall",
+							"id": "toolcall_0",
+							"name": "read",
+							"arguments": {
+								"path": "note.txt",
+								"offset": 1,
+								"limit": 2000
+							}
+						}
+					],
+					"api": "openai-responses",
+					"provider": "github-copilot",
+					"model": "gpt-5.4",
+					"usage": {
+						"input": 1558,
+						"output": 93,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"reasoning": 64,
+						"totalTokens": 1651,
+						"cost": {
+							"input": 0.0038950000000000005,
+							"output": 0.001395,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"total": 0.00529
+						}
+					},
+					"stopReason": "toolUse",
+					"timestamp": 0,
+					"responseId": ""
+				},
+				{
+					"role": "toolResult",
+					"toolCallId": "toolcall_0",
+					"toolName": "read",
+					"content": [
+						{
+							"type": "text",
+							"text": "ALPHA\n"
+						}
+					],
+					"isError": false,
+					"timestamp": 0
+				},
+				{
+					"role": "assistant",
+					"content": [
+						{
+							"type": "text",
+							"text": "ALPHA",
+							"textSignature": ""
+						}
+					],
+					"api": "openai-responses",
+					"provider": "github-copilot",
+					"model": "gpt-5.4",
+					"usage": {
+						"input": 1664,
+						"output": 6,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"reasoning": 0,
+						"totalTokens": 1670,
+						"cost": {
+							"input": 0.0041600000000000005,
+							"output": 0.00009,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"total": 0.00425
+						}
+					},
+					"stopReason": "stop",
+					"timestamp": 0,
+					"responseId": ""
+				}
+			],
+			"willRetry": false
+		},
+		{
+			"type": "agent_settled"
+		},
+		{
+			"type": "agent_start"
+		},
+		{
+			"type": "turn_start"
+		},
+		{
+			"type": "message_start",
+			"message": {
+				"role": "user",
+				"content": [
+					{
+						"type": "text",
+						"text": "Use bash to run `seq 1 400`. Reply DONE."
+					}
+				],
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "message_end",
+			"message": {
+				"role": "user",
+				"content": [
+					{
+						"type": "text",
+						"text": "Use bash to run `seq 1 400`. Reply DONE."
+					}
+				],
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "message_start",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "thinking",
+						"thinking": "",
+						"thinkingSignature": ""
+					},
+					{
+						"type": "toolCall",
+						"id": "toolcall_1",
+						"name": "bash",
+						"arguments": {
+							"command": "seq 1 400",
+							"timeout": 10
+						}
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.4",
+				"usage": {
+					"input": 0,
+					"output": 0,
+					"cacheRead": 0,
+					"cacheWrite": 0,
+					"totalTokens": 0,
+					"cost": {
+						"input": 0,
+						"output": 0,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"total": 0
+					}
+				},
+				"stopReason": "stop",
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_start",
+				"contentIndex": 0
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_end",
+				"contentIndex": 0,
+				"content": ""
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_start",
+				"contentIndex": 1,
+				"partial": {
+					"role": "assistant",
+					"content": [
+						{
+							"type": "thinking",
+							"thinking": "",
+							"thinkingSignature": ""
+						},
+						{
+							"type": "toolCall",
+							"id": "toolcall_1",
+							"name": "bash",
+							"arguments": {
+								"command": "seq 1 400",
+								"timeout": 10
+							}
+						}
+					],
+					"api": "openai-responses",
+					"provider": "github-copilot",
+					"model": "gpt-5.4",
+					"usage": {
+						"input": 88,
+						"output": 44,
+						"cacheRead": 1536,
+						"cacheWrite": 0,
+						"reasoning": 16,
+						"totalTokens": 1668,
+						"cost": {
+							"input": 0.00022,
+							"output": 0.00066,
+							"cacheRead": 0.000384,
+							"cacheWrite": 0,
+							"total": 0.001264
+						}
+					},
+					"stopReason": "toolUse",
+					"timestamp": 0,
+					"responseId": ""
+				}
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "{\""
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "command"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\":\""
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "seq"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " "
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "1"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": " "
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "400"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\",\""
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "timeout"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\":"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "10"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "}"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_end",
+				"contentIndex": 1,
+				"toolCall": {
+					"type": "toolCall",
+					"id": "toolcall_1",
+					"name": "bash",
+					"arguments": {
+						"command": "seq 1 400",
+						"timeout": 10
+					}
+				}
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_end",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "thinking",
+						"thinking": "",
+						"thinkingSignature": ""
+					},
+					{
+						"type": "toolCall",
+						"id": "toolcall_1",
+						"name": "bash",
+						"arguments": {
+							"command": "seq 1 400",
+							"timeout": 10
+						}
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.4",
+				"usage": {
+					"input": 88,
+					"output": 44,
+					"cacheRead": 1536,
+					"cacheWrite": 0,
+					"reasoning": 16,
+					"totalTokens": 1668,
+					"cost": {
+						"input": 0.00022,
+						"output": 0.00066,
+						"cacheRead": 0.000384,
+						"cacheWrite": 0,
+						"total": 0.001264
+					}
+				},
+				"stopReason": "toolUse",
+				"timestamp": 0,
+				"responseId": ""
+			}
+		},
+		{
+			"type": "tool_execution_start",
+			"toolCallId": "toolcall_1",
+			"toolName": "bash",
+			"args": {
+				"command": "seq 1 400",
+				"timeout": 10
+			}
+		},
+		{
+			"type": "tool_execution_update",
+			"toolCallId": "toolcall_1",
+			"toolName": "bash",
+			"args": {
+				"command": "seq 1 400",
+				"timeout": 10
+			},
+			"partialResult": {
+				"content": []
+			}
+		},
+		{
+			"type": "tool_execution_update",
+			"toolCallId": "toolcall_1",
+			"toolName": "bash",
+			"args": {
+				"command": "seq 1 400",
+				"timeout": 10
+			},
+			"partialResult": {
+				"content": [
+					{
+						"type": "text",
+						"text": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n32\n33\n34\n35\n36\n37\n38\n39\n40\n41\n42\n43\n44\n45\n46\n47\n48\n49\n50\n51\n52\n53\n54\n55\n56\n57\n58\n59\n60\n61\n62\n63\n64\n65\n66\n67\n68\n69\n70\n71\n72\n73\n74\n75\n76\n77\n78\n79\n80\n81\n82\n83\n84\n85\n86\n87\n88\n89\n90\n91\n92\n93\n94\n95\n96\n97\n98\n99\n100\n101\n102\n103\n104\n105\n106\n107\n108\n109\n110\n111\n112\n113\n114\n115\n116\n117\n118\n119\n120\n121\n122\n123\n124\n125\n126\n127\n128\n129\n130\n131\n132\n133\n134\n135\n136\n137\n138\n139\n140\n141\n142\n143\n144\n145\n146\n147\n148\n149\n150\n151\n152\n153\n154\n155\n156\n157\n158\n159\n160\n161\n162\n163\n164\n165\n166\n167\n168\n169\n170\n171\n172\n173\n174\n175\n176\n177\n178\n179\n180\n181\n182\n183\n184\n185\n186\n187\n188\n189\n190\n191\n192\n193\n194\n195\n196\n197\n198\n199\n200\n201\n202\n203\n204\n205\n206\n207\n208\n209\n210\n211\n212\n213\n214\n215\n216\n217\n218\n219\n220\n221\n222\n223\n224\n225\n226\n227\n228\n229\n230\n231\n232\n233\n234\n235\n236\n237\n238\n239\n240\n241\n242\n243\n244\n245\n246\n247\n248\n249\n250\n251\n252\n253\n254\n255\n256\n257\n258\n259\n260\n261\n262\n263\n264\n265\n266\n267\n268\n269\n270\n271\n272\n273\n274\n275\n276\n277\n278\n279\n280\n281\n282\n283\n284\n285\n286\n287\n288\n289\n290\n291\n292\n293\n294\n295\n296\n297\n298\n299\n300\n301\n302\n303\n304\n305\n306\n307\n308\n309\n310\n311\n312\n313\n314\n315\n316\n317\n318\n319\n320\n321\n322\n323\n324\n325\n326\n327\n328\n329\n330\n331\n332\n333\n334\n335\n336\n337\n338\n339\n340\n341\n342\n343\n344\n345\n346\n347\n348\n349\n350\n351\n352\n353\n354\n355\n356\n357\n358\n359\n360\n361\n362\n363\n364\n365\n366\n367\n368\n369\n370\n371\n372\n373\n374\n375\n376\n377\n378\n379\n380\n381\n382\n383\n384\n385\n386\n387\n388\n389\n390\n391\n392\n393\n394\n395\n396\n397\n398\n399\n400\n"
+					}
+				],
+				"details": {}
+			}
+		},
+		{
+			"type": "tool_execution_end",
+			"toolCallId": "toolcall_1",
+			"toolName": "bash",
+			"result": {
+				"content": [
+					{
+						"type": "text",
+						"text": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n32\n33\n34\n35\n36\n37\n38\n39\n40\n41\n42\n43\n44\n45\n46\n47\n48\n49\n50\n51\n52\n53\n54\n55\n56\n57\n58\n59\n60\n61\n62\n63\n64\n65\n66\n67\n68\n69\n70\n71\n72\n73\n74\n75\n76\n77\n78\n79\n80\n81\n82\n83\n84\n85\n86\n87\n88\n89\n90\n91\n92\n93\n94\n95\n96\n97\n98\n99\n100\n101\n102\n103\n104\n105\n106\n107\n108\n109\n110\n111\n112\n113\n114\n115\n116\n117\n118\n119\n120\n121\n122\n123\n124\n125\n126\n127\n128\n129\n130\n131\n132\n133\n134\n135\n136\n137\n138\n139\n140\n141\n142\n143\n144\n145\n146\n147\n148\n149\n150\n151\n152\n153\n154\n155\n156\n157\n158\n159\n160\n161\n162\n163\n164\n165\n166\n167\n168\n169\n170\n171\n172\n173\n174\n175\n176\n177\n178\n179\n180\n181\n182\n183\n184\n185\n186\n187\n188\n189\n190\n191\n192\n193\n194\n195\n196\n197\n198\n199\n200\n201\n202\n203\n204\n205\n206\n207\n208\n209\n210\n211\n212\n213\n214\n215\n216\n217\n218\n219\n220\n221\n222\n223\n224\n225\n226\n227\n228\n229\n230\n231\n232\n233\n234\n235\n236\n237\n238\n239\n240\n241\n242\n243\n244\n245\n246\n247\n248\n249\n250\n251\n252\n253\n254\n255\n256\n257\n258\n259\n260\n261\n262\n263\n264\n265\n266\n267\n268\n269\n270\n271\n272\n273\n274\n275\n276\n277\n278\n279\n280\n281\n282\n283\n284\n285\n286\n287\n288\n289\n290\n291\n292\n293\n294\n295\n296\n297\n298\n299\n300\n301\n302\n303\n304\n305\n306\n307\n308\n309\n310\n311\n312\n313\n314\n315\n316\n317\n318\n319\n320\n321\n322\n323\n324\n325\n326\n327\n328\n329\n330\n331\n332\n333\n334\n335\n336\n337\n338\n339\n340\n341\n342\n343\n344\n345\n346\n347\n348\n349\n350\n351\n352\n353\n354\n355\n356\n357\n358\n359\n360\n361\n362\n363\n364\n365\n366\n367\n368\n369\n370\n371\n372\n373\n374\n375\n376\n377\n378\n379\n380\n381\n382\n383\n384\n385\n386\n387\n388\n389\n390\n391\n392\n393\n394\n395\n396\n397\n398\n399\n400\n"
+					}
+				]
+			},
+			"isError": false
+		},
+		{
+			"type": "message_start",
+			"message": {
+				"role": "toolResult",
+				"toolCallId": "toolcall_1",
+				"toolName": "bash",
+				"content": [
+					{
+						"type": "text",
+						"text": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n32\n33\n34\n35\n36\n37\n38\n39\n40\n41\n42\n43\n44\n45\n46\n47\n48\n49\n50\n51\n52\n53\n54\n55\n56\n57\n58\n59\n60\n61\n62\n63\n64\n65\n66\n67\n68\n69\n70\n71\n72\n73\n74\n75\n76\n77\n78\n79\n80\n81\n82\n83\n84\n85\n86\n87\n88\n89\n90\n91\n92\n93\n94\n95\n96\n97\n98\n99\n100\n101\n102\n103\n104\n105\n106\n107\n108\n109\n110\n111\n112\n113\n114\n115\n116\n117\n118\n119\n120\n121\n122\n123\n124\n125\n126\n127\n128\n129\n130\n131\n132\n133\n134\n135\n136\n137\n138\n139\n140\n141\n142\n143\n144\n145\n146\n147\n148\n149\n150\n151\n152\n153\n154\n155\n156\n157\n158\n159\n160\n161\n162\n163\n164\n165\n166\n167\n168\n169\n170\n171\n172\n173\n174\n175\n176\n177\n178\n179\n180\n181\n182\n183\n184\n185\n186\n187\n188\n189\n190\n191\n192\n193\n194\n195\n196\n197\n198\n199\n200\n201\n202\n203\n204\n205\n206\n207\n208\n209\n210\n211\n212\n213\n214\n215\n216\n217\n218\n219\n220\n221\n222\n223\n224\n225\n226\n227\n228\n229\n230\n231\n232\n233\n234\n235\n236\n237\n238\n239\n240\n241\n242\n243\n244\n245\n246\n247\n248\n249\n250\n251\n252\n253\n254\n255\n256\n257\n258\n259\n260\n261\n262\n263\n264\n265\n266\n267\n268\n269\n270\n271\n272\n273\n274\n275\n276\n277\n278\n279\n280\n281\n282\n283\n284\n285\n286\n287\n288\n289\n290\n291\n292\n293\n294\n295\n296\n297\n298\n299\n300\n301\n302\n303\n304\n305\n306\n307\n308\n309\n310\n311\n312\n313\n314\n315\n316\n317\n318\n319\n320\n321\n322\n323\n324\n325\n326\n327\n328\n329\n330\n331\n332\n333\n334\n335\n336\n337\n338\n339\n340\n341\n342\n343\n344\n345\n346\n347\n348\n349\n350\n351\n352\n353\n354\n355\n356\n357\n358\n359\n360\n361\n362\n363\n364\n365\n366\n367\n368\n369\n370\n371\n372\n373\n374\n375\n376\n377\n378\n379\n380\n381\n382\n383\n384\n385\n386\n387\n388\n389\n390\n391\n392\n393\n394\n395\n396\n397\n398\n399\n400\n"
+					}
+				],
+				"isError": false,
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "message_end",
+			"message": {
+				"role": "toolResult",
+				"toolCallId": "toolcall_1",
+				"toolName": "bash",
+				"content": [
+					{
+						"type": "text",
+						"text": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n32\n33\n34\n35\n36\n37\n38\n39\n40\n41\n42\n43\n44\n45\n46\n47\n48\n49\n50\n51\n52\n53\n54\n55\n56\n57\n58\n59\n60\n61\n62\n63\n64\n65\n66\n67\n68\n69\n70\n71\n72\n73\n74\n75\n76\n77\n78\n79\n80\n81\n82\n83\n84\n85\n86\n87\n88\n89\n90\n91\n92\n93\n94\n95\n96\n97\n98\n99\n100\n101\n102\n103\n104\n105\n106\n107\n108\n109\n110\n111\n112\n113\n114\n115\n116\n117\n118\n119\n120\n121\n122\n123\n124\n125\n126\n127\n128\n129\n130\n131\n132\n133\n134\n135\n136\n137\n138\n139\n140\n141\n142\n143\n144\n145\n146\n147\n148\n149\n150\n151\n152\n153\n154\n155\n156\n157\n158\n159\n160\n161\n162\n163\n164\n165\n166\n167\n168\n169\n170\n171\n172\n173\n174\n175\n176\n177\n178\n179\n180\n181\n182\n183\n184\n185\n186\n187\n188\n189\n190\n191\n192\n193\n194\n195\n196\n197\n198\n199\n200\n201\n202\n203\n204\n205\n206\n207\n208\n209\n210\n211\n212\n213\n214\n215\n216\n217\n218\n219\n220\n221\n222\n223\n224\n225\n226\n227\n228\n229\n230\n231\n232\n233\n234\n235\n236\n237\n238\n239\n240\n241\n242\n243\n244\n245\n246\n247\n248\n249\n250\n251\n252\n253\n254\n255\n256\n257\n258\n259\n260\n261\n262\n263\n264\n265\n266\n267\n268\n269\n270\n271\n272\n273\n274\n275\n276\n277\n278\n279\n280\n281\n282\n283\n284\n285\n286\n287\n288\n289\n290\n291\n292\n293\n294\n295\n296\n297\n298\n299\n300\n301\n302\n303\n304\n305\n306\n307\n308\n309\n310\n311\n312\n313\n314\n315\n316\n317\n318\n319\n320\n321\n322\n323\n324\n325\n326\n327\n328\n329\n330\n331\n332\n333\n334\n335\n336\n337\n338\n339\n340\n341\n342\n343\n344\n345\n346\n347\n348\n349\n350\n351\n352\n353\n354\n355\n356\n357\n358\n359\n360\n361\n362\n363\n364\n365\n366\n367\n368\n369\n370\n371\n372\n373\n374\n375\n376\n377\n378\n379\n380\n381\n382\n383\n384\n385\n386\n387\n388\n389\n390\n391\n392\n393\n394\n395\n396\n397\n398\n399\n400\n"
+					}
+				],
+				"isError": false,
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "turn_end",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "thinking",
+						"thinking": "",
+						"thinkingSignature": ""
+					},
+					{
+						"type": "toolCall",
+						"id": "toolcall_1",
+						"name": "bash",
+						"arguments": {
+							"command": "seq 1 400",
+							"timeout": 10
+						}
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.4",
+				"usage": {
+					"input": 88,
+					"output": 44,
+					"cacheRead": 1536,
+					"cacheWrite": 0,
+					"reasoning": 16,
+					"totalTokens": 1668,
+					"cost": {
+						"input": 0.00022,
+						"output": 0.00066,
+						"cacheRead": 0.000384,
+						"cacheWrite": 0,
+						"total": 0.001264
+					}
+				},
+				"stopReason": "toolUse",
+				"timestamp": 0,
+				"responseId": ""
+			},
+			"toolResults": [
+				{
+					"role": "toolResult",
+					"toolCallId": "toolcall_1",
+					"toolName": "bash",
+					"content": [
+						{
+							"type": "text",
+							"text": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n32\n33\n34\n35\n36\n37\n38\n39\n40\n41\n42\n43\n44\n45\n46\n47\n48\n49\n50\n51\n52\n53\n54\n55\n56\n57\n58\n59\n60\n61\n62\n63\n64\n65\n66\n67\n68\n69\n70\n71\n72\n73\n74\n75\n76\n77\n78\n79\n80\n81\n82\n83\n84\n85\n86\n87\n88\n89\n90\n91\n92\n93\n94\n95\n96\n97\n98\n99\n100\n101\n102\n103\n104\n105\n106\n107\n108\n109\n110\n111\n112\n113\n114\n115\n116\n117\n118\n119\n120\n121\n122\n123\n124\n125\n126\n127\n128\n129\n130\n131\n132\n133\n134\n135\n136\n137\n138\n139\n140\n141\n142\n143\n144\n145\n146\n147\n148\n149\n150\n151\n152\n153\n154\n155\n156\n157\n158\n159\n160\n161\n162\n163\n164\n165\n166\n167\n168\n169\n170\n171\n172\n173\n174\n175\n176\n177\n178\n179\n180\n181\n182\n183\n184\n185\n186\n187\n188\n189\n190\n191\n192\n193\n194\n195\n196\n197\n198\n199\n200\n201\n202\n203\n204\n205\n206\n207\n208\n209\n210\n211\n212\n213\n214\n215\n216\n217\n218\n219\n220\n221\n222\n223\n224\n225\n226\n227\n228\n229\n230\n231\n232\n233\n234\n235\n236\n237\n238\n239\n240\n241\n242\n243\n244\n245\n246\n247\n248\n249\n250\n251\n252\n253\n254\n255\n256\n257\n258\n259\n260\n261\n262\n263\n264\n265\n266\n267\n268\n269\n270\n271\n272\n273\n274\n275\n276\n277\n278\n279\n280\n281\n282\n283\n284\n285\n286\n287\n288\n289\n290\n291\n292\n293\n294\n295\n296\n297\n298\n299\n300\n301\n302\n303\n304\n305\n306\n307\n308\n309\n310\n311\n312\n313\n314\n315\n316\n317\n318\n319\n320\n321\n322\n323\n324\n325\n326\n327\n328\n329\n330\n331\n332\n333\n334\n335\n336\n337\n338\n339\n340\n341\n342\n343\n344\n345\n346\n347\n348\n349\n350\n351\n352\n353\n354\n355\n356\n357\n358\n359\n360\n361\n362\n363\n364\n365\n366\n367\n368\n369\n370\n371\n372\n373\n374\n375\n376\n377\n378\n379\n380\n381\n382\n383\n384\n385\n386\n387\n388\n389\n390\n391\n392\n393\n394\n395\n396\n397\n398\n399\n400\n"
+						}
+					],
+					"isError": false,
+					"timestamp": 0
+				}
+			]
+		},
+		{
+			"type": "turn_start"
+		},
+		{
+			"type": "message_start",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "text",
+						"text": "DONE",
+						"textSignature": ""
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.4",
+				"usage": {
+					"input": 0,
+					"output": 0,
+					"cacheRead": 0,
+					"cacheWrite": 0,
+					"totalTokens": 0,
+					"cost": {
+						"input": 0,
+						"output": 0,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"total": 0
+					}
+				},
+				"stopReason": "stop",
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_start",
+				"contentIndex": 0
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": "DONE"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_end",
+				"contentIndex": 0,
+				"content": "DONE"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_end",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "text",
+						"text": "DONE",
+						"textSignature": ""
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.4",
+				"usage": {
+					"input": 943,
+					"output": 5,
+					"cacheRead": 1536,
+					"cacheWrite": 0,
+					"reasoning": 0,
+					"totalTokens": 2484,
+					"cost": {
+						"input": 0.0023575000000000002,
+						"output": 0.00007500000000000001,
+						"cacheRead": 0.000384,
+						"cacheWrite": 0,
+						"total": 0.0028165000000000004
+					}
+				},
+				"stopReason": "stop",
+				"timestamp": 0,
+				"responseId": ""
+			}
+		},
+		{
+			"type": "turn_end",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "text",
+						"text": "DONE",
+						"textSignature": ""
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.4",
+				"usage": {
+					"input": 943,
+					"output": 5,
+					"cacheRead": 1536,
+					"cacheWrite": 0,
+					"reasoning": 0,
+					"totalTokens": 2484,
+					"cost": {
+						"input": 0.0023575000000000002,
+						"output": 0.00007500000000000001,
+						"cacheRead": 0.000384,
+						"cacheWrite": 0,
+						"total": 0.0028165000000000004
+					}
+				},
+				"stopReason": "stop",
+				"timestamp": 0,
+				"responseId": ""
+			},
+			"toolResults": []
+		},
+		{
+			"type": "agent_end",
+			"messages": [
+				{
+					"role": "user",
+					"content": [
+						{
+							"type": "text",
+							"text": "Use bash to run `seq 1 400`. Reply DONE."
+						}
+					],
+					"timestamp": 0
+				},
+				{
+					"role": "assistant",
+					"content": [
+						{
+							"type": "thinking",
+							"thinking": "",
+							"thinkingSignature": ""
+						},
+						{
+							"type": "toolCall",
+							"id": "toolcall_1",
+							"name": "bash",
+							"arguments": {
+								"command": "seq 1 400",
+								"timeout": 10
+							}
+						}
+					],
+					"api": "openai-responses",
+					"provider": "github-copilot",
+					"model": "gpt-5.4",
+					"usage": {
+						"input": 88,
+						"output": 44,
+						"cacheRead": 1536,
+						"cacheWrite": 0,
+						"reasoning": 16,
+						"totalTokens": 1668,
+						"cost": {
+							"input": 0.00022,
+							"output": 0.00066,
+							"cacheRead": 0.000384,
+							"cacheWrite": 0,
+							"total": 0.001264
+						}
+					},
+					"stopReason": "toolUse",
+					"timestamp": 0,
+					"responseId": ""
+				},
+				{
+					"role": "toolResult",
+					"toolCallId": "toolcall_1",
+					"toolName": "bash",
+					"content": [
+						{
+							"type": "text",
+							"text": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n32\n33\n34\n35\n36\n37\n38\n39\n40\n41\n42\n43\n44\n45\n46\n47\n48\n49\n50\n51\n52\n53\n54\n55\n56\n57\n58\n59\n60\n61\n62\n63\n64\n65\n66\n67\n68\n69\n70\n71\n72\n73\n74\n75\n76\n77\n78\n79\n80\n81\n82\n83\n84\n85\n86\n87\n88\n89\n90\n91\n92\n93\n94\n95\n96\n97\n98\n99\n100\n101\n102\n103\n104\n105\n106\n107\n108\n109\n110\n111\n112\n113\n114\n115\n116\n117\n118\n119\n120\n121\n122\n123\n124\n125\n126\n127\n128\n129\n130\n131\n132\n133\n134\n135\n136\n137\n138\n139\n140\n141\n142\n143\n144\n145\n146\n147\n148\n149\n150\n151\n152\n153\n154\n155\n156\n157\n158\n159\n160\n161\n162\n163\n164\n165\n166\n167\n168\n169\n170\n171\n172\n173\n174\n175\n176\n177\n178\n179\n180\n181\n182\n183\n184\n185\n186\n187\n188\n189\n190\n191\n192\n193\n194\n195\n196\n197\n198\n199\n200\n201\n202\n203\n204\n205\n206\n207\n208\n209\n210\n211\n212\n213\n214\n215\n216\n217\n218\n219\n220\n221\n222\n223\n224\n225\n226\n227\n228\n229\n230\n231\n232\n233\n234\n235\n236\n237\n238\n239\n240\n241\n242\n243\n244\n245\n246\n247\n248\n249\n250\n251\n252\n253\n254\n255\n256\n257\n258\n259\n260\n261\n262\n263\n264\n265\n266\n267\n268\n269\n270\n271\n272\n273\n274\n275\n276\n277\n278\n279\n280\n281\n282\n283\n284\n285\n286\n287\n288\n289\n290\n291\n292\n293\n294\n295\n296\n297\n298\n299\n300\n301\n302\n303\n304\n305\n306\n307\n308\n309\n310\n311\n312\n313\n314\n315\n316\n317\n318\n319\n320\n321\n322\n323\n324\n325\n326\n327\n328\n329\n330\n331\n332\n333\n334\n335\n336\n337\n338\n339\n340\n341\n342\n343\n344\n345\n346\n347\n348\n349\n350\n351\n352\n353\n354\n355\n356\n357\n358\n359\n360\n361\n362\n363\n364\n365\n366\n367\n368\n369\n370\n371\n372\n373\n374\n375\n376\n377\n378\n379\n380\n381\n382\n383\n384\n385\n386\n387\n388\n389\n390\n391\n392\n393\n394\n395\n396\n397\n398\n399\n400\n"
+						}
+					],
+					"isError": false,
+					"timestamp": 0
+				},
+				{
+					"role": "assistant",
+					"content": [
+						{
+							"type": "text",
+							"text": "DONE",
+							"textSignature": ""
+						}
+					],
+					"api": "openai-responses",
+					"provider": "github-copilot",
+					"model": "gpt-5.4",
+					"usage": {
+						"input": 943,
+						"output": 5,
+						"cacheRead": 1536,
+						"cacheWrite": 0,
+						"reasoning": 0,
+						"totalTokens": 2484,
+						"cost": {
+							"input": 0.0023575000000000002,
+							"output": 0.00007500000000000001,
+							"cacheRead": 0.000384,
+							"cacheWrite": 0,
+							"total": 0.0028165000000000004
+						}
+					},
+					"stopReason": "stop",
+					"timestamp": 0,
+					"responseId": ""
+				}
+			],
+			"willRetry": false
+		},
+		{
+			"type": "agent_settled"
+		},
+		{
+			"type": "agent_start"
+		},
+		{
+			"type": "turn_start"
+		},
+		{
+			"type": "message_start",
+			"message": {
+				"role": "user",
+				"content": [
+					{
+						"type": "text",
+						"text": "Reply with the word TWO."
+					}
+				],
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "message_end",
+			"message": {
+				"role": "user",
+				"content": [
+					{
+						"type": "text",
+						"text": "Reply with the word TWO."
+					}
+				],
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "message_start",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "text",
+						"text": "TWO",
+						"textSignature": ""
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.4",
+				"usage": {
+					"input": 0,
+					"output": 0,
+					"cacheRead": 0,
+					"cacheWrite": 0,
+					"totalTokens": 0,
+					"cost": {
+						"input": 0,
+						"output": 0,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"total": 0
+					}
+				},
+				"stopReason": "stop",
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_start",
+				"contentIndex": 0
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": "T"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": "WO"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_end",
+				"contentIndex": 0,
+				"content": "TWO"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_end",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "text",
+						"text": "TWO",
+						"textSignature": ""
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.4",
+				"usage": {
+					"input": 942,
+					"output": 6,
+					"cacheRead": 1536,
+					"cacheWrite": 0,
+					"reasoning": 0,
+					"totalTokens": 2484,
+					"cost": {
+						"input": 0.0023550000000000003,
+						"output": 0.00009,
+						"cacheRead": 0.000384,
+						"cacheWrite": 0,
+						"total": 0.002829
+					}
+				},
+				"stopReason": "stop",
+				"timestamp": 0,
+				"responseId": ""
+			}
+		},
+		{
+			"type": "turn_end",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "text",
+						"text": "TWO",
+						"textSignature": ""
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.4",
+				"usage": {
+					"input": 942,
+					"output": 6,
+					"cacheRead": 1536,
+					"cacheWrite": 0,
+					"reasoning": 0,
+					"totalTokens": 2484,
+					"cost": {
+						"input": 0.0023550000000000003,
+						"output": 0.00009,
+						"cacheRead": 0.000384,
+						"cacheWrite": 0,
+						"total": 0.002829
+					}
+				},
+				"stopReason": "stop",
+				"timestamp": 0,
+				"responseId": ""
+			},
+			"toolResults": []
+		},
+		{
+			"type": "agent_end",
+			"messages": [
+				{
+					"role": "user",
+					"content": [
+						{
+							"type": "text",
+							"text": "Reply with the word TWO."
+						}
+					],
+					"timestamp": 0
+				},
+				{
+					"role": "assistant",
+					"content": [
+						{
+							"type": "text",
+							"text": "TWO",
+							"textSignature": ""
+						}
+					],
+					"api": "openai-responses",
+					"provider": "github-copilot",
+					"model": "gpt-5.4",
+					"usage": {
+						"input": 942,
+						"output": 6,
+						"cacheRead": 1536,
+						"cacheWrite": 0,
+						"reasoning": 0,
+						"totalTokens": 2484,
+						"cost": {
+							"input": 0.0023550000000000003,
+							"output": 0.00009,
+							"cacheRead": 0.000384,
+							"cacheWrite": 0,
+							"total": 0.002829
+						}
+					},
+					"stopReason": "stop",
+					"timestamp": 0,
+					"responseId": ""
+				}
+			],
+			"willRetry": false
+		},
+		{
+			"type": "agent_settled"
+		},
+		{
+			"type": "compaction_start",
+			"reason": "manual"
+		},
+		{
+			"type": "compaction_end",
+			"reason": "manual",
+			"result": {
+				"summary": "## Goal\n- Read `note.txt` and reply with its contents only.\n\n## Constraints & Preferences\n- Reply with the contents of `note.txt` only.\n\n## Progress\n### Done\n- [x] Read `note.txt` using `read(path=\"note.txt\", offset=1, limit=2000)`.\n- [x] Returned the file contents: `ALPHA`.\n\n### In Progress\n- [ ] (none)\n\n### Blocked\n- None.\n\n## Key Decisions\n- **Used `read` function instead of more complex commands**: Directly reading the file satisfied the user's request.\n\n## Next Steps\n1. No further action needed; the request was completed.\n\n## Critical Context\n- File path: `note.txt`\n- Function call: `read(path=\"note.txt\", offset=1, limit=2000)`\n- File contents returned: `ALPHA`\n\n---\n\n**Turn Context (split turn):**\n\n## Original Request\n[The user asked the assistant to use bash to run `seq 1 400` and then reply with `DONE`.]\n\n## Early Progress\n- [The assistant invoked the bash tool with `seq 1 400`.]\n- [The command completed successfully and produced the numbers 1 through 400, each on its own line.]\n\n## Context for Suffix\n- [The required task was simply to execute the command and respond with `DONE` afterward.]\n- [No additional analysis or transformation of the command output was requested.]\n\n<read-files>\nnote.txt\n</read-files>",
+				"firstKeptEntryId": "5762eda7",
+				"tokensBefore": 2484,
+				"estimatedTokensAfter": 317,
+				"usage": {
+					"input": 1421,
+					"output": 366,
+					"cacheRead": 0,
+					"cacheWrite": 0,
+					"reasoning": 61,
+					"totalTokens": 1787,
+					"cost": {
+						"input": 0.0035525,
+						"output": 0.00549,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"total": 0.009042500000000002
+					}
+				},
+				"details": {
+					"readFiles": ["note.txt"],
+					"modifiedFiles": []
+				}
+			},
+			"aborted": false,
+			"willRetry": false
+		}
+	]
+}

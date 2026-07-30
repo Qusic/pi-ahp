@@ -2,6 +2,160 @@
 	"name": "abort",
 	"description": "A turn cancelled while it is running.",
 	"prompt": "Count slowly from 1 to 60, one number per line, with no other text.",
+	"partials": [
+		{
+			"role": "assistant",
+			"content": [
+				{
+					"type": "thinking",
+					"thinking": "",
+					"thinkingSignature": ""
+				},
+				{
+					"type": "text",
+					"text": "1\n2\n3\n4\n5"
+				}
+			],
+			"api": "openai-responses",
+			"provider": "github-copilot",
+			"model": "gpt-5.4",
+			"usage": {
+				"input": 0,
+				"output": 0,
+				"cacheRead": 0,
+				"cacheWrite": 0,
+				"totalTokens": 0,
+				"cost": {
+					"input": 0,
+					"output": 0,
+					"cacheRead": 0,
+					"cacheWrite": 0,
+					"total": 0
+				}
+			},
+			"stopReason": "aborted",
+			"timestamp": 0,
+			"responseId": "",
+			"errorMessage": "OpenAI Responses stream ended before a terminal response event"
+		}
+	],
+	"turns": [
+		[
+			{
+				"type": "start",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_start",
+				"contentIndex": 0,
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_end",
+				"contentIndex": 0,
+				"content": "",
+				"partialRef": 0
+			},
+			{
+				"type": "text_start",
+				"contentIndex": 1,
+				"partialRef": 0
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "1",
+				"partialRef": 0
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n",
+				"partialRef": 0
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "2",
+				"partialRef": 0
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n",
+				"partialRef": 0
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "3",
+				"partialRef": 0
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n",
+				"partialRef": 0
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "4",
+				"partialRef": 0
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n",
+				"partialRef": 0
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "5",
+				"partialRef": 0
+			},
+			{
+				"type": "error",
+				"reason": "aborted",
+				"error": {
+					"role": "assistant",
+					"content": [
+						{
+							"type": "thinking",
+							"thinking": "",
+							"thinkingSignature": ""
+						},
+						{
+							"type": "text",
+							"text": "1\n2\n3\n4\n5"
+						}
+					],
+					"api": "openai-responses",
+					"provider": "github-copilot",
+					"model": "gpt-5.4",
+					"usage": {
+						"input": 0,
+						"output": 0,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"totalTokens": 0,
+						"cost": {
+							"input": 0,
+							"output": 0,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"total": 0
+						}
+					},
+					"stopReason": "aborted",
+					"timestamp": 0,
+					"responseId": "",
+					"errorMessage": "OpenAI Responses stream ended before a terminal response event"
+				}
+			}
+		]
+	],
 	"events": [
 		{
 			"type": "agent_start"
@@ -39,10 +193,20 @@
 			"type": "message_start",
 			"message": {
 				"role": "assistant",
-				"content": [],
+				"content": [
+					{
+						"type": "thinking",
+						"thinking": "",
+						"thinkingSignature": ""
+					},
+					{
+						"type": "text",
+						"text": "1\n2\n3\n4\n5"
+					}
+				],
 				"api": "openai-responses",
 				"provider": "github-copilot",
-				"model": "gpt-5.6-sol",
+				"model": "gpt-5.4",
 				"usage": {
 					"input": 0,
 					"output": 0,
@@ -57,19 +221,158 @@
 						"total": 0
 					}
 				},
-				"stopReason": "aborted",
-				"timestamp": 0,
-				"errorMessage": "Request aborted"
+				"stopReason": "stop",
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_start",
+				"contentIndex": 0
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_end",
+				"contentIndex": 0,
+				"content": ""
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_start",
+				"contentIndex": 1
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "1"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "2"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "3"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "4"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "5"
+			},
+			"message": {
+				"role": "assistant"
 			}
 		},
 		{
 			"type": "message_end",
 			"message": {
 				"role": "assistant",
-				"content": [],
+				"content": [
+					{
+						"type": "thinking",
+						"thinking": "",
+						"thinkingSignature": ""
+					},
+					{
+						"type": "text",
+						"text": "1\n2\n3\n4\n5"
+					}
+				],
 				"api": "openai-responses",
 				"provider": "github-copilot",
-				"model": "gpt-5.6-sol",
+				"model": "gpt-5.4",
 				"usage": {
 					"input": 0,
 					"output": 0,
@@ -86,17 +389,28 @@
 				},
 				"stopReason": "aborted",
 				"timestamp": 0,
-				"errorMessage": "Request aborted"
+				"responseId": "",
+				"errorMessage": "OpenAI Responses stream ended before a terminal response event"
 			}
 		},
 		{
 			"type": "turn_end",
 			"message": {
 				"role": "assistant",
-				"content": [],
+				"content": [
+					{
+						"type": "thinking",
+						"thinking": "",
+						"thinkingSignature": ""
+					},
+					{
+						"type": "text",
+						"text": "1\n2\n3\n4\n5"
+					}
+				],
 				"api": "openai-responses",
 				"provider": "github-copilot",
-				"model": "gpt-5.6-sol",
+				"model": "gpt-5.4",
 				"usage": {
 					"input": 0,
 					"output": 0,
@@ -113,7 +427,8 @@
 				},
 				"stopReason": "aborted",
 				"timestamp": 0,
-				"errorMessage": "Request aborted"
+				"responseId": "",
+				"errorMessage": "OpenAI Responses stream ended before a terminal response event"
 			},
 			"toolResults": []
 		},
@@ -132,10 +447,20 @@
 				},
 				{
 					"role": "assistant",
-					"content": [],
+					"content": [
+						{
+							"type": "thinking",
+							"thinking": "",
+							"thinkingSignature": ""
+						},
+						{
+							"type": "text",
+							"text": "1\n2\n3\n4\n5"
+						}
+					],
 					"api": "openai-responses",
 					"provider": "github-copilot",
-					"model": "gpt-5.6-sol",
+					"model": "gpt-5.4",
 					"usage": {
 						"input": 0,
 						"output": 0,
@@ -152,7 +477,8 @@
 					},
 					"stopReason": "aborted",
 					"timestamp": 0,
-					"errorMessage": "Request aborted"
+					"responseId": "",
+					"errorMessage": "OpenAI Responses stream ended before a terminal response event"
 				}
 			],
 			"willRetry": false

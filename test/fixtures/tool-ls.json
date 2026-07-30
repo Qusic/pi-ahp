@@ -1,19 +1,54 @@
 {
-	"name": "plain-text",
-	"description": "A reply with no tool calls — the simplest possible turn.",
-	"prompt": "Reply with exactly the word PONG and nothing else.",
+	"name": "tool-ls",
+	"description": "An `ls` call — a directory listing, which reports its own entry limit.",
+	"prompt": "Use the ls tool to list this directory. Reply with the entry names separated by commas.",
 	"partials": [
 		{
 			"role": "assistant",
 			"content": [
 				{
 					"type": "thinking",
-					"thinking": "**Following instructions precisely**\n\nI see I need to stick closely to what the user wants: the exact phrasing of \"PONG\" without any tools involved. It feels straightforward, but I want to make sure I don’t add unnecessary details or elements. Keeping it simple is key here. So, I’ll make sure to deliver “PONG” exactly as the user asked, without any extras. I want to ensure I'm meeting their expectations perfectly!",
+					"thinking": "**Using tools for analysis**\n\nI need to use the ls tool for some commentary, as it’ll help me gather the necessary information. I'm pretty clear about its purpose, but I want to ensure I'm applying it correctly. It seems straightforward, but I can't help but double-check that I'm adhering to all guidelines while getting this done. It's important for me to deliver accurate and insightful outcomes! So, I'll get started with that now.",
 					"thinkingSignature": ""
 				},
 				{
+					"type": "toolCall",
+					"id": "toolcall_0",
+					"name": "ls",
+					"arguments": {
+						"path": ".",
+						"limit": 500
+					}
+				}
+			],
+			"api": "openai-responses",
+			"provider": "github-copilot",
+			"model": "gpt-5.4",
+			"usage": {
+				"input": 1567,
+				"output": 34,
+				"cacheRead": 0,
+				"cacheWrite": 0,
+				"reasoning": 10,
+				"totalTokens": 1601,
+				"cost": {
+					"input": 0.0039175,
+					"output": 0.00051,
+					"cacheRead": 0,
+					"cacheWrite": 0,
+					"total": 0.0044275
+				}
+			},
+			"stopReason": "toolUse",
+			"timestamp": 0,
+			"responseId": ""
+		},
+		{
+			"role": "assistant",
+			"content": [
+				{
 					"type": "text",
-					"text": "PONG",
+					"text": "a.txt, b.txt, sub/",
 					"textSignature": ""
 				}
 			],
@@ -21,18 +56,18 @@
 			"provider": "github-copilot",
 			"model": "gpt-5.4",
 			"usage": {
-				"input": 1560,
-				"output": 27,
+				"input": 1620,
+				"output": 12,
 				"cacheRead": 0,
 				"cacheWrite": 0,
-				"reasoning": 19,
-				"totalTokens": 1587,
+				"reasoning": 0,
+				"totalTokens": 1632,
 				"cost": {
-					"input": 0.0039000000000000003,
-					"output": 0.00040500000000000003,
+					"input": 0.004050000000000001,
+					"output": 0.00018,
 					"cacheRead": 0,
 					"cacheWrite": 0,
-					"total": 0.004305000000000001
+					"total": 0.00423
 				}
 			},
 			"stopReason": "stop",
@@ -54,19 +89,7 @@
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": "**Following instructions precisely**\n\nI",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " see",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " I",
+				"delta": "**Using tools for analysis**\n\nI",
 				"partialRef": 0
 			},
 			{
@@ -84,25 +107,7 @@
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " stick",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " closely",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " to",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " what",
+				"delta": " use",
 				"partialRef": 0
 			},
 			{
@@ -114,19 +119,73 @@
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " user",
+				"delta": " ls",
 				"partialRef": 0
 			},
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " wants",
+				"delta": " tool",
 				"partialRef": 0
 			},
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": ":",
+				"delta": " for",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " some",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " commentary",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ",",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " as",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " it",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "’ll",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " help",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " me",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " gather",
 				"partialRef": 0
 			},
 			{
@@ -138,73 +197,13 @@
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " exact",
+				"delta": " necessary",
 				"partialRef": 0
 			},
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " phr",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": "asing",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " of",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " \"",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": "P",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": "ONG",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": "\"",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " without",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " any",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " tools",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " involved",
+				"delta": " information",
 				"partialRef": 0
 			},
 			{
@@ -216,19 +215,37 @@
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " It",
+				"delta": " I'm",
 				"partialRef": 0
 			},
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " feels",
+				"delta": " pretty",
 				"partialRef": 0
 			},
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " straightforward",
+				"delta": " clear",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " about",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " its",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " purpose",
 				"partialRef": 0
 			},
 			{
@@ -264,73 +281,19 @@
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " make",
+				"delta": " ensure",
 				"partialRef": 0
 			},
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " sure",
+				"delta": " I'm",
 				"partialRef": 0
 			},
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " I",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " don",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": "’t",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " add",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " unnecessary",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " details",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " or",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " elements",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": ".",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " Keeping",
+				"delta": " applying",
 				"partialRef": 0
 			},
 			{
@@ -342,25 +305,7 @@
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " simple",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " is",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " key",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " here",
+				"delta": " correctly",
 				"partialRef": 0
 			},
 			{
@@ -372,7 +317,19 @@
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " So",
+				"delta": " It",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " seems",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " straightforward",
 				"partialRef": 0
 			},
 			{
@@ -384,25 +341,133 @@
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
+				"delta": " but",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
 				"delta": " I",
 				"partialRef": 0
 			},
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": "’ll",
+				"delta": " can't",
 				"partialRef": 0
 			},
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " make",
+				"delta": " help",
 				"partialRef": 0
 			},
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " sure",
+				"delta": " but",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " double",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "-check",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " that",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I'm",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " adhering",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " to",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " all",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " guidelines",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " while",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " getting",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " this",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " done",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ".",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " It's",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " important",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " for",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " me",
 				"partialRef": 0
 			},
 			{
@@ -420,139 +485,25 @@
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " “",
+				"delta": " accurate",
 				"partialRef": 0
 			},
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": "P",
+				"delta": " and",
 				"partialRef": 0
 			},
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": "ONG",
+				"delta": " insightful",
 				"partialRef": 0
 			},
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": "”",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " exactly",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " as",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " the",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " user",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " asked",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": ",",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " without",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " any",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " extras",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": ".",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " I",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " want",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " to",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " ensure",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " I'm",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " meeting",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " their",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " expectations",
-				"partialRef": 0
-			},
-			{
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " perfectly",
+				"delta": " outcomes",
 				"partialRef": 0
 			},
 			{
@@ -564,37 +515,250 @@
 			{
 				"type": "thinking_delta",
 				"contentIndex": 0,
+				"delta": " So",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ",",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I'll",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " get",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " started",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " with",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " that",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " now",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ".",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
 				"delta": "\n\n",
 				"partialRef": 0
 			},
 			{
 				"type": "thinking_end",
 				"contentIndex": 0,
-				"content": "**Following instructions precisely**\n\nI see I need to stick closely to what the user wants: the exact phrasing of \"PONG\" without any tools involved. It feels straightforward, but I want to make sure I don’t add unnecessary details or elements. Keeping it simple is key here. So, I’ll make sure to deliver “PONG” exactly as the user asked, without any extras. I want to ensure I'm meeting their expectations perfectly!",
+				"content": "**Using tools for analysis**\n\nI need to use the ls tool for some commentary, as it’ll help me gather the necessary information. I'm pretty clear about its purpose, but I want to ensure I'm applying it correctly. It seems straightforward, but I can't help but double-check that I'm adhering to all guidelines while getting this done. It's important for me to deliver accurate and insightful outcomes! So, I'll get started with that now.",
 				"partialRef": 0
+			},
+			{
+				"type": "toolcall_start",
+				"contentIndex": 1,
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "{\"",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "path",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\":",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\".",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\",\"",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "limit",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\":",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "500",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "}",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_end",
+				"contentIndex": 1,
+				"toolCall": {
+					"type": "toolCall",
+					"id": "toolcall_0",
+					"name": "ls",
+					"arguments": {
+						"path": ".",
+						"limit": 500
+					}
+				},
+				"partialRef": 0
+			},
+			{
+				"type": "done",
+				"reason": "toolUse",
+				"message": {
+					"role": "assistant",
+					"content": [
+						{
+							"type": "thinking",
+							"thinking": "**Using tools for analysis**\n\nI need to use the ls tool for some commentary, as it’ll help me gather the necessary information. I'm pretty clear about its purpose, but I want to ensure I'm applying it correctly. It seems straightforward, but I can't help but double-check that I'm adhering to all guidelines while getting this done. It's important for me to deliver accurate and insightful outcomes! So, I'll get started with that now.",
+							"thinkingSignature": ""
+						},
+						{
+							"type": "toolCall",
+							"id": "toolcall_0",
+							"name": "ls",
+							"arguments": {
+								"path": ".",
+								"limit": 500
+							}
+						}
+					],
+					"api": "openai-responses",
+					"provider": "github-copilot",
+					"model": "gpt-5.4",
+					"usage": {
+						"input": 1567,
+						"output": 34,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"reasoning": 10,
+						"totalTokens": 1601,
+						"cost": {
+							"input": 0.0039175,
+							"output": 0.00051,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"total": 0.0044275
+						}
+					},
+					"stopReason": "toolUse",
+					"timestamp": 0,
+					"responseId": ""
+				}
+			}
+		],
+		[
+			{
+				"type": "start",
+				"partialRef": 1
 			},
 			{
 				"type": "text_start",
-				"contentIndex": 1,
-				"partialRef": 0
+				"contentIndex": 0,
+				"partialRef": 1
 			},
 			{
 				"type": "text_delta",
-				"contentIndex": 1,
-				"delta": "P",
-				"partialRef": 0
+				"contentIndex": 0,
+				"delta": "a",
+				"partialRef": 1
 			},
 			{
 				"type": "text_delta",
-				"contentIndex": 1,
-				"delta": "ONG",
-				"partialRef": 0
+				"contentIndex": 0,
+				"delta": ".txt",
+				"partialRef": 1
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": ",",
+				"partialRef": 1
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": " b",
+				"partialRef": 1
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": ".txt",
+				"partialRef": 1
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": ",",
+				"partialRef": 1
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": " sub",
+				"partialRef": 1
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": "/",
+				"partialRef": 1
 			},
 			{
 				"type": "text_end",
-				"contentIndex": 1,
-				"content": "PONG",
-				"partialRef": 0
+				"contentIndex": 0,
+				"content": "a.txt, b.txt, sub/",
+				"partialRef": 1
 			},
 			{
 				"type": "done",
@@ -603,13 +767,8 @@
 					"role": "assistant",
 					"content": [
 						{
-							"type": "thinking",
-							"thinking": "**Following instructions precisely**\n\nI see I need to stick closely to what the user wants: the exact phrasing of \"PONG\" without any tools involved. It feels straightforward, but I want to make sure I don’t add unnecessary details or elements. Keeping it simple is key here. So, I’ll make sure to deliver “PONG” exactly as the user asked, without any extras. I want to ensure I'm meeting their expectations perfectly!",
-							"thinkingSignature": ""
-						},
-						{
 							"type": "text",
-							"text": "PONG",
+							"text": "a.txt, b.txt, sub/",
 							"textSignature": ""
 						}
 					],
@@ -617,18 +776,18 @@
 					"provider": "github-copilot",
 					"model": "gpt-5.4",
 					"usage": {
-						"input": 1560,
-						"output": 27,
+						"input": 1620,
+						"output": 12,
 						"cacheRead": 0,
 						"cacheWrite": 0,
-						"reasoning": 19,
-						"totalTokens": 1587,
+						"reasoning": 0,
+						"totalTokens": 1632,
 						"cost": {
-							"input": 0.0039000000000000003,
-							"output": 0.00040500000000000003,
+							"input": 0.004050000000000001,
+							"output": 0.00018,
 							"cacheRead": 0,
 							"cacheWrite": 0,
-							"total": 0.004305000000000001
+							"total": 0.00423
 						}
 					},
 					"stopReason": "stop",
@@ -652,7 +811,7 @@
 				"content": [
 					{
 						"type": "text",
-						"text": "Reply with exactly the word PONG and nothing else."
+						"text": "Use the ls tool to list this directory. Reply with the entry names separated by commas."
 					}
 				],
 				"timestamp": 0
@@ -665,7 +824,7 @@
 				"content": [
 					{
 						"type": "text",
-						"text": "Reply with exactly the word PONG and nothing else."
+						"text": "Use the ls tool to list this directory. Reply with the entry names separated by commas."
 					}
 				],
 				"timestamp": 0
@@ -678,13 +837,17 @@
 				"content": [
 					{
 						"type": "thinking",
-						"thinking": "**Following instructions precisely**\n\nI see I need to stick closely to what the user wants: the exact phrasing of \"PONG\" without any tools involved. It feels straightforward, but I want to make sure I don’t add unnecessary details or elements. Keeping it simple is key here. So, I’ll make sure to deliver “PONG” exactly as the user asked, without any extras. I want to ensure I'm meeting their expectations perfectly!",
+						"thinking": "**Using tools for analysis**\n\nI need to use the ls tool for some commentary, as it’ll help me gather the necessary information. I'm pretty clear about its purpose, but I want to ensure I'm applying it correctly. It seems straightforward, but I can't help but double-check that I'm adhering to all guidelines while getting this done. It's important for me to deliver accurate and insightful outcomes! So, I'll get started with that now.",
 						"thinkingSignature": ""
 					},
 					{
-						"type": "text",
-						"text": "PONG",
-						"textSignature": ""
+						"type": "toolCall",
+						"id": "toolcall_0",
+						"name": "ls",
+						"arguments": {
+							"path": ".",
+							"limit": 500
+						}
 					}
 				],
 				"api": "openai-responses",
@@ -723,29 +886,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": "**Following instructions precisely**\n\nI"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " see"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " I"
+				"delta": "**Using tools for analysis**\n\nI"
 			},
 			"message": {
 				"role": "assistant"
@@ -778,40 +919,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " stick"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " closely"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " to"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " what"
+				"delta": " use"
 			},
 			"message": {
 				"role": "assistant"
@@ -833,7 +941,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " user"
+				"delta": " ls"
 			},
 			"message": {
 				"role": "assistant"
@@ -844,7 +952,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " wants"
+				"delta": " tool"
 			},
 			"message": {
 				"role": "assistant"
@@ -855,7 +963,106 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": ":"
+				"delta": " for"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " some"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " commentary"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ","
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " as"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " it"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "’ll"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " help"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " me"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " gather"
 			},
 			"message": {
 				"role": "assistant"
@@ -877,7 +1084,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " exact"
+				"delta": " necessary"
 			},
 			"message": {
 				"role": "assistant"
@@ -888,117 +1095,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " phr"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": "asing"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " of"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " \""
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": "P"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": "ONG"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": "\""
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " without"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " any"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " tools"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " involved"
+				"delta": " information"
 			},
 			"message": {
 				"role": "assistant"
@@ -1020,7 +1117,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " It"
+				"delta": " I'm"
 			},
 			"message": {
 				"role": "assistant"
@@ -1031,7 +1128,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " feels"
+				"delta": " pretty"
 			},
 			"message": {
 				"role": "assistant"
@@ -1042,7 +1139,40 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " straightforward"
+				"delta": " clear"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " about"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " its"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " purpose"
 			},
 			"message": {
 				"role": "assistant"
@@ -1108,7 +1238,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " make"
+				"delta": " ensure"
 			},
 			"message": {
 				"role": "assistant"
@@ -1119,7 +1249,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " sure"
+				"delta": " I'm"
 			},
 			"message": {
 				"role": "assistant"
@@ -1130,106 +1260,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " I"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " don"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": "’t"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " add"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " unnecessary"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " details"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " or"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " elements"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": "."
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " Keeping"
+				"delta": " applying"
 			},
 			"message": {
 				"role": "assistant"
@@ -1251,40 +1282,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " simple"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " is"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " key"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " here"
+				"delta": " correctly"
 			},
 			"message": {
 				"role": "assistant"
@@ -1306,7 +1304,29 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " So"
+				"delta": " It"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " seems"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " straightforward"
 			},
 			"message": {
 				"role": "assistant"
@@ -1328,6 +1348,17 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
+				"delta": " but"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
 				"delta": " I"
 			},
 			"message": {
@@ -1339,7 +1370,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": "’ll"
+				"delta": " can't"
 			},
 			"message": {
 				"role": "assistant"
@@ -1350,7 +1381,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " make"
+				"delta": " help"
 			},
 			"message": {
 				"role": "assistant"
@@ -1361,7 +1392,194 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " sure"
+				"delta": " but"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " double"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "-check"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " that"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I'm"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " adhering"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " to"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " all"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " guidelines"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " while"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " getting"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " this"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " done"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "."
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " It's"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " important"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " for"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " me"
 			},
 			"message": {
 				"role": "assistant"
@@ -1394,7 +1612,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": " “"
+				"delta": " accurate"
 			},
 			"message": {
 				"role": "assistant"
@@ -1405,7 +1623,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": "P"
+				"delta": " and"
 			},
 			"message": {
 				"role": "assistant"
@@ -1416,7 +1634,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": "ONG"
+				"delta": " insightful"
 			},
 			"message": {
 				"role": "assistant"
@@ -1427,216 +1645,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
-				"delta": "”"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " exactly"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " as"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " the"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " user"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " asked"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": ","
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " without"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " any"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " extras"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": "."
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " I"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " want"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " to"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " ensure"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " I'm"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " meeting"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " their"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " expectations"
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "thinking_delta",
-				"contentIndex": 0,
-				"delta": " perfectly"
+				"delta": " outcomes"
 			},
 			"message": {
 				"role": "assistant"
@@ -1658,6 +1667,105 @@
 			"assistantMessageEvent": {
 				"type": "thinking_delta",
 				"contentIndex": 0,
+				"delta": " So"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ","
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I'll"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " get"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " started"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " with"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " that"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " now"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "."
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
 				"delta": "\n\n"
 			},
 			"message": {
@@ -1669,7 +1777,7 @@
 			"assistantMessageEvent": {
 				"type": "thinking_end",
 				"contentIndex": 0,
-				"content": "**Following instructions precisely**\n\nI see I need to stick closely to what the user wants: the exact phrasing of \"PONG\" without any tools involved. It feels straightforward, but I want to make sure I don’t add unnecessary details or elements. Keeping it simple is key here. So, I’ll make sure to deliver “PONG” exactly as the user asked, without any extras. I want to ensure I'm meeting their expectations perfectly!"
+				"content": "**Using tools for analysis**\n\nI need to use the ls tool for some commentary, as it’ll help me gather the necessary information. I'm pretty clear about its purpose, but I want to ensure I'm applying it correctly. It seems straightforward, but I can't help but double-check that I'm adhering to all guidelines while getting this done. It's important for me to deliver accurate and insightful outcomes! So, I'll get started with that now."
 			},
 			"message": {
 				"role": "assistant"
@@ -1678,19 +1786,48 @@
 		{
 			"type": "message_update",
 			"assistantMessageEvent": {
-				"type": "text_start",
-				"contentIndex": 1
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "text_delta",
+				"type": "toolcall_start",
 				"contentIndex": 1,
-				"delta": "P"
+				"partial": {
+					"role": "assistant",
+					"content": [
+						{
+							"type": "thinking",
+							"thinking": "**Using tools for analysis**\n\nI need to use the ls tool for some commentary, as it’ll help me gather the necessary information. I'm pretty clear about its purpose, but I want to ensure I'm applying it correctly. It seems straightforward, but I can't help but double-check that I'm adhering to all guidelines while getting this done. It's important for me to deliver accurate and insightful outcomes! So, I'll get started with that now.",
+							"thinkingSignature": ""
+						},
+						{
+							"type": "toolCall",
+							"id": "toolcall_0",
+							"name": "ls",
+							"arguments": {
+								"path": ".",
+								"limit": 500
+							}
+						}
+					],
+					"api": "openai-responses",
+					"provider": "github-copilot",
+					"model": "gpt-5.4",
+					"usage": {
+						"input": 1567,
+						"output": 34,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"reasoning": 10,
+						"totalTokens": 1601,
+						"cost": {
+							"input": 0.0039175,
+							"output": 0.00051,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"total": 0.0044275
+						}
+					},
+					"stopReason": "toolUse",
+					"timestamp": 0,
+					"responseId": ""
+				}
 			},
 			"message": {
 				"role": "assistant"
@@ -1699,9 +1836,9 @@
 		{
 			"type": "message_update",
 			"assistantMessageEvent": {
-				"type": "text_delta",
+				"type": "toolcall_delta",
 				"contentIndex": 1,
-				"delta": "ONG"
+				"delta": "{\""
 			},
 			"message": {
 				"role": "assistant"
@@ -1710,9 +1847,105 @@
 		{
 			"type": "message_update",
 			"assistantMessageEvent": {
-				"type": "text_end",
+				"type": "toolcall_delta",
 				"contentIndex": 1,
-				"content": "PONG"
+				"delta": "path"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\":"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\"."
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\",\""
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "limit"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "\":"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "500"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "}"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_end",
+				"contentIndex": 1,
+				"toolCall": {
+					"type": "toolCall",
+					"id": "toolcall_0",
+					"name": "ls",
+					"arguments": {
+						"path": ".",
+						"limit": 500
+					}
+				}
 			},
 			"message": {
 				"role": "assistant"
@@ -1725,12 +1958,166 @@
 				"content": [
 					{
 						"type": "thinking",
-						"thinking": "**Following instructions precisely**\n\nI see I need to stick closely to what the user wants: the exact phrasing of \"PONG\" without any tools involved. It feels straightforward, but I want to make sure I don’t add unnecessary details or elements. Keeping it simple is key here. So, I’ll make sure to deliver “PONG” exactly as the user asked, without any extras. I want to ensure I'm meeting their expectations perfectly!",
+						"thinking": "**Using tools for analysis**\n\nI need to use the ls tool for some commentary, as it’ll help me gather the necessary information. I'm pretty clear about its purpose, but I want to ensure I'm applying it correctly. It seems straightforward, but I can't help but double-check that I'm adhering to all guidelines while getting this done. It's important for me to deliver accurate and insightful outcomes! So, I'll get started with that now.",
 						"thinkingSignature": ""
 					},
 					{
+						"type": "toolCall",
+						"id": "toolcall_0",
+						"name": "ls",
+						"arguments": {
+							"path": ".",
+							"limit": 500
+						}
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.4",
+				"usage": {
+					"input": 1567,
+					"output": 34,
+					"cacheRead": 0,
+					"cacheWrite": 0,
+					"reasoning": 10,
+					"totalTokens": 1601,
+					"cost": {
+						"input": 0.0039175,
+						"output": 0.00051,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"total": 0.0044275
+					}
+				},
+				"stopReason": "toolUse",
+				"timestamp": 0,
+				"responseId": ""
+			}
+		},
+		{
+			"type": "tool_execution_start",
+			"toolCallId": "toolcall_0",
+			"toolName": "ls",
+			"args": {
+				"path": ".",
+				"limit": 500
+			}
+		},
+		{
+			"type": "tool_execution_end",
+			"toolCallId": "toolcall_0",
+			"toolName": "ls",
+			"result": {
+				"content": [
+					{
 						"type": "text",
-						"text": "PONG",
+						"text": "a.txt\nb.txt\nsub/"
+					}
+				]
+			},
+			"isError": false
+		},
+		{
+			"type": "message_start",
+			"message": {
+				"role": "toolResult",
+				"toolCallId": "toolcall_0",
+				"toolName": "ls",
+				"content": [
+					{
+						"type": "text",
+						"text": "a.txt\nb.txt\nsub/"
+					}
+				],
+				"isError": false,
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "message_end",
+			"message": {
+				"role": "toolResult",
+				"toolCallId": "toolcall_0",
+				"toolName": "ls",
+				"content": [
+					{
+						"type": "text",
+						"text": "a.txt\nb.txt\nsub/"
+					}
+				],
+				"isError": false,
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "turn_end",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "thinking",
+						"thinking": "**Using tools for analysis**\n\nI need to use the ls tool for some commentary, as it’ll help me gather the necessary information. I'm pretty clear about its purpose, but I want to ensure I'm applying it correctly. It seems straightforward, but I can't help but double-check that I'm adhering to all guidelines while getting this done. It's important for me to deliver accurate and insightful outcomes! So, I'll get started with that now.",
+						"thinkingSignature": ""
+					},
+					{
+						"type": "toolCall",
+						"id": "toolcall_0",
+						"name": "ls",
+						"arguments": {
+							"path": ".",
+							"limit": 500
+						}
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.4",
+				"usage": {
+					"input": 1567,
+					"output": 34,
+					"cacheRead": 0,
+					"cacheWrite": 0,
+					"reasoning": 10,
+					"totalTokens": 1601,
+					"cost": {
+						"input": 0.0039175,
+						"output": 0.00051,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"total": 0.0044275
+					}
+				},
+				"stopReason": "toolUse",
+				"timestamp": 0,
+				"responseId": ""
+			},
+			"toolResults": [
+				{
+					"role": "toolResult",
+					"toolCallId": "toolcall_0",
+					"toolName": "ls",
+					"content": [
+						{
+							"type": "text",
+							"text": "a.txt\nb.txt\nsub/"
+						}
+					],
+					"isError": false,
+					"timestamp": 0
+				}
+			]
+		},
+		{
+			"type": "turn_start"
+		},
+		{
+			"type": "message_start",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "text",
+						"text": "a.txt, b.txt, sub/",
 						"textSignature": ""
 					}
 				],
@@ -1738,18 +2125,159 @@
 				"provider": "github-copilot",
 				"model": "gpt-5.4",
 				"usage": {
-					"input": 1560,
-					"output": 27,
+					"input": 0,
+					"output": 0,
 					"cacheRead": 0,
 					"cacheWrite": 0,
-					"reasoning": 19,
-					"totalTokens": 1587,
+					"totalTokens": 0,
 					"cost": {
-						"input": 0.0039000000000000003,
-						"output": 0.00040500000000000003,
+						"input": 0,
+						"output": 0,
 						"cacheRead": 0,
 						"cacheWrite": 0,
-						"total": 0.004305000000000001
+						"total": 0
+					}
+				},
+				"stopReason": "stop",
+				"timestamp": 0
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_start",
+				"contentIndex": 0
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": "a"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": ".txt"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": ","
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": " b"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": ".txt"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": ","
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": " sub"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": "/"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_end",
+				"contentIndex": 0,
+				"content": "a.txt, b.txt, sub/"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_end",
+			"message": {
+				"role": "assistant",
+				"content": [
+					{
+						"type": "text",
+						"text": "a.txt, b.txt, sub/",
+						"textSignature": ""
+					}
+				],
+				"api": "openai-responses",
+				"provider": "github-copilot",
+				"model": "gpt-5.4",
+				"usage": {
+					"input": 1620,
+					"output": 12,
+					"cacheRead": 0,
+					"cacheWrite": 0,
+					"reasoning": 0,
+					"totalTokens": 1632,
+					"cost": {
+						"input": 0.004050000000000001,
+						"output": 0.00018,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"total": 0.00423
 					}
 				},
 				"stopReason": "stop",
@@ -1763,13 +2291,8 @@
 				"role": "assistant",
 				"content": [
 					{
-						"type": "thinking",
-						"thinking": "**Following instructions precisely**\n\nI see I need to stick closely to what the user wants: the exact phrasing of \"PONG\" without any tools involved. It feels straightforward, but I want to make sure I don’t add unnecessary details or elements. Keeping it simple is key here. So, I’ll make sure to deliver “PONG” exactly as the user asked, without any extras. I want to ensure I'm meeting their expectations perfectly!",
-						"thinkingSignature": ""
-					},
-					{
 						"type": "text",
-						"text": "PONG",
+						"text": "a.txt, b.txt, sub/",
 						"textSignature": ""
 					}
 				],
@@ -1777,18 +2300,18 @@
 				"provider": "github-copilot",
 				"model": "gpt-5.4",
 				"usage": {
-					"input": 1560,
-					"output": 27,
+					"input": 1620,
+					"output": 12,
 					"cacheRead": 0,
 					"cacheWrite": 0,
-					"reasoning": 19,
-					"totalTokens": 1587,
+					"reasoning": 0,
+					"totalTokens": 1632,
 					"cost": {
-						"input": 0.0039000000000000003,
-						"output": 0.00040500000000000003,
+						"input": 0.004050000000000001,
+						"output": 0.00018,
 						"cacheRead": 0,
 						"cacheWrite": 0,
-						"total": 0.004305000000000001
+						"total": 0.00423
 					}
 				},
 				"stopReason": "stop",
@@ -1805,7 +2328,7 @@
 					"content": [
 						{
 							"type": "text",
-							"text": "Reply with exactly the word PONG and nothing else."
+							"text": "Use the ls tool to list this directory. Reply with the entry names separated by commas."
 						}
 					],
 					"timestamp": 0
@@ -1815,12 +2338,60 @@
 					"content": [
 						{
 							"type": "thinking",
-							"thinking": "**Following instructions precisely**\n\nI see I need to stick closely to what the user wants: the exact phrasing of \"PONG\" without any tools involved. It feels straightforward, but I want to make sure I don’t add unnecessary details or elements. Keeping it simple is key here. So, I’ll make sure to deliver “PONG” exactly as the user asked, without any extras. I want to ensure I'm meeting their expectations perfectly!",
+							"thinking": "**Using tools for analysis**\n\nI need to use the ls tool for some commentary, as it’ll help me gather the necessary information. I'm pretty clear about its purpose, but I want to ensure I'm applying it correctly. It seems straightforward, but I can't help but double-check that I'm adhering to all guidelines while getting this done. It's important for me to deliver accurate and insightful outcomes! So, I'll get started with that now.",
 							"thinkingSignature": ""
 						},
 						{
+							"type": "toolCall",
+							"id": "toolcall_0",
+							"name": "ls",
+							"arguments": {
+								"path": ".",
+								"limit": 500
+							}
+						}
+					],
+					"api": "openai-responses",
+					"provider": "github-copilot",
+					"model": "gpt-5.4",
+					"usage": {
+						"input": 1567,
+						"output": 34,
+						"cacheRead": 0,
+						"cacheWrite": 0,
+						"reasoning": 10,
+						"totalTokens": 1601,
+						"cost": {
+							"input": 0.0039175,
+							"output": 0.00051,
+							"cacheRead": 0,
+							"cacheWrite": 0,
+							"total": 0.0044275
+						}
+					},
+					"stopReason": "toolUse",
+					"timestamp": 0,
+					"responseId": ""
+				},
+				{
+					"role": "toolResult",
+					"toolCallId": "toolcall_0",
+					"toolName": "ls",
+					"content": [
+						{
 							"type": "text",
-							"text": "PONG",
+							"text": "a.txt\nb.txt\nsub/"
+						}
+					],
+					"isError": false,
+					"timestamp": 0
+				},
+				{
+					"role": "assistant",
+					"content": [
+						{
+							"type": "text",
+							"text": "a.txt, b.txt, sub/",
 							"textSignature": ""
 						}
 					],
@@ -1828,18 +2399,18 @@
 					"provider": "github-copilot",
 					"model": "gpt-5.4",
 					"usage": {
-						"input": 1560,
-						"output": 27,
+						"input": 1620,
+						"output": 12,
 						"cacheRead": 0,
 						"cacheWrite": 0,
-						"reasoning": 19,
-						"totalTokens": 1587,
+						"reasoning": 0,
+						"totalTokens": 1632,
 						"cost": {
-							"input": 0.0039000000000000003,
-							"output": 0.00040500000000000003,
+							"input": 0.004050000000000001,
+							"output": 0.00018,
 							"cacheRead": 0,
 							"cacheWrite": 0,
-							"total": 0.004305000000000001
+							"total": 0.00423
 						}
 					},
 					"stopReason": "stop",

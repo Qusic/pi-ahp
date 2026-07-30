@@ -1,7 +1,7 @@
 {
-	"name": "single-tool",
-	"description": "One tool call, then an answer derived from its result.",
-	"prompt": "Read note.txt and reply with its exact contents only.",
+	"name": "tool-find",
+	"description": "A `find` call — path globbing, with its own result limit.",
+	"prompt": "Use the find tool to locate every .ts file under src. Reply with their paths only.",
 	"partials": [
 		{
 			"role": "assistant",
@@ -14,11 +14,11 @@
 				{
 					"type": "toolCall",
 					"id": "toolcall_0",
-					"name": "read",
+					"name": "find",
 					"arguments": {
-						"path": "note.txt",
-						"offset": 1,
-						"limit": 2000
+						"pattern": "src/**/*.ts",
+						"path": ".",
+						"limit": 1000
 					}
 				}
 			],
@@ -26,18 +26,18 @@
 			"provider": "github-copilot",
 			"model": "gpt-5.4",
 			"usage": {
-				"input": 1559,
-				"output": 67,
+				"input": 1567,
+				"output": 50,
 				"cacheRead": 0,
 				"cacheWrite": 0,
-				"reasoning": 38,
-				"totalTokens": 1626,
+				"reasoning": 20,
+				"totalTokens": 1617,
 				"cost": {
-					"input": 0.0038975000000000004,
-					"output": 0.001005,
+					"input": 0.0039175,
+					"output": 0.00075,
 					"cacheRead": 0,
 					"cacheWrite": 0,
-					"total": 0.004902500000000001
+					"total": 0.0046675
 				}
 			},
 			"stopReason": "toolUse",
@@ -49,7 +49,7 @@
 			"content": [
 				{
 					"type": "text",
-					"text": "ALPHA BETA GAMMA",
+					"text": "src/x.ts\nsrc/y.ts",
 					"textSignature": ""
 				}
 			],
@@ -57,18 +57,18 @@
 			"provider": "github-copilot",
 			"model": "gpt-5.4",
 			"usage": {
-				"input": 1643,
-				"output": 10,
+				"input": 1634,
+				"output": 11,
 				"cacheRead": 0,
 				"cacheWrite": 0,
 				"reasoning": 0,
-				"totalTokens": 1653,
+				"totalTokens": 1645,
 				"cost": {
-					"input": 0.0041075,
-					"output": 0.00015000000000000001,
+					"input": 0.004085,
+					"output": 0.000165,
 					"cacheRead": 0,
 					"cacheWrite": 0,
-					"total": 0.0042575
+					"total": 0.00425
 				}
 			},
 			"stopReason": "stop",
@@ -107,7 +107,7 @@
 			{
 				"type": "toolcall_delta",
 				"contentIndex": 1,
-				"delta": "path",
+				"delta": "pattern",
 				"partialRef": 0
 			},
 			{
@@ -119,13 +119,19 @@
 			{
 				"type": "toolcall_delta",
 				"contentIndex": 1,
-				"delta": "note",
+				"delta": "src",
 				"partialRef": 0
 			},
 			{
 				"type": "toolcall_delta",
 				"contentIndex": 1,
-				"delta": ".txt",
+				"delta": "/**/*.",
+				"partialRef": 0
+			},
+			{
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "ts",
 				"partialRef": 0
 			},
 			{
@@ -137,7 +143,7 @@
 			{
 				"type": "toolcall_delta",
 				"contentIndex": 1,
-				"delta": "offset",
+				"delta": "path",
 				"partialRef": 0
 			},
 			{
@@ -149,13 +155,13 @@
 			{
 				"type": "toolcall_delta",
 				"contentIndex": 1,
-				"delta": "1",
+				"delta": "\".",
 				"partialRef": 0
 			},
 			{
 				"type": "toolcall_delta",
 				"contentIndex": 1,
-				"delta": ",\"",
+				"delta": "\",\"",
 				"partialRef": 0
 			},
 			{
@@ -173,7 +179,7 @@
 			{
 				"type": "toolcall_delta",
 				"contentIndex": 1,
-				"delta": "200",
+				"delta": "100",
 				"partialRef": 0
 			},
 			{
@@ -194,11 +200,11 @@
 				"toolCall": {
 					"type": "toolCall",
 					"id": "toolcall_0",
-					"name": "read",
+					"name": "find",
 					"arguments": {
-						"path": "note.txt",
-						"offset": 1,
-						"limit": 2000
+						"pattern": "src/**/*.ts",
+						"path": ".",
+						"limit": 1000
 					}
 				},
 				"partialRef": 0
@@ -217,11 +223,11 @@
 						{
 							"type": "toolCall",
 							"id": "toolcall_0",
-							"name": "read",
+							"name": "find",
 							"arguments": {
-								"path": "note.txt",
-								"offset": 1,
-								"limit": 2000
+								"pattern": "src/**/*.ts",
+								"path": ".",
+								"limit": 1000
 							}
 						}
 					],
@@ -229,18 +235,18 @@
 					"provider": "github-copilot",
 					"model": "gpt-5.4",
 					"usage": {
-						"input": 1559,
-						"output": 67,
+						"input": 1567,
+						"output": 50,
 						"cacheRead": 0,
 						"cacheWrite": 0,
-						"reasoning": 38,
-						"totalTokens": 1626,
+						"reasoning": 20,
+						"totalTokens": 1617,
 						"cost": {
-							"input": 0.0038975000000000004,
-							"output": 0.001005,
+							"input": 0.0039175,
+							"output": 0.00075,
 							"cacheRead": 0,
 							"cacheWrite": 0,
-							"total": 0.004902500000000001
+							"total": 0.0046675
 						}
 					},
 					"stopReason": "toolUse",
@@ -262,43 +268,49 @@
 			{
 				"type": "text_delta",
 				"contentIndex": 0,
-				"delta": "AL",
+				"delta": "src",
 				"partialRef": 1
 			},
 			{
 				"type": "text_delta",
 				"contentIndex": 0,
-				"delta": "PHA",
+				"delta": "/x",
 				"partialRef": 1
 			},
 			{
 				"type": "text_delta",
 				"contentIndex": 0,
-				"delta": " B",
+				"delta": ".ts",
 				"partialRef": 1
 			},
 			{
 				"type": "text_delta",
 				"contentIndex": 0,
-				"delta": "ETA",
+				"delta": "\n",
 				"partialRef": 1
 			},
 			{
 				"type": "text_delta",
 				"contentIndex": 0,
-				"delta": " GAM",
+				"delta": "src",
 				"partialRef": 1
 			},
 			{
 				"type": "text_delta",
 				"contentIndex": 0,
-				"delta": "MA",
+				"delta": "/y",
+				"partialRef": 1
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": ".ts",
 				"partialRef": 1
 			},
 			{
 				"type": "text_end",
 				"contentIndex": 0,
-				"content": "ALPHA BETA GAMMA",
+				"content": "src/x.ts\nsrc/y.ts",
 				"partialRef": 1
 			},
 			{
@@ -309,7 +321,7 @@
 					"content": [
 						{
 							"type": "text",
-							"text": "ALPHA BETA GAMMA",
+							"text": "src/x.ts\nsrc/y.ts",
 							"textSignature": ""
 						}
 					],
@@ -317,18 +329,18 @@
 					"provider": "github-copilot",
 					"model": "gpt-5.4",
 					"usage": {
-						"input": 1643,
-						"output": 10,
+						"input": 1634,
+						"output": 11,
 						"cacheRead": 0,
 						"cacheWrite": 0,
 						"reasoning": 0,
-						"totalTokens": 1653,
+						"totalTokens": 1645,
 						"cost": {
-							"input": 0.0041075,
-							"output": 0.00015000000000000001,
+							"input": 0.004085,
+							"output": 0.000165,
 							"cacheRead": 0,
 							"cacheWrite": 0,
-							"total": 0.0042575
+							"total": 0.00425
 						}
 					},
 					"stopReason": "stop",
@@ -352,7 +364,7 @@
 				"content": [
 					{
 						"type": "text",
-						"text": "Read note.txt and reply with its exact contents only."
+						"text": "Use the find tool to locate every .ts file under src. Reply with their paths only."
 					}
 				],
 				"timestamp": 0
@@ -365,7 +377,7 @@
 				"content": [
 					{
 						"type": "text",
-						"text": "Read note.txt and reply with its exact contents only."
+						"text": "Use the find tool to locate every .ts file under src. Reply with their paths only."
 					}
 				],
 				"timestamp": 0
@@ -384,11 +396,11 @@
 					{
 						"type": "toolCall",
 						"id": "toolcall_0",
-						"name": "read",
+						"name": "find",
 						"arguments": {
-							"path": "note.txt",
-							"offset": 1,
-							"limit": 2000
+							"pattern": "src/**/*.ts",
+							"path": ".",
+							"limit": 1000
 						}
 					}
 				],
@@ -450,11 +462,11 @@
 						{
 							"type": "toolCall",
 							"id": "toolcall_0",
-							"name": "read",
+							"name": "find",
 							"arguments": {
-								"path": "note.txt",
-								"offset": 1,
-								"limit": 2000
+								"pattern": "src/**/*.ts",
+								"path": ".",
+								"limit": 1000
 							}
 						}
 					],
@@ -462,18 +474,18 @@
 					"provider": "github-copilot",
 					"model": "gpt-5.4",
 					"usage": {
-						"input": 1559,
-						"output": 67,
+						"input": 1567,
+						"output": 50,
 						"cacheRead": 0,
 						"cacheWrite": 0,
-						"reasoning": 38,
-						"totalTokens": 1626,
+						"reasoning": 20,
+						"totalTokens": 1617,
 						"cost": {
-							"input": 0.0038975000000000004,
-							"output": 0.001005,
+							"input": 0.0039175,
+							"output": 0.00075,
 							"cacheRead": 0,
 							"cacheWrite": 0,
-							"total": 0.004902500000000001
+							"total": 0.0046675
 						}
 					},
 					"stopReason": "toolUse",
@@ -501,7 +513,7 @@
 			"assistantMessageEvent": {
 				"type": "toolcall_delta",
 				"contentIndex": 1,
-				"delta": "path"
+				"delta": "pattern"
 			},
 			"message": {
 				"role": "assistant"
@@ -523,7 +535,7 @@
 			"assistantMessageEvent": {
 				"type": "toolcall_delta",
 				"contentIndex": 1,
-				"delta": "note"
+				"delta": "src"
 			},
 			"message": {
 				"role": "assistant"
@@ -534,7 +546,18 @@
 			"assistantMessageEvent": {
 				"type": "toolcall_delta",
 				"contentIndex": 1,
-				"delta": ".txt"
+				"delta": "/**/*."
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "toolcall_delta",
+				"contentIndex": 1,
+				"delta": "ts"
 			},
 			"message": {
 				"role": "assistant"
@@ -556,7 +579,7 @@
 			"assistantMessageEvent": {
 				"type": "toolcall_delta",
 				"contentIndex": 1,
-				"delta": "offset"
+				"delta": "path"
 			},
 			"message": {
 				"role": "assistant"
@@ -578,7 +601,7 @@
 			"assistantMessageEvent": {
 				"type": "toolcall_delta",
 				"contentIndex": 1,
-				"delta": "1"
+				"delta": "\"."
 			},
 			"message": {
 				"role": "assistant"
@@ -589,7 +612,7 @@
 			"assistantMessageEvent": {
 				"type": "toolcall_delta",
 				"contentIndex": 1,
-				"delta": ",\""
+				"delta": "\",\""
 			},
 			"message": {
 				"role": "assistant"
@@ -622,7 +645,7 @@
 			"assistantMessageEvent": {
 				"type": "toolcall_delta",
 				"contentIndex": 1,
-				"delta": "200"
+				"delta": "100"
 			},
 			"message": {
 				"role": "assistant"
@@ -658,11 +681,11 @@
 				"toolCall": {
 					"type": "toolCall",
 					"id": "toolcall_0",
-					"name": "read",
+					"name": "find",
 					"arguments": {
-						"path": "note.txt",
-						"offset": 1,
-						"limit": 2000
+						"pattern": "src/**/*.ts",
+						"path": ".",
+						"limit": 1000
 					}
 				}
 			},
@@ -683,11 +706,11 @@
 					{
 						"type": "toolCall",
 						"id": "toolcall_0",
-						"name": "read",
+						"name": "find",
 						"arguments": {
-							"path": "note.txt",
-							"offset": 1,
-							"limit": 2000
+							"pattern": "src/**/*.ts",
+							"path": ".",
+							"limit": 1000
 						}
 					}
 				],
@@ -695,18 +718,18 @@
 				"provider": "github-copilot",
 				"model": "gpt-5.4",
 				"usage": {
-					"input": 1559,
-					"output": 67,
+					"input": 1567,
+					"output": 50,
 					"cacheRead": 0,
 					"cacheWrite": 0,
-					"reasoning": 38,
-					"totalTokens": 1626,
+					"reasoning": 20,
+					"totalTokens": 1617,
 					"cost": {
-						"input": 0.0038975000000000004,
-						"output": 0.001005,
+						"input": 0.0039175,
+						"output": 0.00075,
 						"cacheRead": 0,
 						"cacheWrite": 0,
-						"total": 0.004902500000000001
+						"total": 0.0046675
 					}
 				},
 				"stopReason": "toolUse",
@@ -717,22 +740,22 @@
 		{
 			"type": "tool_execution_start",
 			"toolCallId": "toolcall_0",
-			"toolName": "read",
+			"toolName": "find",
 			"args": {
-				"path": "note.txt",
-				"offset": 1,
-				"limit": 2000
+				"pattern": "src/**/*.ts",
+				"path": ".",
+				"limit": 1000
 			}
 		},
 		{
 			"type": "tool_execution_end",
 			"toolCallId": "toolcall_0",
-			"toolName": "read",
+			"toolName": "find",
 			"result": {
 				"content": [
 					{
 						"type": "text",
-						"text": "ALPHA BETA GAMMA\n"
+						"text": "src/x.ts\nsrc/y.ts"
 					}
 				]
 			},
@@ -743,11 +766,11 @@
 			"message": {
 				"role": "toolResult",
 				"toolCallId": "toolcall_0",
-				"toolName": "read",
+				"toolName": "find",
 				"content": [
 					{
 						"type": "text",
-						"text": "ALPHA BETA GAMMA\n"
+						"text": "src/x.ts\nsrc/y.ts"
 					}
 				],
 				"isError": false,
@@ -759,11 +782,11 @@
 			"message": {
 				"role": "toolResult",
 				"toolCallId": "toolcall_0",
-				"toolName": "read",
+				"toolName": "find",
 				"content": [
 					{
 						"type": "text",
-						"text": "ALPHA BETA GAMMA\n"
+						"text": "src/x.ts\nsrc/y.ts"
 					}
 				],
 				"isError": false,
@@ -783,11 +806,11 @@
 					{
 						"type": "toolCall",
 						"id": "toolcall_0",
-						"name": "read",
+						"name": "find",
 						"arguments": {
-							"path": "note.txt",
-							"offset": 1,
-							"limit": 2000
+							"pattern": "src/**/*.ts",
+							"path": ".",
+							"limit": 1000
 						}
 					}
 				],
@@ -795,18 +818,18 @@
 				"provider": "github-copilot",
 				"model": "gpt-5.4",
 				"usage": {
-					"input": 1559,
-					"output": 67,
+					"input": 1567,
+					"output": 50,
 					"cacheRead": 0,
 					"cacheWrite": 0,
-					"reasoning": 38,
-					"totalTokens": 1626,
+					"reasoning": 20,
+					"totalTokens": 1617,
 					"cost": {
-						"input": 0.0038975000000000004,
-						"output": 0.001005,
+						"input": 0.0039175,
+						"output": 0.00075,
 						"cacheRead": 0,
 						"cacheWrite": 0,
-						"total": 0.004902500000000001
+						"total": 0.0046675
 					}
 				},
 				"stopReason": "toolUse",
@@ -817,11 +840,11 @@
 				{
 					"role": "toolResult",
 					"toolCallId": "toolcall_0",
-					"toolName": "read",
+					"toolName": "find",
 					"content": [
 						{
 							"type": "text",
-							"text": "ALPHA BETA GAMMA\n"
+							"text": "src/x.ts\nsrc/y.ts"
 						}
 					],
 					"isError": false,
@@ -839,7 +862,7 @@
 				"content": [
 					{
 						"type": "text",
-						"text": "ALPHA BETA GAMMA",
+						"text": "src/x.ts\nsrc/y.ts",
 						"textSignature": ""
 					}
 				],
@@ -879,7 +902,7 @@
 			"assistantMessageEvent": {
 				"type": "text_delta",
 				"contentIndex": 0,
-				"delta": "AL"
+				"delta": "src"
 			},
 			"message": {
 				"role": "assistant"
@@ -890,7 +913,7 @@
 			"assistantMessageEvent": {
 				"type": "text_delta",
 				"contentIndex": 0,
-				"delta": "PHA"
+				"delta": "/x"
 			},
 			"message": {
 				"role": "assistant"
@@ -901,7 +924,7 @@
 			"assistantMessageEvent": {
 				"type": "text_delta",
 				"contentIndex": 0,
-				"delta": " B"
+				"delta": ".ts"
 			},
 			"message": {
 				"role": "assistant"
@@ -912,7 +935,7 @@
 			"assistantMessageEvent": {
 				"type": "text_delta",
 				"contentIndex": 0,
-				"delta": "ETA"
+				"delta": "\n"
 			},
 			"message": {
 				"role": "assistant"
@@ -923,7 +946,7 @@
 			"assistantMessageEvent": {
 				"type": "text_delta",
 				"contentIndex": 0,
-				"delta": " GAM"
+				"delta": "src"
 			},
 			"message": {
 				"role": "assistant"
@@ -934,7 +957,18 @@
 			"assistantMessageEvent": {
 				"type": "text_delta",
 				"contentIndex": 0,
-				"delta": "MA"
+				"delta": "/y"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 0,
+				"delta": ".ts"
 			},
 			"message": {
 				"role": "assistant"
@@ -945,7 +979,7 @@
 			"assistantMessageEvent": {
 				"type": "text_end",
 				"contentIndex": 0,
-				"content": "ALPHA BETA GAMMA"
+				"content": "src/x.ts\nsrc/y.ts"
 			},
 			"message": {
 				"role": "assistant"
@@ -958,7 +992,7 @@
 				"content": [
 					{
 						"type": "text",
-						"text": "ALPHA BETA GAMMA",
+						"text": "src/x.ts\nsrc/y.ts",
 						"textSignature": ""
 					}
 				],
@@ -966,18 +1000,18 @@
 				"provider": "github-copilot",
 				"model": "gpt-5.4",
 				"usage": {
-					"input": 1643,
-					"output": 10,
+					"input": 1634,
+					"output": 11,
 					"cacheRead": 0,
 					"cacheWrite": 0,
 					"reasoning": 0,
-					"totalTokens": 1653,
+					"totalTokens": 1645,
 					"cost": {
-						"input": 0.0041075,
-						"output": 0.00015000000000000001,
+						"input": 0.004085,
+						"output": 0.000165,
 						"cacheRead": 0,
 						"cacheWrite": 0,
-						"total": 0.0042575
+						"total": 0.00425
 					}
 				},
 				"stopReason": "stop",
@@ -992,7 +1026,7 @@
 				"content": [
 					{
 						"type": "text",
-						"text": "ALPHA BETA GAMMA",
+						"text": "src/x.ts\nsrc/y.ts",
 						"textSignature": ""
 					}
 				],
@@ -1000,18 +1034,18 @@
 				"provider": "github-copilot",
 				"model": "gpt-5.4",
 				"usage": {
-					"input": 1643,
-					"output": 10,
+					"input": 1634,
+					"output": 11,
 					"cacheRead": 0,
 					"cacheWrite": 0,
 					"reasoning": 0,
-					"totalTokens": 1653,
+					"totalTokens": 1645,
 					"cost": {
-						"input": 0.0041075,
-						"output": 0.00015000000000000001,
+						"input": 0.004085,
+						"output": 0.000165,
 						"cacheRead": 0,
 						"cacheWrite": 0,
-						"total": 0.0042575
+						"total": 0.00425
 					}
 				},
 				"stopReason": "stop",
@@ -1028,7 +1062,7 @@
 					"content": [
 						{
 							"type": "text",
-							"text": "Read note.txt and reply with its exact contents only."
+							"text": "Use the find tool to locate every .ts file under src. Reply with their paths only."
 						}
 					],
 					"timestamp": 0
@@ -1044,11 +1078,11 @@
 						{
 							"type": "toolCall",
 							"id": "toolcall_0",
-							"name": "read",
+							"name": "find",
 							"arguments": {
-								"path": "note.txt",
-								"offset": 1,
-								"limit": 2000
+								"pattern": "src/**/*.ts",
+								"path": ".",
+								"limit": 1000
 							}
 						}
 					],
@@ -1056,18 +1090,18 @@
 					"provider": "github-copilot",
 					"model": "gpt-5.4",
 					"usage": {
-						"input": 1559,
-						"output": 67,
+						"input": 1567,
+						"output": 50,
 						"cacheRead": 0,
 						"cacheWrite": 0,
-						"reasoning": 38,
-						"totalTokens": 1626,
+						"reasoning": 20,
+						"totalTokens": 1617,
 						"cost": {
-							"input": 0.0038975000000000004,
-							"output": 0.001005,
+							"input": 0.0039175,
+							"output": 0.00075,
 							"cacheRead": 0,
 							"cacheWrite": 0,
-							"total": 0.004902500000000001
+							"total": 0.0046675
 						}
 					},
 					"stopReason": "toolUse",
@@ -1077,11 +1111,11 @@
 				{
 					"role": "toolResult",
 					"toolCallId": "toolcall_0",
-					"toolName": "read",
+					"toolName": "find",
 					"content": [
 						{
 							"type": "text",
-							"text": "ALPHA BETA GAMMA\n"
+							"text": "src/x.ts\nsrc/y.ts"
 						}
 					],
 					"isError": false,
@@ -1092,7 +1126,7 @@
 					"content": [
 						{
 							"type": "text",
-							"text": "ALPHA BETA GAMMA",
+							"text": "src/x.ts\nsrc/y.ts",
 							"textSignature": ""
 						}
 					],
@@ -1100,18 +1134,18 @@
 					"provider": "github-copilot",
 					"model": "gpt-5.4",
 					"usage": {
-						"input": 1643,
-						"output": 10,
+						"input": 1634,
+						"output": 11,
 						"cacheRead": 0,
 						"cacheWrite": 0,
 						"reasoning": 0,
-						"totalTokens": 1653,
+						"totalTokens": 1645,
 						"cost": {
-							"input": 0.0041075,
-							"output": 0.00015000000000000001,
+							"input": 0.004085,
+							"output": 0.000165,
 							"cacheRead": 0,
 							"cacheWrite": 0,
-							"total": 0.0042575
+							"total": 0.00425
 						}
 					},
 					"stopReason": "stop",
