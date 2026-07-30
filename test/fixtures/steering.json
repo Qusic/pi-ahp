@@ -8,7 +8,7 @@
 			"content": [
 				{
 					"type": "thinking",
-					"thinking": "",
+					"thinking": "**Simplifying the task**\n\nI need a simple answer here without using any tools. It seems like \"count slowly\" suggests that I should write out numbers one per line. That feels straightforward, but I want to make sure I'm doing this correctly. It might also help to keep it clear and easy to follow. Let's just focus on writing those numbers out neatly, one by one!",
 					"thinkingSignature": ""
 				},
 				{
@@ -22,17 +22,17 @@
 			"model": "gpt-5.4",
 			"usage": {
 				"input": 1562,
-				"output": 133,
+				"output": 146,
 				"cacheRead": 0,
 				"cacheWrite": 0,
-				"reasoning": 8,
-				"totalTokens": 1695,
+				"reasoning": 21,
+				"totalTokens": 1708,
 				"cost": {
 					"input": 0.0039050000000000005,
-					"output": 0.0019950000000000002,
+					"output": 0.00219,
 					"cacheRead": 0,
 					"cacheWrite": 0,
-					"total": 0.005900000000000001
+					"total": 0.006095000000000001
 				}
 			},
 			"stopReason": "stop",
@@ -43,11 +43,6 @@
 			"role": "assistant",
 			"content": [
 				{
-					"type": "thinking",
-					"thinking": "",
-					"thinkingSignature": ""
-				},
-				{
 					"type": "text",
 					"text": "STOPPED",
 					"textSignature": ""
@@ -57,18 +52,18 @@
 			"provider": "github-copilot",
 			"model": "gpt-5.4",
 			"usage": {
-				"input": 1704,
-				"output": 16,
-				"cacheRead": 0,
+				"input": 168,
+				"output": 6,
+				"cacheRead": 1536,
 				"cacheWrite": 0,
-				"reasoning": 8,
-				"totalTokens": 1720,
+				"reasoning": 0,
+				"totalTokens": 1710,
 				"cost": {
-					"input": 0.004260000000000001,
-					"output": 0.00024,
-					"cacheRead": 0,
+					"input": 0.00042,
+					"output": 0.00009,
+					"cacheRead": 0.000384,
 					"cacheWrite": 0,
-					"total": 0.0045000000000000005
+					"total": 0.000894
 				}
 			},
 			"stopReason": "stop",
@@ -88,9 +83,441 @@
 				"partialRef": 0
 			},
 			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "**Simplifying the task**\n\nI",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " need",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " a",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " simple",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " answer",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " here",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " without",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " using",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " any",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " tools",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ".",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " It",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " seems",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " like",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " \"",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "count",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " slowly",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "\"",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " suggests",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " that",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " should",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " write",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " out",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " numbers",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " one",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " per",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " line",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ".",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " That",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " feels",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " straightforward",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ",",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " but",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " want",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " to",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " make",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " sure",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I'm",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " doing",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " this",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " correctly",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ".",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " It",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " might",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " also",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " help",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " to",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " keep",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " it",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " clear",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " and",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " easy",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " to",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " follow",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ".",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " Let's",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " just",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " focus",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " on",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " writing",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " those",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " numbers",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " out",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " neatly",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ",",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " one",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " by",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " one",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "!",
+				"partialRef": 0
+			},
+			{
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "\n\n",
+				"partialRef": 0
+			},
+			{
 				"type": "thinking_end",
 				"contentIndex": 0,
-				"content": "",
+				"content": "**Simplifying the task**\n\nI need a simple answer here without using any tools. It seems like \"count slowly\" suggests that I should write out numbers one per line. That feels straightforward, but I want to make sure I'm doing this correctly. It might also help to keep it clear and easy to follow. Let's just focus on writing those numbers out neatly, one by one!",
 				"partialRef": 0
 			},
 			{
@@ -826,7 +1253,7 @@
 					"content": [
 						{
 							"type": "thinking",
-							"thinking": "",
+							"thinking": "**Simplifying the task**\n\nI need a simple answer here without using any tools. It seems like \"count slowly\" suggests that I should write out numbers one per line. That feels straightforward, but I want to make sure I'm doing this correctly. It might also help to keep it clear and easy to follow. Let's just focus on writing those numbers out neatly, one by one!",
 							"thinkingSignature": ""
 						},
 						{
@@ -840,17 +1267,17 @@
 					"model": "gpt-5.4",
 					"usage": {
 						"input": 1562,
-						"output": 133,
+						"output": 146,
 						"cacheRead": 0,
 						"cacheWrite": 0,
-						"reasoning": 8,
-						"totalTokens": 1695,
+						"reasoning": 21,
+						"totalTokens": 1708,
 						"cost": {
 							"input": 0.0039050000000000005,
-							"output": 0.0019950000000000002,
+							"output": 0.00219,
 							"cacheRead": 0,
 							"cacheWrite": 0,
-							"total": 0.005900000000000001
+							"total": 0.006095000000000001
 						}
 					},
 					"stopReason": "stop",
@@ -865,36 +1292,25 @@
 				"partialRef": 1
 			},
 			{
-				"type": "thinking_start",
-				"contentIndex": 0,
-				"partialRef": 1
-			},
-			{
-				"type": "thinking_end",
-				"contentIndex": 0,
-				"content": "",
-				"partialRef": 1
-			},
-			{
 				"type": "text_start",
-				"contentIndex": 1,
+				"contentIndex": 0,
 				"partialRef": 1
 			},
 			{
 				"type": "text_delta",
-				"contentIndex": 1,
+				"contentIndex": 0,
 				"delta": "STOP",
 				"partialRef": 1
 			},
 			{
 				"type": "text_delta",
-				"contentIndex": 1,
+				"contentIndex": 0,
 				"delta": "PED",
 				"partialRef": 1
 			},
 			{
 				"type": "text_end",
-				"contentIndex": 1,
+				"contentIndex": 0,
 				"content": "STOPPED",
 				"partialRef": 1
 			},
@@ -905,11 +1321,6 @@
 					"role": "assistant",
 					"content": [
 						{
-							"type": "thinking",
-							"thinking": "",
-							"thinkingSignature": ""
-						},
-						{
 							"type": "text",
 							"text": "STOPPED",
 							"textSignature": ""
@@ -919,18 +1330,18 @@
 					"provider": "github-copilot",
 					"model": "gpt-5.4",
 					"usage": {
-						"input": 1704,
-						"output": 16,
-						"cacheRead": 0,
+						"input": 168,
+						"output": 6,
+						"cacheRead": 1536,
 						"cacheWrite": 0,
-						"reasoning": 8,
-						"totalTokens": 1720,
+						"reasoning": 0,
+						"totalTokens": 1710,
 						"cost": {
-							"input": 0.004260000000000001,
-							"output": 0.00024,
-							"cacheRead": 0,
+							"input": 0.00042,
+							"output": 0.00009,
+							"cacheRead": 0.000384,
 							"cacheWrite": 0,
-							"total": 0.0045000000000000005
+							"total": 0.000894
 						}
 					},
 					"stopReason": "stop",
@@ -980,7 +1391,7 @@
 				"content": [
 					{
 						"type": "thinking",
-						"thinking": "",
+						"thinking": "**Simplifying the task**\n\nI need a simple answer here without using any tools. It seems like \"count slowly\" suggests that I should write out numbers one per line. That feels straightforward, but I want to make sure I'm doing this correctly. It might also help to keep it clear and easy to follow. Let's just focus on writing those numbers out neatly, one by one!",
 						"thinkingSignature": ""
 					},
 					{
@@ -1011,11 +1422,6 @@
 			}
 		},
 		{
-			"type": "queue_update",
-			"steering": ["Stop counting. Reply with the word STOPPED and nothing else."],
-			"followUp": []
-		},
-		{
 			"type": "message_update",
 			"assistantMessageEvent": {
 				"type": "thinking_start",
@@ -1028,9 +1434,806 @@
 		{
 			"type": "message_update",
 			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "**Simplifying the task**\n\nI"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " need"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " a"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " simple"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " answer"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " here"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " without"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " using"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " any"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " tools"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "."
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " It"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " seems"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " like"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " \""
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "count"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " slowly"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "\""
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " suggests"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " that"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " should"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " write"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " out"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "queue_update",
+			"steering": ["Stop counting. Reply with the word STOPPED and nothing else."],
+			"followUp": []
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " numbers"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " one"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " per"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " line"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "."
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " That"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " feels"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " straightforward"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ","
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " but"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " want"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " to"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " make"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " sure"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " I'm"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " doing"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " this"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " correctly"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "."
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " It"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " might"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " also"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " help"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " to"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " keep"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " it"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " clear"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " and"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " easy"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " to"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " follow"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "."
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " Let's"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " just"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " focus"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " on"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " writing"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " those"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " numbers"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " out"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " neatly"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": ","
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " one"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " by"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": " one"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "!"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "thinking_delta",
+				"contentIndex": 0,
+				"delta": "\n\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
 				"type": "thinking_end",
 				"contentIndex": 0,
-				"content": ""
+				"content": "**Simplifying the task**\n\nI need a simple answer here without using any tools. It seems like \"count slowly\" suggests that I should write out numbers one per line. That feels straightforward, but I want to make sure I'm doing this correctly. It might also help to keep it clear and easy to follow. Let's just focus on writing those numbers out neatly, one by one!"
 			},
 			"message": {
 				"role": "assistant"
@@ -2373,7 +3576,7 @@
 				"content": [
 					{
 						"type": "thinking",
-						"thinking": "",
+						"thinking": "**Simplifying the task**\n\nI need a simple answer here without using any tools. It seems like \"count slowly\" suggests that I should write out numbers one per line. That feels straightforward, but I want to make sure I'm doing this correctly. It might also help to keep it clear and easy to follow. Let's just focus on writing those numbers out neatly, one by one!",
 						"thinkingSignature": ""
 					},
 					{
@@ -2387,17 +3590,17 @@
 				"model": "gpt-5.4",
 				"usage": {
 					"input": 1562,
-					"output": 133,
+					"output": 146,
 					"cacheRead": 0,
 					"cacheWrite": 0,
-					"reasoning": 8,
-					"totalTokens": 1695,
+					"reasoning": 21,
+					"totalTokens": 1708,
 					"cost": {
 						"input": 0.0039050000000000005,
-						"output": 0.0019950000000000002,
+						"output": 0.00219,
 						"cacheRead": 0,
 						"cacheWrite": 0,
-						"total": 0.005900000000000001
+						"total": 0.006095000000000001
 					}
 				},
 				"stopReason": "stop",
@@ -2412,7 +3615,7 @@
 				"content": [
 					{
 						"type": "thinking",
-						"thinking": "",
+						"thinking": "**Simplifying the task**\n\nI need a simple answer here without using any tools. It seems like \"count slowly\" suggests that I should write out numbers one per line. That feels straightforward, but I want to make sure I'm doing this correctly. It might also help to keep it clear and easy to follow. Let's just focus on writing those numbers out neatly, one by one!",
 						"thinkingSignature": ""
 					},
 					{
@@ -2426,17 +3629,17 @@
 				"model": "gpt-5.4",
 				"usage": {
 					"input": 1562,
-					"output": 133,
+					"output": 146,
 					"cacheRead": 0,
 					"cacheWrite": 0,
-					"reasoning": 8,
-					"totalTokens": 1695,
+					"reasoning": 21,
+					"totalTokens": 1708,
 					"cost": {
 						"input": 0.0039050000000000005,
-						"output": 0.0019950000000000002,
+						"output": 0.00219,
 						"cacheRead": 0,
 						"cacheWrite": 0,
-						"total": 0.005900000000000001
+						"total": 0.006095000000000001
 					}
 				},
 				"stopReason": "stop",
@@ -2485,11 +3688,6 @@
 				"role": "assistant",
 				"content": [
 					{
-						"type": "thinking",
-						"thinking": "",
-						"thinkingSignature": ""
-					},
-					{
 						"type": "text",
 						"text": "STOPPED",
 						"textSignature": ""
@@ -2519,7 +3717,7 @@
 		{
 			"type": "message_update",
 			"assistantMessageEvent": {
-				"type": "thinking_start",
+				"type": "text_start",
 				"contentIndex": 0
 			},
 			"message": {
@@ -2529,29 +3727,8 @@
 		{
 			"type": "message_update",
 			"assistantMessageEvent": {
-				"type": "thinking_end",
-				"contentIndex": 0,
-				"content": ""
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
-				"type": "text_start",
-				"contentIndex": 1
-			},
-			"message": {
-				"role": "assistant"
-			}
-		},
-		{
-			"type": "message_update",
-			"assistantMessageEvent": {
 				"type": "text_delta",
-				"contentIndex": 1,
+				"contentIndex": 0,
 				"delta": "STOP"
 			},
 			"message": {
@@ -2562,7 +3739,7 @@
 			"type": "message_update",
 			"assistantMessageEvent": {
 				"type": "text_delta",
-				"contentIndex": 1,
+				"contentIndex": 0,
 				"delta": "PED"
 			},
 			"message": {
@@ -2573,7 +3750,7 @@
 			"type": "message_update",
 			"assistantMessageEvent": {
 				"type": "text_end",
-				"contentIndex": 1,
+				"contentIndex": 0,
 				"content": "STOPPED"
 			},
 			"message": {
@@ -2586,11 +3763,6 @@
 				"role": "assistant",
 				"content": [
 					{
-						"type": "thinking",
-						"thinking": "",
-						"thinkingSignature": ""
-					},
-					{
 						"type": "text",
 						"text": "STOPPED",
 						"textSignature": ""
@@ -2600,18 +3772,18 @@
 				"provider": "github-copilot",
 				"model": "gpt-5.4",
 				"usage": {
-					"input": 1704,
-					"output": 16,
-					"cacheRead": 0,
+					"input": 168,
+					"output": 6,
+					"cacheRead": 1536,
 					"cacheWrite": 0,
-					"reasoning": 8,
-					"totalTokens": 1720,
+					"reasoning": 0,
+					"totalTokens": 1710,
 					"cost": {
-						"input": 0.004260000000000001,
-						"output": 0.00024,
-						"cacheRead": 0,
+						"input": 0.00042,
+						"output": 0.00009,
+						"cacheRead": 0.000384,
 						"cacheWrite": 0,
-						"total": 0.0045000000000000005
+						"total": 0.000894
 					}
 				},
 				"stopReason": "stop",
@@ -2625,11 +3797,6 @@
 				"role": "assistant",
 				"content": [
 					{
-						"type": "thinking",
-						"thinking": "",
-						"thinkingSignature": ""
-					},
-					{
 						"type": "text",
 						"text": "STOPPED",
 						"textSignature": ""
@@ -2639,18 +3806,18 @@
 				"provider": "github-copilot",
 				"model": "gpt-5.4",
 				"usage": {
-					"input": 1704,
-					"output": 16,
-					"cacheRead": 0,
+					"input": 168,
+					"output": 6,
+					"cacheRead": 1536,
 					"cacheWrite": 0,
-					"reasoning": 8,
-					"totalTokens": 1720,
+					"reasoning": 0,
+					"totalTokens": 1710,
 					"cost": {
-						"input": 0.004260000000000001,
-						"output": 0.00024,
-						"cacheRead": 0,
+						"input": 0.00042,
+						"output": 0.00009,
+						"cacheRead": 0.000384,
 						"cacheWrite": 0,
-						"total": 0.0045000000000000005
+						"total": 0.000894
 					}
 				},
 				"stopReason": "stop",
@@ -2677,7 +3844,7 @@
 					"content": [
 						{
 							"type": "thinking",
-							"thinking": "",
+							"thinking": "**Simplifying the task**\n\nI need a simple answer here without using any tools. It seems like \"count slowly\" suggests that I should write out numbers one per line. That feels straightforward, but I want to make sure I'm doing this correctly. It might also help to keep it clear and easy to follow. Let's just focus on writing those numbers out neatly, one by one!",
 							"thinkingSignature": ""
 						},
 						{
@@ -2691,17 +3858,17 @@
 					"model": "gpt-5.4",
 					"usage": {
 						"input": 1562,
-						"output": 133,
+						"output": 146,
 						"cacheRead": 0,
 						"cacheWrite": 0,
-						"reasoning": 8,
-						"totalTokens": 1695,
+						"reasoning": 21,
+						"totalTokens": 1708,
 						"cost": {
 							"input": 0.0039050000000000005,
-							"output": 0.0019950000000000002,
+							"output": 0.00219,
 							"cacheRead": 0,
 							"cacheWrite": 0,
-							"total": 0.005900000000000001
+							"total": 0.006095000000000001
 						}
 					},
 					"stopReason": "stop",
@@ -2722,11 +3889,6 @@
 					"role": "assistant",
 					"content": [
 						{
-							"type": "thinking",
-							"thinking": "",
-							"thinkingSignature": ""
-						},
-						{
 							"type": "text",
 							"text": "STOPPED",
 							"textSignature": ""
@@ -2736,18 +3898,18 @@
 					"provider": "github-copilot",
 					"model": "gpt-5.4",
 					"usage": {
-						"input": 1704,
-						"output": 16,
-						"cacheRead": 0,
+						"input": 168,
+						"output": 6,
+						"cacheRead": 1536,
 						"cacheWrite": 0,
-						"reasoning": 8,
-						"totalTokens": 1720,
+						"reasoning": 0,
+						"totalTokens": 1710,
 						"cost": {
-							"input": 0.004260000000000001,
-							"output": 0.00024,
-							"cacheRead": 0,
+							"input": 0.00042,
+							"output": 0.00009,
+							"cacheRead": 0.000384,
 							"cacheWrite": 0,
-							"total": 0.0045000000000000005
+							"total": 0.000894
 						}
 					},
 					"stopReason": "stop",

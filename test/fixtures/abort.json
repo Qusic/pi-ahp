@@ -13,7 +13,7 @@
 				},
 				{
 					"type": "text",
-					"text": "1\n2\n3\n4\n5"
+					"text": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n"
 				}
 			],
 			"api": "openai-responses",
@@ -116,6 +116,84 @@
 				"partialRef": 0
 			},
 			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n",
+				"partialRef": 0
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "6",
+				"partialRef": 0
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n",
+				"partialRef": 0
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "7",
+				"partialRef": 0
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n",
+				"partialRef": 0
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "8",
+				"partialRef": 0
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n",
+				"partialRef": 0
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "9",
+				"partialRef": 0
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n",
+				"partialRef": 0
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "10",
+				"partialRef": 0
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n",
+				"partialRef": 0
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "11",
+				"partialRef": 0
+			},
+			{
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n",
+				"partialRef": 0
+			},
+			{
 				"type": "error",
 				"reason": "aborted",
 				"error": {
@@ -128,7 +206,7 @@
 						},
 						{
 							"type": "text",
-							"text": "1\n2\n3\n4\n5"
+							"text": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n"
 						}
 					],
 					"api": "openai-responses",
@@ -201,7 +279,7 @@
 					},
 					{
 						"type": "text",
-						"text": "1\n2\n3\n4\n5"
+						"text": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n"
 					}
 				],
 				"api": "openai-responses",
@@ -356,6 +434,149 @@
 			}
 		},
 		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "6"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "7"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "8"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "9"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "10"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "11"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
+			"type": "message_update",
+			"assistantMessageEvent": {
+				"type": "text_delta",
+				"contentIndex": 1,
+				"delta": "\n"
+			},
+			"message": {
+				"role": "assistant"
+			}
+		},
+		{
 			"type": "message_end",
 			"message": {
 				"role": "assistant",
@@ -367,7 +588,7 @@
 					},
 					{
 						"type": "text",
-						"text": "1\n2\n3\n4\n5"
+						"text": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n"
 					}
 				],
 				"api": "openai-responses",
@@ -405,7 +626,7 @@
 					},
 					{
 						"type": "text",
-						"text": "1\n2\n3\n4\n5"
+						"text": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n"
 					}
 				],
 				"api": "openai-responses",
@@ -455,7 +676,7 @@
 						},
 						{
 							"type": "text",
-							"text": "1\n2\n3\n4\n5"
+							"text": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n"
 						}
 					],
 					"api": "openai-responses",

@@ -46,6 +46,22 @@ interface Scenario {
 	readonly after?: (backend: InProcessPiBackend) => Promise<void>;
 }
 
+/** Resolves once the running turn has streamed `count` updates, or it ends. */
+function waitForUpdates(backend: InProcessPiBackend, count: number): Promise<void> {
+	return new Promise((resolve) => {
+		let seen = 0;
+		const unsubscribe = backend.subscribe((event) => {
+			if (event.type === "message_update") {
+				seen++;
+			}
+			if (seen >= count || event.type === "agent_settled") {
+				unsubscribe();
+				resolve();
+			}
+		});
+	});
+}
+
 const SCENARIOS: Scenario[] = [
 	{
 		name: "plain-text",
@@ -82,7 +98,11 @@ const SCENARIOS: Scenario[] = [
 		description: "A turn cancelled while it is running.",
 		prompt: "Count slowly from 1 to 60, one number per line, with no other text.",
 		during: async (backend) => {
-			await new Promise((resolve) => setTimeout(resolve, 1_500));
+			// Cancelled once the reply is demonstrably under way, rather than after
+			// a fixed wait: the same 1.5s produced anywhere from 9 to 119 events
+			// across runs, and the short ones cut the turn before there was any
+			// streamed content for the cancellation to interrupt.
+			await waitForUpdates(backend, 25);
 			await backend.abort();
 		},
 	},
@@ -91,7 +111,7 @@ const SCENARIOS: Scenario[] = [
 		description: "A steering message injected into a running turn.",
 		prompt: "Count slowly from 1 to 60, one number per line.",
 		during: async (backend) => {
-			await new Promise((resolve) => setTimeout(resolve, 1_500));
+			await waitForUpdates(backend, 25);
 			await backend.steer("Stop counting. Reply with the word STOPPED and nothing else.");
 		},
 	},
