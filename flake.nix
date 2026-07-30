@@ -81,7 +81,7 @@
               cp -r src node_modules package.json "$lib/"
               jq -r '.bin | to_entries[] | "\(.key) \(.value)"' package.json | \
                 while read -r name entry; do
-                  makeWrapper ${nodejs}/bin/node "$bin/$name" --add-flag "$lib/''${entry#./}"
+                  makeWrapper ${nodejs}/bin/node "$bin/$name" --add-flag "$lib/$entry"
                 done
               runHook postInstall
             '';

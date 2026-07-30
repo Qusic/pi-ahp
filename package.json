@@ -5,7 +5,8 @@
 	"type": "module",
 	"private": true,
 	"bin": {
-		"pi-ahp": "./src/cli.ts"
+		"pi-ahp": "src/cli.ts",
+		"pi-ahp-tunnel": "src/tunnel.ts"
 	},
 	"engines": {
 		"node": ">=24.0.0"
