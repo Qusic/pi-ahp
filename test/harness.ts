@@ -34,6 +34,8 @@ export interface Harness {
 	readonly deletedFiles: string[];
 	/** Opens a connected, not-yet-initialized client. */
 	connect(): Promise<AhpClient>;
+	/** Connects with an explicit query string, for token-parameter tests. */
+	connectWith(query: string): Promise<AhpClient>;
 	dispose(): Promise<void>;
 }
 
@@ -88,6 +90,12 @@ export async function startHarness(
 		url,
 		...(sessions ? { sessions } : {}),
 		deletedFiles,
+		async connectWith(query: string) {
+			const client = new AhpClient(await WebSocketTransport.connect(`${base}${query}`));
+			client.connect();
+			clients.push(client);
+			return client;
+		},
 		async connect() {
 			// `WebSocketTransport.connect` uses the global `WebSocket` (Node 21+),
 			// so no `ws` shim is needed on the client side.

@@ -125,3 +125,33 @@ describe("handshake", () => {
 		await client.ping();
 	});
 });
+
+describe("connection token", () => {
+	// VS Code's agent-host client appends the token as `tkn`, the name it uses
+	// for every connection token, and offers no way to change it. A host that
+	// only reads `token` rejects it with a 401 that names nothing.
+	for (const param of ["token", "tkn"]) {
+		it(`accepts the token as \`${param}\``, async () => {
+			const harness = await startHarness({ token: "secret" });
+			try {
+				const client = await harness.connectWith(`?${param}=secret`);
+				const result = await client.initialize({
+					clientId: nextClientId(),
+					protocolVersions: SUPPORTED_PROTOCOL_VERSIONS,
+				});
+				assert.equal(result.protocolVersion, PROTOCOL_VERSION);
+			} finally {
+				await harness.dispose();
+			}
+		});
+	}
+
+	it("rejects a wrong token", async () => {
+		const harness = await startHarness({ token: "secret" });
+		try {
+			await assert.rejects(harness.connectWith("?tkn=wrong"));
+		} finally {
+			await harness.dispose();
+		}
+	});
+});

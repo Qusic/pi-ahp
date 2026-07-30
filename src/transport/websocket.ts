@@ -88,7 +88,12 @@ export async function serveWebSocket(
 	httpServer.on("upgrade", (request, socket, head) => {
 		if (options.token) {
 			const url = new URL(request.url ?? "/", "http://localhost");
-			if (url.searchParams.get("token") !== options.token) {
+			// `tkn` is VS Code's connection-token parameter, which its agent-host
+			// client sends and does not let you rename; `token` is what the spec's
+			// own examples use. Accepting both is the difference between VS Code
+			// connecting and getting a 401 it cannot explain.
+			const presented = url.searchParams.get("token") ?? url.searchParams.get("tkn");
+			if (presented !== options.token) {
 				options.log?.("Rejecting upgrade: bad token");
 				socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
 				socket.destroy();
