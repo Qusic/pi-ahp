@@ -30,7 +30,7 @@ import {
 import { AhpClient } from "@microsoft/agent-host-protocol/client";
 import { WebSocketTransport } from "@microsoft/agent-host-protocol/ws";
 import { chatUri, sessionUri } from "../src/core/channels.ts";
-import { createPiHost } from "../src/pi-host.ts";
+import { createPiHost } from "../src/host/pi-host.ts";
 import { type RunningServer, serveWebSocket } from "../src/transport/websocket.ts";
 import { checkSchema } from "./support/schema.ts";
 

@@ -13,7 +13,7 @@ import { AhpErrorCodes, SUPPORTED_PROTOCOL_VERSIONS } from "@microsoft/agent-hos
 import { ProtocolError } from "./errors.ts";
 
 /** Versions this host speaks, most-preferred first. */
-export const HOST_SUPPORTED_VERSIONS: readonly string[] = SUPPORTED_PROTOCOL_VERSIONS;
+const HOST_SUPPORTED_VERSIONS: readonly string[] = SUPPORTED_PROTOCOL_VERSIONS;
 
 /**
  * Picks the client's most-preferred version that this host also speaks.

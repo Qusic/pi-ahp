@@ -167,7 +167,7 @@ function extractText(content: unknown): string {
  * Returns `undefined` for a file that is not a readable pi session so a single
  * corrupt file cannot break the whole catalogue.
  */
-export function readSessionSummary(file: SessionFile): SessionSummary | undefined {
+function readSessionSummary(file: SessionFile): SessionSummary | undefined {
 	let manager: SessionManager;
 	try {
 		manager = SessionManager.open(file.path);

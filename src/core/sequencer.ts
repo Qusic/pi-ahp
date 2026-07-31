@@ -16,7 +16,7 @@ import type { ActionEnvelope } from "@microsoft/agent-host-protocol";
  * `REPLAY_BUFFER_CAPACITY`. A client whose gap predates the buffer gets fresh
  * snapshots instead — correct, just more expensive.
  */
-export const DEFAULT_REPLAY_BUFFER_CAPACITY = 1000;
+const DEFAULT_REPLAY_BUFFER_CAPACITY = 1000;
 
 export class Sequencer {
 	#serverSeq = 0;

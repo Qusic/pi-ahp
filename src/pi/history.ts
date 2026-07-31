@@ -123,7 +123,7 @@ export const CLEAR_ALL_ANCHOR = "";
  * every assistant message and tool result until the next. That mirrors the live
  * mapper, where a turn spans everything from one prompt to `agent_settled`.
  */
-export function rebuildTurns(entries: readonly SessionEntry[], options: RebuildOptions = {}): Turn[] {
+function rebuildTurns(entries: readonly SessionEntry[], options: RebuildOptions = {}): Turn[] {
 	return rebuildHistory(entries, options).turns;
 }
 

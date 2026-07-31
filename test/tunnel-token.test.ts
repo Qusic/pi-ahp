@@ -19,7 +19,7 @@ import {
 	PROTOCOL_LABEL,
 	splitTunnelId,
 	TUNNEL_PORT,
-} from "../src/vscode-tunnel.ts";
+} from "../src/tunnel/vscode.ts";
 
 /** VS Code's implementation, transcribed. */
 function vscodeDerive(tunnelId: string): string {

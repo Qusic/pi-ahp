@@ -5,14 +5,14 @@
 	"type": "module",
 	"private": true,
 	"bin": {
-		"pi-ahp": "src/cli.ts",
-		"pi-ahp-tunnel": "src/tunnel.ts"
+		"pi-ahp": "src/bin/cli.ts",
+		"pi-ahp-tunnel": "src/bin/tunnel.ts"
 	},
 	"engines": {
 		"node": ">=24.0.0"
 	},
 	"scripts": {
-		"start": "node src/cli.ts",
+		"start": "node src/bin/cli.ts",
 		"test": "node --test",
 		"check": "tsc",
 		"lint": "biome check",

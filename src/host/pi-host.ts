@@ -5,19 +5,19 @@
 
 import { ModelRuntime } from "@earendil-works/pi-coding-agent";
 import type { CreateSessionParams, ModelSelection, URI } from "@microsoft/agent-host-protocol";
-import { installRootChannel } from "./channels/root.ts";
-import { AhpHost, type HostOptions } from "./core/host.ts";
-import { CompletionService, MENTION_TRIGGER } from "./pi/completions.ts";
-import { deleteSessionFile } from "./pi/delete-session.ts";
-import { InProcessPiBackend } from "./pi/in-process-backend.ts";
-import { buildAgentInfo, THINKING_CONFIG_KEY } from "./pi/models.ts";
-import type { ProjectTrustPolicy } from "./pi/project-trust.ts";
-import { ResourceService } from "./pi/resource-service.ts";
-import { ResourceWatchService } from "./pi/resource-watch.ts";
-import { PiSessionCatalogue } from "./pi/session-catalogue.ts";
-import { SessionConfigService } from "./pi/session-config.ts";
-import { SessionHydrator } from "./pi/session-hydrator.ts";
-import { type BackendFactory, type CreateSessionRequest, SessionRegistry } from "./pi/session-registry.ts";
+import { installRootChannel } from "../channels/root.ts";
+import { AhpHost, type HostOptions } from "../core/host.ts";
+import { CompletionService, MENTION_TRIGGER } from "../pi/completions.ts";
+import { deleteSessionFile } from "../pi/delete-session.ts";
+import { InProcessPiBackend } from "../pi/in-process-backend.ts";
+import { buildAgentInfo, THINKING_CONFIG_KEY } from "../pi/models.ts";
+import type { ProjectTrustPolicy } from "../pi/project-trust.ts";
+import { ResourceService } from "../pi/resource-service.ts";
+import { ResourceWatchService } from "../pi/resource-watch.ts";
+import { PiSessionCatalogue } from "../pi/session-catalogue.ts";
+import { SessionConfigService } from "../pi/session-config.ts";
+import { SessionHydrator } from "../pi/session-hydrator.ts";
+import { type BackendFactory, type CreateSessionRequest, SessionRegistry } from "../pi/session-registry.ts";
 
 export interface PiHostOptions extends HostOptions {
 	/** Working directory for sessions created without one. Defaults to `process.cwd()`. */

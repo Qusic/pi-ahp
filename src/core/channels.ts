@@ -12,19 +12,19 @@ import type { URI } from "@microsoft/agent-host-protocol";
 
 export const ROOT_CHANNEL = "ahp-root://";
 
-export const SESSION_SCHEME = "ahp-session:";
-export const CHAT_SCHEME = "ahp-chat:";
-export const TERMINAL_SCHEME = "ahp-terminal:";
-export const CHANGESET_SCHEME = "ahp-changeset:";
+const SESSION_SCHEME = "ahp-session:";
+const CHAT_SCHEME = "ahp-chat:";
+const TERMINAL_SCHEME = "ahp-terminal:";
+const CHANGESET_SCHEME = "ahp-changeset:";
 export const RESOURCE_WATCH_SCHEME = "ahp-resource-watch:";
 
 export type ChannelKind = "root" | "session" | "chat" | "terminal" | "changeset" | "resourceWatch";
 
-export function isRootChannel(uri: URI): boolean {
+function isRootChannel(uri: URI): boolean {
 	return uri === ROOT_CHANNEL;
 }
 
-export function isSessionChannel(uri: URI): boolean {
+function isSessionChannel(uri: URI): boolean {
 	return uri.startsWith(`${SESSION_SCHEME}/`);
 }
 
@@ -64,7 +64,7 @@ export function channelKind(uri: URI): ChannelKind | undefined {
 }
 
 /** `ahp-session:/<id>` → `<id>`. Returns `undefined` when the URI is not a session. */
-export function sessionIdFromUri(uri: URI): string | undefined {
+function sessionIdFromUri(uri: URI): string | undefined {
 	return isSessionChannel(uri) ? uri.slice(`${SESSION_SCHEME}/`.length) || undefined : undefined;
 }
 

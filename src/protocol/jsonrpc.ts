@@ -57,10 +57,6 @@ export function isJsonRpcNotification(message: unknown): message is JsonRpcNotif
 	return isObject(message) && typeof message.method === "string" && message.id === undefined;
 }
 
-export function isJsonRpcResponse(message: unknown): message is JsonRpcResponse {
-	return isObject(message) && typeof message.id === "number" && ("result" in message || "error" in message);
-}
-
 /**
  * Reads the universal routing key off a message's params.
  *

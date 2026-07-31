@@ -7,8 +7,8 @@
  * points call this instead.
  */
 
+import { type RunningServer, serveWebSocket } from "../transport/websocket.ts";
 import { createPiHost } from "./pi-host.ts";
-import { type RunningServer, serveWebSocket } from "./transport/websocket.ts";
 
 export const VERSION = "0.0.1";
 

@@ -3,8 +3,8 @@
  * `pi-ahp` — starts the host and prints the endpoint clients connect to.
  */
 
-import { loadSettings, SettingsError } from "./config.ts";
-import { closeOnSignal, startHost, VERSION } from "./serve.ts";
+import { loadSettings, SettingsError } from "../core/config.ts";
+import { closeOnSignal, startHost, VERSION } from "../host/serve.ts";
 
 function log(message: string): void {
 	process.stderr.write(`${message}\n`);

@@ -13,7 +13,7 @@ import type { AgentInfo, RootState, SessionSummary, URI } from "@microsoft/agent
 import { ROOT_CHANNEL } from "../core/channels.ts";
 import type { AhpHost } from "../core/host.ts";
 
-export function initialRootState(agents: AgentInfo[] = []): RootState {
+function initialRootState(agents: AgentInfo[] = []): RootState {
 	return { agents, activeSessions: 0 };
 }
 

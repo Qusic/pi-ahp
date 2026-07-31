@@ -29,12 +29,12 @@ export interface HostSettings {
 const CONFIG_DIR_NAME = ".pi";
 const DEFAULT_HOST = "127.0.0.1";
 
-export function getAhpDir(): string {
+function getAhpDir(): string {
 	const configDir = process.env.PI_CONFIG_DIR || join(homedir(), CONFIG_DIR_NAME);
 	return join(configDir, "ahp");
 }
 
-export function getSettingsPath(): string {
+function getSettingsPath(): string {
 	return process.env.PI_AHP_SETTINGS || join(getAhpDir(), "settings.json");
 }
 
@@ -103,7 +103,7 @@ export async function loadSettings(path: string = getSettingsPath()): Promise<Ho
 	};
 }
 
-export function writeSettings(settings: HostSettings, path: string = getSettingsPath()): void {
+function writeSettings(settings: HostSettings, path: string = getSettingsPath()): void {
 	mkdirSync(dirname(path), { recursive: true });
 	// Owner-only: the token is a bearer credential for the endpoint.
 	writeFileSync(path, `${JSON.stringify(settings, null, 2)}\n`, { mode: 0o600 });
