@@ -31,8 +31,6 @@ interface AjvInstance {
 	errorsText(errors: unknown, options?: { separator?: string }): string;
 }
 
-const SCHEMA_BASE = "https://microsoft.github.io/agent-host-protocol/schema";
-
 export type SchemaName = "state" | "actions" | "commands" | "notifications" | "errors";
 
 const SCHEMA_NAMES: readonly SchemaName[] = ["state", "actions", "commands", "notifications", "errors"];
@@ -216,7 +214,7 @@ function relaxKnownBitsetEnums(schemas: ReadonlyMap<SchemaName, Record<string, u
 	}
 }
 
-function loadAjv(): AjvInstance {
+function loadAjv(): { ajv: AjvInstance; schemaIds: Map<SchemaName, string> } {
 	const ajv = new Ajv2020({
 		// The generated schemas use annotations ajv does not know; they are not
 		// constraints, so strict mode would reject them for no benefit.
@@ -225,10 +223,20 @@ function loadAjv(): AjvInstance {
 		validateSchema: false,
 	});
 	const loaded = new Map<SchemaName, Record<string, unknown>>();
+	const schemaIds = new Map<SchemaName, string>();
 	for (const name of SCHEMA_NAMES) {
 		const schema = JSON.parse(readFileSync(join(SCHEMA_DIR, `${name}.schema.json`), "utf8")) as Record<string, unknown>;
 		strippedDanglingRefs += stripDanglingRefs(schema);
 		loaded.set(name, schema);
+		// Nothing is fetched — the files come from `$AHP_SPEC_PATH` — but ajv
+		// keys them by `$id`, so that is what a `$ref` has to name. Taking it
+		// from the file rather than restating the URL means a spec that moves
+		// its `$id` fails here instead of silently validating against nothing.
+		const id = schema.$id;
+		if (typeof id !== "string") {
+			throw new Error(`${name}.schema.json has no $id to reference it by`);
+		}
+		schemaIds.set(name, id);
 	}
 	relaxKnownRequiredDeviations(loaded);
 	relaxKnownBitsetEnums(loaded);
@@ -237,15 +245,19 @@ function loadAjv(): AjvInstance {
 	for (const schema of loaded.values()) {
 		ajv.addSchema(schema);
 	}
-	return ajv;
+	return { ajv, schemaIds };
 }
 
-const ajv = loadAjv();
+const { ajv, schemaIds } = loadAjv();
 const validators = new Map<string, AjvValidate>();
 
 /** Compiles (and caches) a validator for one named `$defs` entry. */
 function validatorFor(schema: SchemaName, def: string): AjvValidate {
-	const ref = `${SCHEMA_BASE}/${schema}.schema.json#/$defs/${def}`;
+	const id = schemaIds.get(schema);
+	if (id === undefined) {
+		throw new Error(`no schema loaded for ${schema}`);
+	}
+	const ref = `${id}#/$defs/${def}`;
 	let validate = validators.get(ref);
 	if (validate === undefined) {
 		validate = ajv.compile({ $ref: ref });

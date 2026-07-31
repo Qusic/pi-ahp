@@ -7,10 +7,26 @@
  * points call this instead.
  */
 
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { type RunningServer, serveWebSocket } from "../transport/websocket.ts";
 import { createPiHost } from "./pi-host.ts";
 
-export const VERSION = "0.0.1";
+/**
+ * Read from the manifest rather than restated here.
+ *
+ * The name and version go out in `serverInfo` during the handshake, so a copy
+ * that drifts from the package tells clients something untrue about what they
+ * are connected to. Resolved relative to this file, which keeps working when
+ * the package is installed somewhere else.
+ */
+const manifest = JSON.parse(
+	readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "..", "package.json"), "utf8"),
+) as { name: string; version: string };
+
+export const NAME = manifest.name;
+export const VERSION = manifest.version;
 
 export interface ServeOptions {
 	readonly host: string;
@@ -23,7 +39,7 @@ export interface ServeOptions {
 
 export async function startHost(options: ServeOptions): Promise<RunningServer> {
 	const { host: ahpHost } = await createPiHost({
-		serverInfo: { name: "pi-ahp", version: VERSION },
+		serverInfo: { name: NAME, version: VERSION },
 		defaultDirectory: `file://${options.workingDirectory}`,
 		workingDirectory: options.workingDirectory,
 		...(options.log ? { log: options.log } : {}),
