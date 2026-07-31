@@ -76,6 +76,72 @@ export function describeToolCall(toolName: string, args: unknown, workingDirecto
 	}
 }
 
+/**
+ * The one argument that says what a tool call is about.
+ *
+ * `toolInput` is rendered for the call itself, and the protocol carries no
+ * structured parameters next to it, so serialising the whole argument object
+ * spends the field on quoting and braces — a shell command comes out as
+ * `{"command":"ls -la","timeout":5}` rather than something a reader can run.
+ * Anything without an obvious subject keeps the full arguments, which is still
+ * the most informative thing available for it.
+ */
+export function toolInputFor(toolName: string, args: unknown): string | undefined {
+	const input = (args ?? {}) as Record<string, unknown>;
+	switch (toolName) {
+		case "bash":
+			return stringArg(input.command) ?? fullArguments(args);
+		case "grep":
+		case "find":
+			return searchInput(input) ?? fullArguments(args);
+		case "read":
+		case "write":
+		case "edit":
+		case "ls":
+			return stringArg(input.path) ?? fullArguments(args);
+		default:
+			return fullArguments(args);
+	}
+}
+
+function stringArg(value: unknown): string | undefined {
+	return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function fullArguments(args: unknown): string | undefined {
+	return args === undefined ? undefined : JSON.stringify(args, null, 2);
+}
+
+/**
+ * A search rendered as its pattern plus whatever narrows it.
+ *
+ * The pattern alone loses the difference between searching one directory and
+ * searching the tree. Models fill the defaults in explicitly — a capture has
+ * `path: "."`, a glob matching everything, `ignoreCase: false`, `limit: 100`
+ * — so appending everything present would bury the pattern in restated
+ * defaults. Only arguments that actually narrow the search are shown, in the
+ * order `rg` writes them, which is also how they read aloud.
+ */
+function searchInput(input: Record<string, unknown>): string | undefined {
+	const pattern = stringArg(input.pattern);
+	if (!pattern) {
+		return undefined;
+	}
+	const parts = [pattern];
+	const glob = stringArg(input.glob);
+	if (glob && glob !== "**/*") {
+		parts.push(`--glob ${glob}`);
+	}
+	if (input.ignoreCase === true) {
+		parts.push("--ignore-case");
+	}
+	const path = stringArg(input.path);
+	if (path && path !== ".") {
+		parts.push(`in ${path}`);
+	}
+	return parts.join(" ");
+}
+
 /** What to show between tool calls, while the model is producing output. */
 /**
  * The same description, phrased for a call that has finished.

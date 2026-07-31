@@ -41,7 +41,13 @@ import {
 	ToolResultContentType,
 	type UsageInfo,
 } from "@microsoft/agent-host-protocol";
-import { describeFinishedToolCall, describeToolCall, RESPONDING_ACTIVITY, THINKING_ACTIVITY } from "./activity.ts";
+import {
+	describeFinishedToolCall,
+	describeToolCall,
+	RESPONDING_ACTIVITY,
+	THINKING_ACTIVITY,
+	toolInputFor,
+} from "./activity.ts";
 
 /** How a turn ended, decided from the last assistant message's stop reason. */
 type TurnOutcome = "complete" | "cancelled" | "error";
@@ -125,6 +131,19 @@ function extractText(content: unknown): string {
 
 function textContent(text: string): ToolResultContent[] {
 	return [{ type: ToolResultContentType.Text, text }];
+}
+
+/**
+ * The unified diff pi computes for an edit, if this result carries one.
+ *
+ * `edit` is the only built-in tool that reports structured details, and its
+ * text says how many blocks were replaced — a count the client cannot render
+ * or check. The patch beside it is the part worth showing, in the same
+ * monospace block a shell command gets.
+ */
+function editPatch(result: unknown): string | undefined {
+	const patch = (result as { details?: { patch?: unknown } } | undefined)?.details?.patch;
+	return typeof patch === "string" && patch.length > 0 ? patch : undefined;
 }
 
 /** Flattens pi's tool result content blocks into the protocol's text blocks. */
@@ -527,6 +546,7 @@ export class TurnMapper {
 		const toolName = delta.toolCall?.name ?? "tool";
 		const args = delta.toolCall?.arguments;
 		const description = describeToolCall(toolName, args, this.#options.workingDirectory);
+		const toolInput = toolInputFor(toolName, args);
 		this.#liveToolCalls.set(toolCallId, describeFinishedToolCall(toolName, args, this.#options.workingDirectory));
 		return [
 			{
@@ -536,7 +556,7 @@ export class TurnMapper {
 				// Rendered while the call runs, and the same phrasing the activity
 				// indicator uses, so the two do not describe one call differently.
 				invocationMessage: description,
-				...(args !== undefined ? { toolInput: JSON.stringify(args) } : {}),
+				...(toolInput !== undefined ? { toolInput } : {}),
 				confirmed: ToolCallConfirmationReason.Setting,
 			},
 		];
@@ -565,7 +585,8 @@ export class TurnMapper {
 			return [];
 		}
 		const success = event.isError !== true;
-		const content = toolResultContent(event.result);
+		const patch = editPatch(event.result);
+		const content = patch ? textContent(patch) : toolResultContent(event.result);
 		// A failed tool has already said why — an ENOENT naming the path it could
 		// not open, a non-zero exit with its stderr. That text is what belongs in
 		// `error.message`, which is where a client looks; restating the tool's name

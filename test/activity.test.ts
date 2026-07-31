@@ -11,7 +11,7 @@ import { describe, it } from "node:test";
 import type { AgentSessionEvent } from "@earendil-works/pi-coding-agent";
 import { ActionType, type ChatState, chatReducer, type StateAction } from "@microsoft/agent-host-protocol";
 import { initialChatState } from "../src/channels/chat.ts";
-import { describeToolCall, RESPONDING_ACTIVITY, THINKING_ACTIVITY } from "../src/pi/activity.ts";
+import { describeToolCall, RESPONDING_ACTIVITY, THINKING_ACTIVITY, toolInputFor } from "../src/pi/activity.ts";
 import { TurnMapper, userTurnStarted } from "../src/pi/event-mapper.ts";
 import { checkSchema } from "./support/schema.ts";
 
@@ -141,5 +141,31 @@ describe("activity over a turn", () => {
 		for (const action of actions.filter((a) => a.type === ActionType.ChatActivityChanged)) {
 			assert.equal(checkSchema("actions", "StateAction", action), undefined);
 		}
+	});
+
+	describe("toolInputFor", () => {
+		it("shows the one argument a call is about", () => {
+			assert.equal(toolInputFor("bash", { command: "ls -la", timeout: 5 }), "ls -la");
+			assert.equal(toolInputFor("read", { path: "a.ts", offset: 1, limit: 50 }), "a.ts");
+		});
+
+		it("keeps a search's scope, and drops the defaults models restate", () => {
+			// Every one of these is what a capture actually contained: the model
+			// fills in the defaults rather than omitting them.
+			assert.equal(
+				toolInputFor("grep", { pattern: "BEACON", path: ".", glob: "**/*", ignoreCase: false, limit: 100 }),
+				"BEACON",
+			);
+			assert.equal(
+				toolInputFor("grep", { pattern: "TODO", path: "src", glob: "*.ts", ignoreCase: true }),
+				"TODO --glob *.ts --ignore-case in src",
+			);
+		});
+
+		it("falls back to the arguments for a tool it does not know", () => {
+			// An extension's tool has no argument this code can single out, and
+			// its arguments are still the most informative thing available.
+			assert.equal(toolInputFor("some-extension-tool", { a: 1 }), '{\n  "a": 1\n}');
+		});
 	});
 });

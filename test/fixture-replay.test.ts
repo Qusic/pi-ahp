@@ -211,6 +211,38 @@ describe("recorded stream replay — per scenario", () => {
 		}
 	});
 
+	it("shows a tool's subject rather than its arguments as JSON", () => {
+		// `toolInput` is what a client renders for the call itself, and the
+		// protocol carries no structured parameters beside it, so serialising the
+		// argument object spends the field on quoting and braces. Each of pi's
+		// tools has one argument that says what the call is about.
+		for (const { fixture, state } of byName.values()) {
+			for (const call of toolCalls(state)) {
+				if (call.toolInput === undefined) {
+					continue;
+				}
+				assert.ok(
+					!call.toolInput.startsWith("{"),
+					`${fixture.name}: ${call.toolName} shows its arguments as JSON: ${call.toolInput.slice(0, 60)}`,
+				);
+			}
+		}
+	});
+
+	it("tool-edit: hands the client the patch, not a count of edited blocks", () => {
+		// pi computes a unified diff for every edit and reports only how many
+		// blocks it replaced. The patch is the part a client can render — the
+		// same monospace, syntax-highlighted block a shell command gets.
+		const { state } = get("tool-edit");
+		const edits = toolCalls(state).filter((call) => call.toolName === "edit");
+		assert.ok(edits.length >= 1, "expected an edit call");
+		for (const call of edits) {
+			const shown = toolResultText(call);
+			assert.match(shown, /^--- |\n--- /, `edit result carries no patch: ${shown.slice(0, 80)}`);
+			assert.match(shown, /^\+.*$/m, "a patch with no added lines is not a patch");
+		}
+	});
+
 	it("single-tool: runs one tool and answers from its result", () => {
 		const { state } = get("single-tool");
 		assert.equal(state.turns[0]?.state, TurnState.Complete);
