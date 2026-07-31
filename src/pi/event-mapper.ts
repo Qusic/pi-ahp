@@ -41,7 +41,7 @@ import {
 	ToolResultContentType,
 	type UsageInfo,
 } from "@microsoft/agent-host-protocol";
-import { describeToolCall, RESPONDING_ACTIVITY, THINKING_ACTIVITY } from "./activity.ts";
+import { describeFinishedToolCall, describeToolCall, RESPONDING_ACTIVITY, THINKING_ACTIVITY } from "./activity.ts";
 
 /** How a turn ended, decided from the last assistant message's stop reason. */
 type TurnOutcome = "complete" | "cancelled" | "error";
@@ -140,6 +140,14 @@ function toolResultContent(result: unknown): ToolResultContent[] | undefined {
 	return texts.length > 0 ? textContent(texts.join("\n")) : undefined;
 }
 
+/** The text a tool reported, joined as a client would render it. */
+function textOf(content: ToolResultContent[] | undefined): string {
+	return (content ?? [])
+		.map((block) => (block as { type?: string; text?: string }).text ?? "")
+		.join("")
+		.trim();
+}
+
 /**
  * Maps one AHP turn.
  *
@@ -167,7 +175,8 @@ export class TurnMapper {
 	/** contentIndex → toolCallId, for correlating streaming deltas. */
 	#toolCallsByIndex = new Map<number, string>();
 	/** Tool calls that reached `ready` and have not completed. */
-	readonly #liveToolCalls = new Set<string>();
+	/** Live tool calls, against how each should be described once it ends. */
+	readonly #liveToolCalls = new Map<string, string>();
 	#outcome: TurnOutcome = "complete";
 	#errorMessage: string | undefined;
 	#finished = false;
@@ -515,16 +524,18 @@ export class TurnMapper {
 			return [];
 		}
 		this.#toolCallsByIndex.set(contentIndex, toolCallId);
-		this.#liveToolCalls.add(toolCallId);
-
 		const toolName = delta.toolCall?.name ?? "tool";
 		const args = delta.toolCall?.arguments;
+		const description = describeToolCall(toolName, args, this.#options.workingDirectory);
+		this.#liveToolCalls.set(toolCallId, describeFinishedToolCall(toolName, args, this.#options.workingDirectory));
 		return [
 			{
 				type: ActionType.ChatToolCallReady,
 				turnId: this.turnId,
 				toolCallId,
-				invocationMessage: toolName,
+				// Rendered while the call runs, and the same phrasing the activity
+				// indicator uses, so the two do not describe one call differently.
+				invocationMessage: description,
 				...(args !== undefined ? { toolInput: JSON.stringify(args) } : {}),
 				confirmed: ToolCallConfirmationReason.Setting,
 			},
@@ -549,17 +560,25 @@ export class TurnMapper {
 	}
 
 	#onToolEnd(event: { toolCallId: string; toolName: string; result?: unknown; isError?: boolean }): StateAction[] {
+		const finished = this.#liveToolCalls.get(event.toolCallId);
 		if (!this.#liveToolCalls.delete(event.toolCallId)) {
 			return [];
 		}
 		const success = event.isError !== true;
 		const content = toolResultContent(event.result);
+		// A failed tool has already said why — an ENOENT naming the path it could
+		// not open, a non-zero exit with its stderr. That text is what belongs in
+		// `error.message`, which is where a client looks; restating the tool's name
+		// there leaves the reason visible only to clients that also render content.
+		const reported = textOf(content);
 		const result: ToolCallResult = {
 			success,
-			pastTenseMessage: success ? `Ran ${event.toolName}` : `${event.toolName} failed`,
+			// Reuses what the call announced, so the completed line names the same
+			// subject the running one did rather than dropping back to the tool.
+			pastTenseMessage: success ? (finished ?? `Ran ${event.toolName}`) : `${finished ?? event.toolName} failed`,
 			...(content ? { content } : {}),
 			// `ToolCallResult.error` is its own shape (message + code), not `ErrorInfo`.
-			...(success ? {} : { error: { message: `${event.toolName} failed` } }),
+			...(success ? {} : { error: { message: reported || `${event.toolName} failed` } }),
 		};
 		return [{ type: ActionType.ChatToolCallComplete, turnId: this.turnId, toolCallId: event.toolCallId, result }];
 	}

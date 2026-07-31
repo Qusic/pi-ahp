@@ -231,11 +231,18 @@ describe("opening a session from the catalogue", () => {
 			parts.map((part) => part.kind),
 			[ResponsePartKind.Reasoning, ResponsePartKind.ToolCall, ResponsePartKind.Markdown],
 		);
-		const toolCall = (parts[1] as { toolCall: { status: string; content?: unknown[] } }).toolCall;
+		const toolCall = (
+			parts[1] as {
+				toolCall: { status: string; toolName?: string; content?: { type: string; text?: string }[] };
+			}
+		).toolCall;
 		// A stored transcript has no partial state: the call is finished, with
-		// the output that came back.
+		// the output that came back. Pairing is the point of this test, so the
+		// result has to be the one recorded against *this* call — a rebuild that
+		// attaches some other tool's output would still leave content here.
 		assert.equal(toolCall.status, ToolCallStatus.Completed);
-		assert.ok(toolCall.content);
+		assert.equal(toolCall.toolName, "read");
+		assert.deepEqual(toolCall.content, [{ type: "text", text: "ALPHA" }]);
 	});
 
 	it("still answers NotFound for a session that really does not exist", async () => {

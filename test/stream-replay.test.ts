@@ -32,6 +32,10 @@ const FIXTURE_DIR = join(dirname(fileURLToPath(import.meta.url)), "fixtures");
 const WORKSPACE_FILES: Readonly<Record<string, string>> = {
 	"note.txt": "ALPHA\n",
 	"a.txt": "one\ntwo\nthree\n",
+	// `tool-edit` replaces a line in this one. An edit against a file that is
+	// missing, or whose text does not contain the recorded `oldText`, fails
+	// where the capture succeeded and the turn takes a different shape.
+	"greet.ts": "export function greet(name: string) {\n\treturn `Hi ${name}`;\n}\n",
 };
 
 /**

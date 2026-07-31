@@ -87,11 +87,31 @@ function markdownText(state: ChatState): string {
 		.join("");
 }
 
-function toolCalls(state: ChatState): { status: string; toolName: string; success?: boolean }[] {
+interface ReplayedToolCall {
+	readonly status: string;
+	readonly toolName: string;
+	readonly success?: boolean;
+	readonly displayName?: string;
+	readonly invocationMessage?: string;
+	readonly pastTenseMessage?: string;
+	readonly toolInput?: string;
+	readonly content?: readonly { readonly type: string; readonly text?: string }[];
+	readonly error?: { readonly message?: string };
+}
+
+function toolCalls(state: ChatState): ReplayedToolCall[] {
 	const turn = state.turns[0] ?? state.activeTurn;
 	return (turn?.responseParts ?? [])
 		.filter((part) => part.kind === ResponsePartKind.ToolCall)
-		.map((part) => (part as { toolCall: { status: string; toolName: string; success?: boolean } }).toolCall);
+		.map((part) => (part as { toolCall: ReplayedToolCall }).toolCall);
+}
+
+/** The text a tool reported, as the client would concatenate it. */
+function toolResultText(call: ReplayedToolCall): string {
+	return (call.content ?? [])
+		.filter((block) => block.type === "text")
+		.map((block) => block.text ?? "")
+		.join("");
 }
 
 describe("recorded stream replay — invariants", () => {
@@ -164,6 +184,33 @@ describe("recorded stream replay — per scenario", () => {
 		assert.match(markdownText(state), /PONG/i);
 	});
 
+	it("describes a tool call in terms a user can act on", () => {
+		// These three fields are what a client renders around a tool call: a
+		// heading, a line while it runs, and a line once it has. pi knows which
+		// file was read or which command ran, and a message that only repeats the
+		// tool's name spends all three on saying `read` three times.
+		for (const { fixture, state } of byName.values()) {
+			for (const call of toolCalls(state)) {
+				if (!call.toolInput || call.toolInput === "{}") {
+					continue;
+				}
+				assert.notEqual(
+					call.invocationMessage,
+					call.toolName,
+					`${fixture.name}: ${call.toolName} announces itself with nothing but its own name`,
+				);
+				// The two lines sit next to each other in a transcript, one for a
+				// call in flight and one for a call that finished. Identical text
+				// leaves a completed call still claiming to be running.
+				assert.notEqual(
+					call.pastTenseMessage,
+					call.invocationMessage,
+					`${fixture.name}: ${call.toolName} still says it is ${call.invocationMessage} after it finished`,
+				);
+			}
+		}
+	});
+
 	it("single-tool: runs one tool and answers from its result", () => {
 		const { state } = get("single-tool");
 		assert.equal(state.turns[0]?.state, TurnState.Complete);
@@ -197,6 +244,19 @@ describe("recorded stream replay — per scenario", () => {
 		const { state } = get("tool-error");
 		const failed = toolCalls(state).filter((call) => call.success === false);
 		assert.ok(failed.length >= 1, "expected a failed tool call");
+
+		// What the client shows for a failure is `error.message`. pi says why —
+		// here an ENOENT naming the missing path — and a message that only
+		// repeats the tool's name tells the user nothing they did not know.
+		for (const call of failed) {
+			const reported = toolResultText(call);
+			assert.ok(reported.length > 0, `${call.toolName}: no failure text to show`);
+			assert.equal(
+				call.error?.message,
+				reported,
+				`${call.toolName}: error.message should carry what pi reported, not a restatement of the tool name`,
+			);
+		}
 		// The agent recovers and answers, so the turn itself still completes.
 		assert.equal(state.turns[0]?.state, TurnState.Complete);
 	});

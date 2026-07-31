@@ -228,6 +228,10 @@ describe("resource operations", () => {
 			(reason: unknown) => reason,
 		);
 		assert.ok(error instanceof RpcError, "a non-recursive delete must not take the tree with it");
+		// `PermissionDenied`, not the `ResourceExists` the other refusals here
+		// use: a client that branches on the code has to be able to tell a
+		// directory it may not remove from a file that is already there.
+		assert.equal(error.code, -32009);
 		assert.ok(existsSync(doomed));
 
 		await fixture.client.resourceDelete({ uri: uri(doomed), recursive: true });

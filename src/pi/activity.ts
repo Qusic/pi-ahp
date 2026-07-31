@@ -77,5 +77,30 @@ export function describeToolCall(toolName: string, args: unknown, workingDirecto
 }
 
 /** What to show between tool calls, while the model is producing output. */
+/**
+ * The same description, phrased for a call that has finished.
+ *
+ * The two sit next to each other in a transcript — one line for a call in
+ * flight, one for a call that completed — so reusing the present-tense text
+ * leaves a finished call still claiming to be running. Only the leading verb
+ * changes, which keeps the subject identical between them.
+ */
+const PAST_TENSE_VERBS: Record<string, string> = {
+	Reading: "Read",
+	Writing: "Wrote",
+	Editing: "Edited",
+	Running: "Ran",
+	Listing: "Listed",
+	Finding: "Found",
+	Searching: "Searched",
+};
+
+export function describeFinishedToolCall(toolName: string, args: unknown, workingDirectory?: string): string {
+	const description = describeToolCall(toolName, args, workingDirectory);
+	const [verb, ...rest] = description.split(" ");
+	const past = verb ? PAST_TENSE_VERBS[verb] : undefined;
+	return past ? [past, ...rest].join(" ") : description;
+}
+
 export const THINKING_ACTIVITY = "Thinking";
 export const RESPONDING_ACTIVITY = "Responding";
