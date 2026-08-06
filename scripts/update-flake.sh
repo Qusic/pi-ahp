@@ -19,9 +19,16 @@ fi
 echo "==> nix flake update"
 nix flake update
 
-echo "==> nix-update (pnpmDeps.hash)"
+echo "==> nix-update (dependency hashes)"
 git add flake.nix flake.lock
-nix run nixpkgs#nix-update -- --flake --version=skip default
+for attr in $(nix eval --impure --raw --expr '
+	with builtins; concatStringsSep "\n" (
+		filter (n: n != "default") (attrNames (getFlake (toString ./.)).packages.${currentSystem})
+	)
+'); do
+	echo "    ${attr}"
+	nix run nixpkgs#nix-update -- --flake --version=skip "$attr"
+done
 
 echo "==> nixfmt"
 nix run nixpkgs#nixfmt -- flake.nix

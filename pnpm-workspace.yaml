@@ -1,7 +1,9 @@
 allowBuilds:
   '@google/genai': false
   protobufjs: false
-
+minimumReleaseAgeExclude:
+  - '@microsoft/agent-host-protocol'
+  - '@earendil-works/*'
 patchedDependencies:
   # for isolatedModules. regenerate with scripts/repatch-protocol.sh.
   '@microsoft/agent-host-protocol': patches/@microsoft__agent-host-protocol.patch

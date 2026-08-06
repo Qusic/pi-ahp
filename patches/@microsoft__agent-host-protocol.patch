@@ -42,11 +42,24 @@ index ff9357a891675fa1f74e6c51e5d520ea25cf934d..23cb049848b6505e3feeef76a8cd2ec3
      /** Applies to the whole changeset. */
      Changeset = "changeset",
      /** Applies to a single file within the changeset. */
+diff --git a/dist/types/channels-chat/commands.d.ts b/dist/types/channels-chat/commands.d.ts
+index 460bd3035eca27d2d770a6b04a6dda5f3dd1b70d..a7daaa6e4b8a171bab66b7e8ec01d1be7894e58c 100644
+--- a/dist/types/channels-chat/commands.d.ts
++++ b/dist/types/channels-chat/commands.d.ts
+@@ -9,7 +9,7 @@ import type { Message, SideChatSelection } from './state.js';
+ /**
+  * How a new chat uses its source chat and turn.
+  */
+-export declare const enum ChatSourceKind {
++export declare enum ChatSourceKind {
+     /** Copy source history through the referenced turn into the new chat. */
+     Fork = "fork",
+     /** Supply source context without copying it into the new chat's visible history. */
 diff --git a/dist/types/channels-chat/state.d.ts b/dist/types/channels-chat/state.d.ts
-index 8a6286271838597b1172ba42de503898fdbe9cb9..f1b11b930bd2940a0b7142d311aac2a3f737f6b7 100644
+index f53a2e79dfd5c9ff09ebb8e0014f7d8259c8dc59..17323c342b778e1ab0a8b0e1a0c9c08e8eb77c1d 100644
 --- a/dist/types/channels-chat/state.d.ts
 +++ b/dist/types/channels-chat/state.d.ts
-@@ -131,7 +131,7 @@ export interface ChatSummary {
+@@ -132,7 +132,7 @@ export interface ChatSummary {
   *
   * @category Chat State
   */
@@ -55,7 +68,7 @@ index 8a6286271838597b1172ba42de503898fdbe9cb9..f1b11b930bd2940a0b7142d311aac2a3
      /** User created the chat explicitly (e.g. via the host UI). */
      User = "user",
      /** Forked from an existing chat at a specific turn. */
-@@ -176,7 +176,7 @@ export type ChatOrigin = {
+@@ -223,7 +223,7 @@ export type ChatOrigin = {
   *
   * @category Chat State
   */
@@ -64,7 +77,7 @@ index 8a6286271838597b1172ba42de503898fdbe9cb9..f1b11b930bd2940a0b7142d311aac2a3
      /** User can send messages and watch (default when absent) */
      Full = "full",
      /** User can watch but not send messages */
-@@ -189,7 +189,7 @@ export declare const enum ChatInteractivity {
+@@ -236,7 +236,7 @@ export declare const enum ChatInteractivity {
   *
   * @category Pending Message Types
   */
@@ -73,7 +86,7 @@ index 8a6286271838597b1172ba42de503898fdbe9cb9..f1b11b930bd2940a0b7142d311aac2a3
      /** Injected into the current turn at a convenient point */
      Steering = "steering",
      /** Sent automatically as a new turn after the current turn finishes */
-@@ -215,7 +215,7 @@ export interface PendingMessage {
+@@ -262,7 +262,7 @@ export interface PendingMessage {
   *
   * @category Chat Input Types
   */
@@ -82,7 +95,7 @@ index 8a6286271838597b1172ba42de503898fdbe9cb9..f1b11b930bd2940a0b7142d311aac2a3
      Accept = "accept",
      Decline = "decline",
      Cancel = "cancel"
-@@ -225,7 +225,7 @@ export declare const enum ChatInputResponseKind {
+@@ -272,7 +272,7 @@ export declare const enum ChatInputResponseKind {
   *
   * @category Chat Input Types
   */
@@ -91,7 +104,7 @@ index 8a6286271838597b1172ba42de503898fdbe9cb9..f1b11b930bd2940a0b7142d311aac2a3
      Text = "text",
      Number = "number",
      Integer = "integer",
-@@ -347,7 +347,7 @@ export interface ChatInputRequest {
+@@ -394,7 +394,7 @@ export interface ChatInputRequest {
   *
   * @category Chat Input Types
   */
@@ -100,7 +113,7 @@ index 8a6286271838597b1172ba42de503898fdbe9cb9..f1b11b930bd2940a0b7142d311aac2a3
      Text = "text",
      Number = "number",
      Boolean = "boolean",
-@@ -402,7 +402,7 @@ export interface ChatInputSkipped {
+@@ -449,7 +449,7 @@ export interface ChatInputSkipped {
   *
   * @category Chat Input Types
   */
@@ -109,7 +122,7 @@ index 8a6286271838597b1172ba42de503898fdbe9cb9..f1b11b930bd2940a0b7142d311aac2a3
      Draft = "draft",
      Submitted = "submitted",
      Skipped = "skipped"
-@@ -418,7 +418,7 @@ export type ChatInputAnswer = ChatInputAnswered | ChatInputSkipped;
+@@ -465,7 +465,7 @@ export type ChatInputAnswer = ChatInputAnswered | ChatInputSkipped;
   *
   * @category Turn Types
   */
@@ -118,7 +131,7 @@ index 8a6286271838597b1172ba42de503898fdbe9cb9..f1b11b930bd2940a0b7142d311aac2a3
      Complete = "complete",
      Cancelled = "cancelled",
      Error = "error"
-@@ -428,7 +428,7 @@ export declare const enum TurnState {
+@@ -475,7 +475,7 @@ export declare const enum TurnState {
   *
   * @category Turn Types
   */
@@ -127,7 +140,7 @@ index 8a6286271838597b1172ba42de503898fdbe9cb9..f1b11b930bd2940a0b7142d311aac2a3
      /** A simple, opaque attachment whose representation is described by the producer. */
      Simple = "simple",
      /** An attachment whose data is embedded inline as a base64 string. */
-@@ -695,7 +695,7 @@ export type MessageAttachment = SimpleMessageAttachment | MessageEmbeddedResourc
+@@ -779,7 +779,7 @@ export type MessageAttachment = SimpleMessageAttachment | MessageEmbeddedResourc
   *
   * @category Response Parts
   */
@@ -136,7 +149,7 @@ index 8a6286271838597b1172ba42de503898fdbe9cb9..f1b11b930bd2940a0b7142d311aac2a3
      Markdown = "markdown",
      ContentRef = "contentRef",
      ToolCall = "toolCall",
-@@ -814,7 +814,7 @@ export interface SystemNotificationResponsePart {
+@@ -898,7 +898,7 @@ export interface SystemNotificationResponsePart {
   *
   * @category Tool Call Types
   */
@@ -145,7 +158,7 @@ index 8a6286271838597b1172ba42de503898fdbe9cb9..f1b11b930bd2940a0b7142d311aac2a3
      Streaming = "streaming",
      PendingConfirmation = "pending-confirmation",
      Running = "running",
-@@ -837,7 +837,7 @@ export declare const enum ToolCallStatus {
+@@ -921,7 +921,7 @@ export declare const enum ToolCallStatus {
   *
   * @category Tool Call Types
   */
@@ -154,7 +167,7 @@ index 8a6286271838597b1172ba42de503898fdbe9cb9..f1b11b930bd2940a0b7142d311aac2a3
      NotNeeded = "not-needed",
      UserAction = "user-action",
      Setting = "setting"
-@@ -847,7 +847,7 @@ export declare const enum ToolCallConfirmationReason {
+@@ -931,7 +931,7 @@ export declare const enum ToolCallConfirmationReason {
   *
   * @category Tool Call Types
   */
@@ -163,7 +176,7 @@ index 8a6286271838597b1172ba42de503898fdbe9cb9..f1b11b930bd2940a0b7142d311aac2a3
      Judge = "judge"
  }
  /**
-@@ -855,7 +855,7 @@ export declare const enum ToolCallRiskAssessmentKind {
+@@ -939,7 +939,7 @@ export declare const enum ToolCallRiskAssessmentKind {
   *
   * @category Tool Call Types
   */
@@ -172,7 +185,7 @@ index 8a6286271838597b1172ba42de503898fdbe9cb9..f1b11b930bd2940a0b7142d311aac2a3
      Loading = "loading",
      Complete = "complete"
  }
-@@ -890,7 +890,7 @@ export type ToolCallRiskAssessment = ToolCallRiskAssessmentLoadingState | ToolCa
+@@ -974,7 +974,7 @@ export type ToolCallRiskAssessment = ToolCallRiskAssessmentLoadingState | ToolCa
   *
   * @category Tool Call Types
   */
@@ -181,7 +194,7 @@ index 8a6286271838597b1172ba42de503898fdbe9cb9..f1b11b930bd2940a0b7142d311aac2a3
      Denied = "denied",
      Skipped = "skipped",
      ResultDenied = "result-denied"
-@@ -900,7 +900,7 @@ export declare const enum ToolCallCancellationReason {
+@@ -984,7 +984,7 @@ export declare const enum ToolCallCancellationReason {
   *
   * @category Tool Call Types
   */
@@ -190,7 +203,7 @@ index 8a6286271838597b1172ba42de503898fdbe9cb9..f1b11b930bd2940a0b7142d311aac2a3
      Approve = "approve",
      Deny = "deny"
  }
-@@ -927,7 +927,7 @@ export interface ConfirmationOption {
+@@ -1011,7 +1011,7 @@ export interface ConfirmationOption {
       */
      group?: number;
  }
@@ -199,7 +212,7 @@ index 8a6286271838597b1172ba42de503898fdbe9cb9..f1b11b930bd2940a0b7142d311aac2a3
      Client = "client",
      MCP = "mcp"
  }
-@@ -1194,7 +1194,7 @@ export type ToolCallConfirmationState = ToolCallPendingConfirmationState | ToolC
+@@ -1291,7 +1291,7 @@ export type ToolCallConfirmationState = ToolCallPendingConfirmationState | ToolC
   *
   * @category Tool Result Content
   */
@@ -222,7 +235,7 @@ index 8cc925a46ba42679eb89c857d80827371bbc0ae2..8643d445a8f3c831f1811c31bdab7aa4
      Updated = "updated",
      Deleted = "deleted"
 diff --git a/dist/types/channels-root/state.d.ts b/dist/types/channels-root/state.d.ts
-index 26068f9d1591bd2c14893ab9ef20c4494cd724a6..c8f40e7d16dc1e78f87b18a3c644ffdaba782f0d 100644
+index 929d7eef9534fb3a4d55ab41430f6ee1c26eaa88..f3fb6d03c617b665af34445e1e75d749ab400aca 100644
 --- a/dist/types/channels-root/state.d.ts
 +++ b/dist/types/channels-root/state.d.ts
 @@ -11,7 +11,7 @@ import type { Customization } from '../channels-session/state.js';
@@ -235,10 +248,10 @@ index 26068f9d1591bd2c14893ab9ef20c4494cd724a6..c8f40e7d16dc1e78f87b18a3c644ffda
      Disabled = "disabled",
      Unconfigured = "unconfigured"
 diff --git a/dist/types/channels-session/commands.d.ts b/dist/types/channels-session/commands.d.ts
-index 7c0b2aa0dc5b5faf40d311da8a525d8c4effab96..67afb728ce9cb7bc4129eed94d730451e6d1882b 100644
+index c34d8952f575acbbfccb57a25bbf0196059e2268..8f0bb3a394414fd338ef149413a5c445c45e113f 100644
 --- a/dist/types/channels-session/commands.d.ts
 +++ b/dist/types/channels-session/commands.d.ts
-@@ -154,7 +154,7 @@ export interface FetchTurnsResult {
+@@ -170,7 +170,7 @@ export interface FetchTurnsResult {
   *
   * @category Commands
   */
@@ -248,7 +261,7 @@ index 7c0b2aa0dc5b5faf40d311da8a525d8c4effab96..67afb728ce9cb7bc4129eed94d730451
       * Completions for the text of a {@link Message} the user is composing.
       * Each returned item carries an attachment that gets associated with the
 diff --git a/dist/types/channels-session/state.d.ts b/dist/types/channels-session/state.d.ts
-index 528adf45d784735cf25dc7acf516262cb22d1936..10335529b2607f6d96a48b3e18912aea2e9cbc98 100644
+index 5ce95516448f1f972a853acdaa89d1a9cc47c315..ca485c15b2d6a4f7a261ceeea779c372afcb08e1 100644
 --- a/dist/types/channels-session/state.d.ts
 +++ b/dist/types/channels-session/state.d.ts
 @@ -12,7 +12,7 @@ import type { ConfigPropertySchema, ErrorInfo, Icon, ProtectedResourceMetadata,
@@ -269,7 +282,7 @@ index 528adf45d784735cf25dc7acf516262cb22d1936..10335529b2607f6d96a48b3e18912aea
      /** Session is idle — no turn is active. */
      Idle = 1,
      /** Session ended with an error. */
-@@ -211,7 +211,7 @@ export interface SessionActiveClient {
+@@ -216,7 +216,7 @@ export interface SessionActiveClient {
   *
   * @category Session Input Types
   */
@@ -278,7 +291,7 @@ index 528adf45d784735cf25dc7acf516262cb22d1936..10335529b2607f6d96a48b3e18912aea
      /** A user-facing elicitation mirrored from an unresolved chat response part. */
      ChatInput = "chatInput",
      /** A tool call awaiting parameter- or result-confirmation. */
-@@ -569,7 +569,7 @@ export interface ToolAnnotations {
+@@ -574,7 +574,7 @@ export interface ToolAnnotations {
   *
   * @category Customization Types
   */
@@ -287,7 +300,7 @@ index 528adf45d784735cf25dc7acf516262cb22d1936..10335529b2607f6d96a48b3e18912aea
      Plugin = "plugin",
      Directory = "directory",
      Agent = "agent",
-@@ -633,7 +633,7 @@ interface CustomizationBase {
+@@ -638,7 +638,7 @@ interface CustomizationBase {
   *
   * @category Customization Types
   */
@@ -296,7 +309,7 @@ index 528adf45d784735cf25dc7acf516262cb22d1936..10335529b2607f6d96a48b3e18912aea
      Loading = "loading",
      Loaded = "loaded",
      Degraded = "degraded",
-@@ -1060,7 +1060,7 @@ export type Customization = PluginCustomization | DirectoryCustomization | McpSe
+@@ -1065,7 +1065,7 @@ export type Customization = PluginCustomization | DirectoryCustomization | McpSe
   *
   * @category MCP Server State
   */
@@ -305,7 +318,7 @@ index 528adf45d784735cf25dc7acf516262cb22d1936..10335529b2607f6d96a48b3e18912aea
      /** Server has been registered but is not yet running. */
      Starting = "starting",
      /** Server is running and serving requests. */
-@@ -1085,7 +1085,7 @@ export declare const enum McpServerStatus {
+@@ -1090,7 +1090,7 @@ export declare const enum McpServerStatus {
   *
   * @category MCP Server State
   */
@@ -315,7 +328,7 @@ index 528adf45d784735cf25dc7acf516262cb22d1936..10335529b2607f6d96a48b3e18912aea
      Required = "required",
      /** A previously valid token expired or was revoked (HTTP 401). */
 diff --git a/dist/types/channels-terminal/state.d.ts b/dist/types/channels-terminal/state.d.ts
-index b08f306785647d2e290769d7180f572e63608b40..a119ecf7ea98a69f9e4d5f41dbc3ce8eacbe6393 100644
+index 5f3994763b419905ba055e7c96b9b5d1fe2ff6ad..e8239dcf920b80d98ea0209637443523e825b7ed 100644
 --- a/dist/types/channels-terminal/state.d.ts
 +++ b/dist/types/channels-terminal/state.d.ts
 @@ -25,7 +25,7 @@ export interface TerminalInfo {
@@ -328,7 +341,7 @@ index b08f306785647d2e290769d7180f572e63608b40..a119ecf7ea98a69f9e4d5f41dbc3ce8e
      Session = "session"
  }
 diff --git a/dist/types/common/actions.d.ts b/dist/types/common/actions.d.ts
-index b4e18bd544406f092b1004ded814917065abe84b..8ed545b98882349ba453b264690538e03f7ebfa8 100644
+index 1cdef460f376f62a3e3aabbb8bdf1af8779e9589..c7adc6c9649519999e5820e97aabc5f5ed5cf02a 100644
 --- a/dist/types/common/actions.d.ts
 +++ b/dist/types/common/actions.d.ts
 @@ -18,7 +18,7 @@ import type { ResourceWatchChangedAction } from '../channels-resource-watch/acti
@@ -341,7 +354,7 @@ index b4e18bd544406f092b1004ded814917065abe84b..8ed545b98882349ba453b264690538e0
      RootActiveSessionsChanged = "root/activeSessionsChanged",
      SessionReady = "session/ready",
 diff --git a/dist/types/common/commands.d.ts b/dist/types/common/commands.d.ts
-index 8bce87b8457c42ec2e2e939c198c13b6cc69eb72..a907ce2be32ebe0c4670bf41195e0cf869716865 100644
+index 682eae406441d156e72b410017f03aad96e91e8e..97e6e7bd9f702ff50111a5c8fe1e67855a0a0da8 100644
 --- a/dist/types/common/commands.d.ts
 +++ b/dist/types/common/commands.d.ts
 @@ -270,7 +270,7 @@ export interface PingParams extends BaseParams {

@@ -31,11 +31,14 @@
           pnpm = final.pnpm_11;
         in
         {
-          ahp-spec = final.fetchFromGitHub {
+          ahp-spec = final.fetchFromGitHub rec {
+            pname = "ahp-spec";
+            version = pkgJson.dependencies."@microsoft/agent-host-protocol";
             owner = "microsoft";
             repo = "agent-host-protocol";
-            rev = "spec/v${pkgJson.dependencies."@microsoft/agent-host-protocol"}";
-            hash = "sha256-zpUrASnrqHpDTdXt9fhBBaUTti91c7T1x5psV2JRWIU=";
+            rev = "spec/v${version}";
+            hash = "sha256-VqrO5RflDHvV6waZJJcMRYVD0yLxUZXYpDU0fgTi+dk=";
+            passthru.src = final.ahp-spec;
           };
 
           pi-ahp = final.stdenv.mkDerivation (finalAttrs: {
@@ -56,7 +59,7 @@
               inherit (finalAttrs) src;
               inherit pnpm;
               fetcherVersion = 4;
-              hash = "sha256-NKGtrfoWCSaTa/ON2Z+zAZcMlYmHDPy2yXrqkhfQdW4=";
+              hash = "sha256-+fkrEiH0BH7aUslzJDsf7fwrATpC3jzUIupsHbgEB+o=";
             };
 
             __structuredAttrs = true;
@@ -90,6 +93,7 @@
 
       packages = forEachSystem (pkgs: {
         default = pkgs.pi-ahp;
+        inherit (pkgs) pi-ahp ahp-spec;
       });
 
       devShells = forEachSystem (pkgs: {
