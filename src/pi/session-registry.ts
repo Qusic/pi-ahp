@@ -180,14 +180,7 @@ export class SessionRegistry {
 		// pi writes the session file lazily on first append, so allocating the
 		// manager here does not litter the disk with empty sessions.
 		const sessionManager = SessionManager.create(workingDirectory, undefined, { id: sessionId });
-		const chatChannel = installDefaultChat(
-			this.#host,
-			uri,
-			sessionId,
-			title,
-			`file://${workingDirectory}`,
-			this.#options.defaultSelection?.(),
-		);
+		const chatChannel = installDefaultChat(this.#host, uri, sessionId, title, this.#options.defaultSelection?.());
 
 		const session: LiveSession = {
 			uri,

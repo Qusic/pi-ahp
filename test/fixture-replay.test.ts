@@ -63,7 +63,7 @@ function replay(fixture: Fixture): Replayed {
 		actions.push(...mapper.handle(event));
 	}
 
-	let state = initialChatState(CHAT_URI, "Replay", "file:///tmp");
+	let state = initialChatState(CHAT_URI, "Replay");
 	for (const action of actions) {
 		state = chatReducer(state, action as never);
 	}

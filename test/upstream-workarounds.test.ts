@@ -11,13 +11,7 @@
 
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import {
-	KNOWN_BITSET_ENUMS,
-	KNOWN_REQUIRED_DEVIATIONS,
-	relaxedBitsetEnums,
-	relaxedRequiredFields,
-	strippedDanglingRefs,
-} from "./support/schema.ts";
+import { KNOWN_BITSET_ENUMS, relaxedBitsetEnums, strippedDanglingRefs } from "./support/schema.ts";
 
 describe("upstream workarounds", () => {
 	it("still needs the dangling-$ref strip", () => {
@@ -32,27 +26,6 @@ describe("upstream workarounds", () => {
 		);
 	});
 
-	it("still needs every KNOWN_REQUIRED_DEVIATIONS entry", () => {
-		const unused = KNOWN_REQUIRED_DEVIATIONS.filter(
-			({ schema, def, field }) => !relaxedRequiredFields.includes(`${schema}#/$defs/${def}.${field}`),
-		);
-
-		assert.deepEqual(
-			unused.map(({ schema, def, field }) => `${schema}#/$defs/${def}.${field}`),
-			[],
-			[
-				"These schema `required` deviations no longer apply — upstream fixed them:",
-				...unused.map(
-					({ schema, def, field, evidence }) => `  ${schema}#/$defs/${def}.${field} (evidence: ${evidence})`,
-				),
-				"ACTION: remove the listed entries from KNOWN_REQUIRED_DEVIATIONS in test/support/schema.ts,",
-				"and update the research log.",
-			].join("\n"),
-		);
-	});
-});
-
-describe("upstream workarounds — bitsets", () => {
 	it("still needs every KNOWN_BITSET_ENUMS entry", () => {
 		const unused = KNOWN_BITSET_ENUMS.filter(
 			({ def }) => !relaxedBitsetEnums.some((entry) => entry.endsWith(`#/$defs/${def}`)),

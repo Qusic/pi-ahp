@@ -130,7 +130,7 @@ function runTurn(events: AgentSessionEvent[], text = "Hello"): { actions: StateA
 		actions.push(...mapper.handle(event));
 	}
 
-	let state = initialChatState(CHAT_URI, "Test chat", "file:///tmp");
+	let state = initialChatState(CHAT_URI, "Test chat");
 	for (const action of actions) {
 		state = chatReducer(state, action as never);
 	}

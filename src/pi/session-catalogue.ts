@@ -214,7 +214,7 @@ function readSessionSummary(file: SessionFile): SessionSummary | undefined {
 		status: SessionStatus.Idle | SessionStatus.IsRead,
 		createdAt: createdAt ?? new Date(file.mtimeMs).toISOString(),
 		modifiedAt: new Date(file.mtimeMs).toISOString(),
-		...(cwd ? { workingDirectory: `file://${cwd}` } : {}),
+		...(cwd ? { workingDirectories: [`file://${cwd}`] } : {}),
 		_meta: { piSessionFile: file.path },
 	};
 }

@@ -97,79 +97,6 @@ function stripDanglingRefs(node: unknown): number {
 export let strippedDanglingRefs = 0;
 
 /**
- * `required` entries the generated schema asserts but the protocol's own
- * round-trip fixtures contradict.
- *
- * ---------------------------------------------------------------------------
- * UPSTREAM WORKAROUND — remove entries as they are fixed upstream.
- *
- * Bug: `scripts/generate-json-schema.ts:306` decides `required` purely from
- * `hasQuestionToken()`, so a *required-nullable* field (`origin: ActionOrigin |
- * undefined`, no `?`) lands in `required`. Lines 178-180 then strip the
- * `| undefined` from the property's own type. The schema therefore demands a
- * key that round-trip fixture `025-action-envelope-origin-absent` says MUST be
- * absent: "When absent from the wire input it MUST re-encode absent — key
- * omitted, never null." Unsatisfiable for any server-originated envelope.
- *
- * Removal is enforced, not remembered: `test/upstream-workarounds.test.ts`
- * fails once a re-sync makes an entry unnecessary.
- * ---------------------------------------------------------------------------
- *
- * Keep this list short and evidenced: each entry names the fixture that proves
- * the schema wrong.
- */
-export const KNOWN_REQUIRED_DEVIATIONS: readonly {
-	schema: SchemaName;
-	def: string;
-	field: string;
-	/** The round-trip fixture that contradicts the schema. */
-	evidence: string;
-}[] = [
-	{
-		schema: "actions",
-		def: "ActionEnvelope",
-		field: "origin",
-		evidence: "round-trips/025-action-envelope-origin-absent",
-	},
-	// Same defect, two more sites. `Turn.usage` / `ActiveTurn.usage` are declared
-	// `UsageInfo | undefined` — required-nullable, not optional — so a turn that
-	// reported no usage serialises with the key absent. Fixture 025 states the
-	// general rule for that shape; reducer fixture 014 shows the canonical value
-	// for a completed turn without usage (encoded as JSON `null`, which upstream's
-	// own runner normalises to `undefined`).
-	{
-		schema: "state",
-		def: "Turn",
-		field: "usage",
-		evidence: "round-trips/025 (rule) + reducers/014-session-turncomplete-finalizes-turn",
-	},
-	{
-		schema: "state",
-		def: "ActiveTurn",
-		field: "usage",
-		evidence: "round-trips/025 (rule) + reducers/014-session-turncomplete-finalizes-turn",
-	},
-];
-
-function relaxKnownRequiredDeviations(schemas: ReadonlyMap<SchemaName, Record<string, unknown>>): void {
-	for (const { schema, def, field } of KNOWN_REQUIRED_DEVIATIONS) {
-		const defs = schemas.get(schema)?.$defs as Record<string, { required?: string[] }> | undefined;
-		const target = defs?.[def];
-		if (!target?.required) {
-			continue;
-		}
-		const before = target.required.length;
-		target.required = target.required.filter((entry) => entry !== field);
-		if (target.required.length !== before) {
-			relaxedRequiredFields.push(`${schema}#/$defs/${def}.${field}`);
-		}
-	}
-}
-
-/** Which `required` entries were actually relaxed. Empty means the workaround is obsolete. */
-export const relaxedRequiredFields: string[] = [];
-
-/**
  * Bitset types the generator emitted as a closed `enum` of their declared
  * members.
  *
@@ -238,7 +165,6 @@ function loadAjv(): { ajv: AjvInstance; schemaIds: Map<SchemaName, string> } {
 		}
 		schemaIds.set(name, id);
 	}
-	relaxKnownRequiredDeviations(loaded);
 	relaxKnownBitsetEnums(loaded);
 	// The five schemas cross-reference each other by `$id`, so register them all
 	// before compiling anything.

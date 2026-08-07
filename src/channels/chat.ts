@@ -21,18 +21,12 @@ import {
 import { chatUri } from "../core/channels.ts";
 import type { AhpHost } from "../core/host.ts";
 
-export function initialChatState(
-	uri: URI,
-	title: string,
-	workingDirectory: URI,
-	selection?: ModelSelection,
-): ChatState {
+export function initialChatState(uri: URI, title: string, selection?: ModelSelection): ChatState {
 	return {
 		resource: uri,
 		title,
 		status: SessionStatus.Idle,
 		modifiedAt: new Date().toISOString(),
-		workingDirectory,
 		// A session's default chat exists because the user made the session.
 		origin: { kind: ChatOriginKind.User },
 		turns: [],
@@ -51,7 +45,6 @@ export function chatSummaryOf(state: ChatState): ChatSummary {
 		status: state.status,
 		modifiedAt: state.modifiedAt,
 		...(state.activity ? { activity: state.activity } : {}),
-		...(state.workingDirectory ? { workingDirectory: state.workingDirectory } : {}),
 		...(state.origin ? { origin: state.origin } : {}),
 	};
 }
@@ -68,11 +61,10 @@ export function installDefaultChat(
 	sessionChannel: URI,
 	sessionId: string,
 	title: string,
-	workingDirectory: URI,
 	selection?: ModelSelection,
 ): URI {
 	const uri = chatUri(sessionId);
-	host.store.create(uri, initialChatState(uri, title, workingDirectory, selection));
+	host.store.create(uri, initialChatState(uri, title, selection));
 
 	const summary = chatSummaryOf(host.store.get(uri) as ChatState);
 	host.dispatchServerAction(sessionChannel, { type: ActionType.SessionChatAdded, summary });

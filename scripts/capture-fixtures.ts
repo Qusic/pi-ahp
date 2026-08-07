@@ -118,8 +118,7 @@ const SCENARIOS: Scenario[] = [
 	{
 		name: "tool-edit",
 		description: "An `edit` call — the one tool whose result carries a diff and a patch.",
-		// biome-ignore lint/suspicious/noTemplateCurlyInString: file contents, not a template
-		files: { "greet.ts": "export function greet(name: string) {\n\treturn `Hi ${name}`;\n}\n" },
+		files: { "greet.ts": 'export function greet(name: string) {\n\treturn "Hi " + name;\n}\n' },
 		prompt: "In greet.ts, change the greeting from `Hi` to `Hello`. Use the edit tool. Then reply DONE.",
 	},
 	{

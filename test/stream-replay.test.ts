@@ -35,7 +35,7 @@ const WORKSPACE_FILES: Readonly<Record<string, string>> = {
 	// `tool-edit` replaces a line in this one. An edit against a file that is
 	// missing, or whose text does not contain the recorded `oldText`, fails
 	// where the capture succeeded and the turn takes a different shape.
-	"greet.ts": "export function greet(name: string) {\n\treturn `Hi ${name}`;\n}\n",
+	"greet.ts": 'export function greet(name: string) {\n\treturn "Hi " + name;\n}\n',
 };
 
 /**

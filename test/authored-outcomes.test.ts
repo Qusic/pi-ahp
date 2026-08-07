@@ -71,7 +71,13 @@ async function runAuthored(name: string, turns: readonly AuthoredTurn[]): Promis
 		while (!settled && Date.now() < deadline) {
 			await new Promise((resolve) => setTimeout(resolve, 10));
 		}
-		const last = backend.session.messages.at(-1) as { stopReason?: string; errorMessage?: string } | undefined;
+		// Read off the events rather than `session.messages`: pi keeps a reply cut
+		// at the token ceiling out of the transcript, and the events are what this
+		// host consumes anyway.
+		const last = events
+			.filter((event) => event.type === "message_end")
+			.map((event) => (event as { message?: { role?: string; stopReason?: string; errorMessage?: string } }).message)
+			.findLast((message) => message?.role === "assistant");
 		backend.dispose();
 		assert.ok(settled, `${name}: never settled`);
 		return { events, stopReason: last?.stopReason, errorMessage: last?.errorMessage };

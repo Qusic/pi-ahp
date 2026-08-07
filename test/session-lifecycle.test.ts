@@ -81,7 +81,7 @@ describe("session lifecycle", () => {
 		// agent to start, so the session is already ready by the time a client
 		// can observe it.
 		assert.equal(state.lifecycle, SessionLifecycle.Ready);
-		assert.equal(state.workingDirectory, `file://${workspace}`);
+		assert.deepEqual(state.workingDirectories, [`file://${workspace}`]);
 		// Every session gets exactly one chat, and it is the default. The agent
 		// declares no `multipleChats` capability, which is what tells a client not
 		// to call `createChat`.
@@ -150,7 +150,7 @@ describe("session lifecycle", () => {
 			await client.request("createSession", { channel: uri, workingDirectory: `file://${other}` } as never);
 
 			const state = harness.host.store.get(uri) as SessionState;
-			assert.equal(state.workingDirectory, `file://${other}`);
+			assert.deepEqual(state.workingDirectories, [`file://${other}`]);
 		} finally {
 			rmSync(other, { recursive: true, force: true });
 		}

@@ -25,7 +25,7 @@ export function initialSessionState(provider: string, title: string, workingDire
 		title,
 		status: SessionStatus.Idle,
 		lifecycle: SessionLifecycle.Creating,
-		workingDirectory: `file://${workingDirectory}`,
+		workingDirectories: [`file://${workingDirectory}`],
 		activeClients: [],
 		chats: [],
 	};
@@ -44,7 +44,7 @@ export function sessionSummaryOf(
 		status: state.status,
 		createdAt,
 		modifiedAt: new Date().toISOString(),
-		...(state.workingDirectory ? { workingDirectory: state.workingDirectory } : {}),
+		...(state.workingDirectories ? { workingDirectories: state.workingDirectories } : {}),
 		...(meta ? { _meta: meta } : {}),
 	};
 }

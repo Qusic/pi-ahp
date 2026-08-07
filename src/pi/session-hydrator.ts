@@ -128,7 +128,6 @@ export class SessionHydrator implements ChannelHydrator {
 			title,
 			status,
 			modifiedAt,
-			...(workingDirectory ? { workingDirectory: `file://${workingDirectory}` } : {}),
 			turns,
 			...(turnsNextCursor ? { turnsNextCursor } : {}),
 			...(selection ? { draft: { text: "", origin: { kind: MessageKind.User }, model: selection } } : {}),
@@ -142,7 +141,7 @@ export class SessionHydrator implements ChannelHydrator {
 			// The transcript is genuinely available, so the session is ready. It
 			// simply has no agent attached until someone starts a turn.
 			lifecycle: SessionLifecycle.Ready,
-			...(workingDirectory ? { workingDirectory: `file://${workingDirectory}` } : {}),
+			...(workingDirectory ? { workingDirectories: [`file://${workingDirectory}`] } : {}),
 			activeClients: [],
 			chats: [chatSummaryOf(chatState)],
 			defaultChat: chat,

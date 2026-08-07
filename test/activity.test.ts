@@ -56,7 +56,7 @@ function run(events: AgentSessionEvent[]): { actions: StateAction[]; state: Chat
 	for (const e of events) {
 		actions.push(...mapper.handle(e));
 	}
-	let state = initialChatState("ahp-chat:/a", "chat", "file:///ws");
+	let state = initialChatState("ahp-chat:/a", "chat");
 	for (const action of actions) {
 		state = chatReducer(state, action as never);
 	}
