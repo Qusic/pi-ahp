@@ -147,7 +147,7 @@ describe("session lifecycle", () => {
 		const other = mkdtempSync(join(tmpdir(), "pi-ahp-cwd-"));
 		try {
 			const uri = sessionUri(randomUUID());
-			await client.request("createSession", { channel: uri, workingDirectory: `file://${other}` } as never);
+			await client.request("createSession", { channel: uri, workingDirectories: [`file://${other}`] } as never);
 
 			const state = harness.host.store.get(uri) as SessionState;
 			assert.deepEqual(state.workingDirectories, [`file://${other}`]);

@@ -70,12 +70,12 @@ export type BackendFactory = (session: LiveSession) => Promise<PiBackend> | PiBa
 export interface CreateSessionRequest {
 	readonly channel: URI;
 	/**
-	 * Singular in protocol 0.6.0. `main` has since renamed this to a
-	 * `workingDirectories` array gated behind the
-	 * `multipleWorkingDirectories` capability; this host serves one directory
-	 * per session either way, so the rename is a no-op for us when we upgrade.
+	 * A set in the protocol, but this host does not declare
+	 * `multipleWorkingDirectories`, which is what forbids a client from sending
+	 * more than one. Anything past the first is ignored rather than refused —
+	 * the session still runs, in the directory the client asked for first.
 	 */
-	readonly workingDirectory?: URI;
+	readonly workingDirectories?: readonly URI[];
 	readonly provider?: string;
 }
 
@@ -166,11 +166,9 @@ export class SessionRegistry {
 			throw ProtocolError.providerNotFound(request.provider);
 		}
 
-		// This host serves one working directory per session, so it does not
-		// declare `multipleWorkingDirectories`. A client's chosen directory is
-		// honoured; the host's own cwd is the fallback.
-		const workingDirectory = request.workingDirectory
-			? fileUriToPath(request.workingDirectory)
+		const requested = request.workingDirectories?.[0];
+		const workingDirectory = requested
+			? fileUriToPath(requested)
 			: (this.#options.defaultWorkingDirectory ?? process.cwd());
 
 		const title = "New Session";
