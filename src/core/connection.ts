@@ -7,6 +7,7 @@
 
 import type { URI } from "@microsoft/agent-host-protocol";
 import type { JsonRpcMessage } from "../protocol/jsonrpc.ts";
+import { ClientWorkarounds } from "./client-workarounds.ts";
 
 /** A bidirectional, ordered, reliable message stream carrying one JSON-RPC message per frame. */
 export interface Transport {
@@ -33,6 +34,7 @@ export class ClientConnection {
 	protocolVersion: string | undefined;
 	/** Set once `initialize` succeeds. `ping` is answered before this flips. */
 	initialized = false;
+	readonly workarounds = new ClientWorkarounds();
 	lastSeenServerSeq = 0;
 
 	constructor(clientId: string, transport: Transport) {
@@ -41,7 +43,7 @@ export class ClientConnection {
 	}
 
 	send(message: JsonRpcMessage): void {
-		this.transport.send(message);
+		this.transport.send(this.workarounds.applyToMessage(message));
 	}
 
 	subscribe(channel: URI): void {

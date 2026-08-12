@@ -286,6 +286,7 @@ export class AhpHost {
 	}
 
 	async #dispatchRequest(connection: ClientConnection, request: JsonRpcRequest): Promise<unknown> {
+		connection.workarounds.applyToRequest(request);
 		switch (request.method) {
 			// `ping` must be answered whether or not the client has completed
 			// `initialize` or holds any subscription.
@@ -428,6 +429,7 @@ export class AhpHost {
 
 		connection.clientId = params.clientId;
 		connection.clientInfo = params.clientInfo;
+		connection.workarounds.identify(params.clientInfo);
 		connection.locale = params.locale;
 		connection.protocolVersion = protocolVersion;
 		connection.initialized = true;

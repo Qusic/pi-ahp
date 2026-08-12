@@ -93,6 +93,8 @@ function writeSession(root: string, id: string, cwd: string): string {
 interface Fixture {
 	host: AhpHost;
 	client: AhpClient;
+	/** Opens a second client whose handshake claims to be VS Code. */
+	asVSCode: () => Promise<AhpClient>;
 	server: RunningServer;
 	sessionId: string;
 	root: string;
@@ -172,9 +174,23 @@ async function startFixture(): Promise<Fixture> {
 	client.connect();
 	await client.initialize({ clientId: "hydrate-client", protocolVersions: SUPPORTED_PROTOCOL_VERSIONS });
 
+	const asVSCode = async () => {
+		const other = new AhpClient(await WebSocketTransport.connect(`ws://127.0.0.1:${server.port}`));
+		other.connect();
+		// Raw, because the client facade does not expose `clientInfo`, which is
+		// what the host reads to decide whether the workarounds apply.
+		await other.request("initialize", {
+			clientId: "vscode-client",
+			protocolVersions: SUPPORTED_PROTOCOL_VERSIONS,
+			clientInfo: { name: "vscode-editor-window", title: "VS Code" },
+		} as never);
+		return other;
+	};
+
 	return {
 		host,
 		client,
+		asVSCode,
 		server,
 		sessionId,
 		root,
@@ -210,6 +226,26 @@ describe("opening a session from the catalogue", () => {
 		assert.equal(state.chats.length, 1);
 		assert.equal(state.defaultChat, chatUri(fixture.sessionId));
 		assert.equal(checkSchema("state", "SessionState", state), undefined);
+	});
+
+	it("answers VS Code at the URIs it computes for itself", async () => {
+		const client = await fixture.asVSCode();
+
+		// Both built the way VS Code builds them; see
+		// src/core/client-workarounds.ts.
+		const providerSession = `pi:/${fixture.sessionId}`;
+		const derived = `ahp-chat://default/${Buffer.from(providerSession).toString("base64url")}`;
+
+		const session = await client.subscribe(providerSession);
+		const sessionState = session.result.snapshot?.state as SessionState;
+		assert.equal(session.result.snapshot?.resource, providerSession, "answered under the scheme this client uses");
+		assert.equal(sessionState.defaultChat, derived, "the session must name its chat the way this client will");
+
+		const { result } = await client.subscribe(derived);
+		const state = result.snapshot?.state as ChatState;
+		assert.equal(result.snapshot?.resource, derived, "the snapshot answers on the URI the client used");
+		assert.ok(state.turns.length > 0, "the transcript must come back, not an empty chat");
+		assert.equal(checkSchema("state", "ChatState", state), undefined);
 	});
 
 	it("rebuilds the transcript onto the chat channel", async () => {
