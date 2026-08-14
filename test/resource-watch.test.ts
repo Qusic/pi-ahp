@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { after, before, describe, it } from "node:test";
+import { afterEach, beforeEach, describe, it } from "node:test";
 import { pathToFileURL } from "node:url";
 import {
 	type ResourceChange,
@@ -111,11 +111,13 @@ async function settle(ms: number): Promise<void> {
 describe("resource watch", () => {
 	let fixture: Fixture;
 
-	before(async () => {
+	// Per test, not per suite: these share one directory, and a watch opened by
+	// the next test sees whatever the previous one was still writing.
+	beforeEach(async () => {
 		fixture = await startFixture();
 	});
 
-	after(async () => {
+	afterEach(async () => {
 		await fixture.close();
 	});
 
