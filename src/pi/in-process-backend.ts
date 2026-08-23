@@ -14,7 +14,8 @@
 import {
 	type AgentSession,
 	type AgentSessionEvent,
-	createAgentSession,
+	createAgentSessionFromServices,
+	createAgentSessionServices,
 	type SessionManager,
 	SettingsManager,
 } from "@earendil-works/pi-coding-agent";
@@ -58,11 +59,11 @@ export class InProcessPiBackend implements PiBackend {
 		// (`SettingsManager.fromStorage` defaults `projectTrusted` to `true`),
 		// which would execute a client-supplied project's extensions unasked.
 		const trust = resolveProjectTrust(options.cwd, options.projectTrustPolicy);
-		const { session } = await createAgentSession({
+		const services = await createAgentSessionServices({
 			cwd: options.cwd,
-			sessionManager: options.sessionManager,
 			settingsManager: SettingsManager.create(options.cwd, undefined, { projectTrusted: trust.trusted }),
 		});
+		const { session } = await createAgentSessionFromServices({ services, sessionManager: options.sessionManager });
 		return new InProcessPiBackend(session, trust);
 	}
 

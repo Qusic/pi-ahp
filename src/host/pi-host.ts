@@ -3,7 +3,7 @@
  * lifecycle, all backed by pi.
  */
 
-import { ModelRuntime } from "@earendil-works/pi-coding-agent";
+import { createAgentSessionServices, type ModelRuntime, SettingsManager } from "@earendil-works/pi-coding-agent";
 import type { CreateSessionParams, ModelSelection, URI } from "@microsoft/agent-host-protocol";
 import { installRootChannel } from "../channels/root.ts";
 import { AhpHost, type HostOptions } from "../core/host.ts";
@@ -11,7 +11,7 @@ import { CompletionService, MENTION_TRIGGER } from "../pi/completions.ts";
 import { deleteSessionFile } from "../pi/delete-session.ts";
 import { InProcessPiBackend } from "../pi/in-process-backend.ts";
 import { buildAgentInfo, THINKING_CONFIG_KEY } from "../pi/models.ts";
-import type { ProjectTrustPolicy } from "../pi/project-trust.ts";
+import { type ProjectTrustPolicy, resolveProjectTrust } from "../pi/project-trust.ts";
 import { ResourceService } from "../pi/resource-service.ts";
 import { ResourceWatchService } from "../pi/resource-watch.ts";
 import { PiSessionCatalogue } from "../pi/session-catalogue.ts";
@@ -60,6 +60,7 @@ export interface PiHost {
  * rather than a one-shot handshake field.
  */
 export async function createPiHost(options: PiHostOptions = {}): Promise<PiHost> {
+	const workingDirectory = options.workingDirectory ?? process.cwd();
 	const host = new AhpHost({
 		...options,
 		// `@` is the only trigger this host can answer: every completion item
@@ -67,7 +68,22 @@ export async function createPiHost(options: PiHostOptions = {}): Promise<PiHost>
 		completionTriggerCharacters: options.completionTriggerCharacters ?? [MENTION_TRIGGER],
 	});
 
-	const modelRuntime = options.modelRuntime ?? (await ModelRuntime.create());
+	let modelRuntime: Pick<ModelRuntime, "getAvailable">;
+	if (options.modelRuntime) {
+		modelRuntime = options.modelRuntime;
+	} else {
+		// Package extensions can register providers; the bare ModelRuntime cannot
+		// see them until the standard service loader flushes those registrations.
+		const trust = resolveProjectTrust(workingDirectory, options.projectTrustPolicy);
+		const services = await createAgentSessionServices({
+			cwd: workingDirectory,
+			settingsManager: SettingsManager.create(workingDirectory, undefined, { projectTrusted: trust.trusted }),
+		});
+		modelRuntime = services.modelRuntime;
+		for (const diagnostic of services.diagnostics) {
+			options.log?.(`[pi models] ${diagnostic.type}: ${diagnostic.message}`);
+		}
+	}
 	// A user with no configured provider still gets a usable host — they just
 	// see an agent with no models, which is the honest representation.
 	const models = await modelRuntime.getAvailable().catch(() => []);
@@ -94,7 +110,7 @@ export async function createPiHost(options: PiHostOptions = {}): Promise<PiHost>
 
 	const sessions = new SessionRegistry({
 		host,
-		defaultWorkingDirectory: options.workingDirectory ?? process.cwd(),
+		defaultWorkingDirectory: workingDirectory,
 		createBackend,
 		defaultSelection: fallbackSelection,
 		deleteFile: options.deleteFile ?? ((path: string) => void deleteSessionFile(path)),
@@ -107,7 +123,7 @@ export async function createPiHost(options: PiHostOptions = {}): Promise<PiHost>
 		resources: new ResourceService({ ...(options.resourceRoots ? { roots: options.resourceRoots } : {}) }),
 		resourceWatches: watches,
 		sessionConfig: new SessionConfigService({
-			defaultWorkingDirectory: options.workingDirectory ?? process.cwd(),
+			defaultWorkingDirectory: workingDirectory,
 			...(options.projectTrustPolicy ? { projectTrustPolicy: options.projectTrustPolicy } : {}),
 		}),
 		completions: new CompletionService({
