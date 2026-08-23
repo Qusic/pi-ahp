@@ -3,6 +3,7 @@
  * lifecycle, all backed by pi.
  */
 
+import { clampThinkingLevel } from "@earendil-works/pi-ai";
 import { createAgentSessionServices, type ModelRuntime, SettingsManager } from "@earendil-works/pi-coding-agent";
 import type { CreateSessionParams, ModelSelection, URI } from "@microsoft/agent-host-protocol";
 import { installRootChannel } from "../channels/root.ts";
@@ -69,6 +70,7 @@ export async function createPiHost(options: PiHostOptions = {}): Promise<PiHost>
 	});
 
 	let modelRuntime: Pick<ModelRuntime, "getAvailable">;
+	let settingsManager: SettingsManager | undefined;
 	if (options.modelRuntime) {
 		modelRuntime = options.modelRuntime;
 	} else {
@@ -80,6 +82,7 @@ export async function createPiHost(options: PiHostOptions = {}): Promise<PiHost>
 			settingsManager: SettingsManager.create(workingDirectory, undefined, { projectTrusted: trust.trusted }),
 		});
 		modelRuntime = services.modelRuntime;
+		settingsManager = services.settingsManager;
 		for (const diagnostic of services.diagnostics) {
 			options.log?.(`[pi models] ${diagnostic.type}: ${diagnostic.message}`);
 		}
@@ -89,12 +92,15 @@ export async function createPiHost(options: PiHostOptions = {}): Promise<PiHost>
 	const models = await modelRuntime.getAvailable().catch(() => []);
 	installRootChannel(host, [buildAgentInfo(models as never)]);
 
-	// Shown when a session file records no model of its own. `medium` matches
-	// pi's own default reasoning effort for models that support it.
-	const fallbackSelection = (): ModelSelection | undefined => {
-		const first = models[0];
-		return first ? { id: first.id, config: { [THINKING_CONFIG_KEY]: "medium" } } : undefined;
-	};
+	const configuredProvider = settingsManager?.getDefaultProvider();
+	const configuredId = settingsManager?.getDefaultModel();
+	const configured = models.find((model) => model.provider === configuredProvider && model.id === configuredId);
+	const fallback = configured ?? models[0];
+	const fallbackThinking = fallback
+		? clampThinkingLevel(fallback, configured ? (settingsManager?.getDefaultThinkingLevel() ?? "medium") : "medium")
+		: undefined;
+	const fallbackSelection = (): ModelSelection | undefined =>
+		fallback && fallbackThinking ? { id: fallback.id, config: { [THINKING_CONFIG_KEY]: fallbackThinking } } : undefined;
 
 	const catalogue = new PiSessionCatalogue();
 	const watches = new ResourceWatchService(host, { ...(options.log ? { log: options.log } : {}) });

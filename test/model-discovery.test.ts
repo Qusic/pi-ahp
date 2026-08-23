@@ -4,11 +4,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { it } from "node:test";
 import { SessionManager } from "@earendil-works/pi-coding-agent";
-import type { RootState } from "@microsoft/agent-host-protocol";
+import type { ChatState, RootState } from "@microsoft/agent-host-protocol";
+import { chatUri, sessionUri } from "../src/core/channels.ts";
 import { createPiHost } from "../src/host/pi-host.ts";
 import { InProcessPiBackend } from "../src/pi/in-process-backend.ts";
 
-it("loads extension-provided models before advertising or creating a session", async () => {
+it("advertises extension models and uses pi's configured default", async () => {
 	const root = mkdtempSync(join(tmpdir(), "pi-ahp-model-discovery-"));
 	const workspace = join(root, "workspace");
 	const agentDir = join(root, "agent");
@@ -16,7 +17,7 @@ it("loads extension-provided models before advertising or creating a session", a
 	mkdirSync(workspace);
 	writeFileSync(
 		join(agentDir, "settings.json"),
-		JSON.stringify({ defaultProvider: "fixture", defaultModel: "fixture-model" }),
+		JSON.stringify({ defaultProvider: "fixture", defaultModel: "fixture-model", defaultThinkingLevel: "max" }),
 	);
 	writeFileSync(
 		join(agentDir, "extensions", "provider.js"),
@@ -27,9 +28,18 @@ it("loads extension-provided models before advertising or creating a session", a
 		apiKey: "fixture-key",
 		api: "openai-completions",
 		models: [{
+			id: "other-model",
+			name: "Other Model",
+			reasoning: false,
+			input: ["text"],
+			cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+			contextWindow: 1000,
+			maxTokens: 100,
+		}, {
 			id: "fixture-model",
 			name: "Fixture Model",
-			reasoning: false,
+			reasoning: true,
+			thinkingLevelMap: { max: "max" },
 			input: ["text"],
 			cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
 			contextWindow: 1000,
@@ -44,7 +54,18 @@ it("loads extension-provided models before advertising or creating a session", a
 	process.env.PI_CODING_AGENT_DIR = agentDir;
 	let backend: InProcessPiBackend | undefined;
 	try {
-		const { host } = await createPiHost({ workingDirectory: workspace });
+		const selection = { id: "fixture-model", config: { thinkingLevel: "max" } };
+		const { host, sessions } = await createPiHost({
+			workingDirectory: workspace,
+			deleteFile: () => {},
+			createBackend: () => ({
+				subscribe: () => () => {},
+				prompt: async () => {},
+				steer: async () => {},
+				abort: async () => {},
+				currentSelection: () => selection,
+			}),
+		});
 		const rootState = host.store.get("ahp-root://") as RootState;
 		assert.deepEqual(
 			rootState.agents[0]?.models.map((model) => ({
@@ -52,8 +73,15 @@ it("loads extension-provided models before advertising or creating a session", a
 				provider: model.provider,
 				piProvider: model._meta?.piProvider,
 			})),
-			[{ id: "fixture-model", provider: "pi", piProvider: "fixture" }],
+			[
+				{ id: "other-model", provider: "pi", piProvider: "fixture" },
+				{ id: "fixture-model", provider: "pi", piProvider: "fixture" },
+			],
 		);
+
+		const id = "default-selection";
+		sessions.create({ channel: sessionUri(id) });
+		assert.deepEqual((host.store.get(chatUri(id)) as ChatState).draft?.model, selection);
 
 		backend = await InProcessPiBackend.create({
 			cwd: workspace,
@@ -63,6 +91,8 @@ it("loads extension-provided models before advertising or creating a session", a
 			backend.session.model && { id: backend.session.model.id, provider: backend.session.model.provider },
 			{ id: "fixture-model", provider: "fixture" },
 		);
+		assert.equal(backend.session.thinkingLevel, "max");
+		await sessions.dispose(sessionUri(id));
 	} finally {
 		backend?.dispose();
 		if (previousAgentDir === undefined) delete process.env.PI_CODING_AGENT_DIR;
