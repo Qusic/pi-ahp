@@ -14,6 +14,7 @@ import {
 	type ReconnectSnapshotResult,
 	SUPPORTED_PROTOCOL_VERSIONS,
 } from "@microsoft/agent-host-protocol";
+import { initialSessionState } from "../src/channels/session.ts";
 import { ROOT_CHANNEL, sessionUri } from "../src/core/channels.ts";
 import { type Harness, must, startHarness } from "./harness.ts";
 
@@ -127,5 +128,38 @@ describe("reconnect", () => {
 
 		assert.equal(result.type, ReconnectResultType.Replay);
 		assert.deepEqual(result.actions, []);
+	});
+
+	it("retains VS Code's URI dialect across connections", async () => {
+		const clientId = `${CLIENT_ID}-vscode`;
+		const id = "vscode-reconnect";
+		const uri = sessionUri(id);
+		const clientUri = `pi:/${id}`;
+		harness.host.store.create(uri, initialSessionState("pi", "Reconnect", "/tmp"), "session");
+
+		const first = await harness.connect();
+		await first.request("initialize", {
+			clientId,
+			protocolVersions: SUPPORTED_PROTOCOL_VERSIONS,
+			clientInfo: { name: "vscode-editor-window" },
+		} as never);
+		assert.equal((await first.subscribe(clientUri)).result.snapshot?.resource, clientUri);
+		const staleSeq = harness.host.serverSeq;
+		await first.shutdown();
+
+		for (let i = 0; i < 6; i++) bumpActiveSessions(harness, i);
+
+		const resumed = await harness.connect();
+		const result = (await resumed.reconnect({
+			clientId,
+			lastSeenServerSeq: staleSeq,
+			subscriptions: [clientUri],
+		})) as ReconnectSnapshotResult;
+
+		assert.equal(result.type, ReconnectResultType.Snapshot);
+		assert.deepEqual(
+			result.snapshots.map((snapshot) => snapshot.resource),
+			[clientUri],
+		);
 	});
 });

@@ -109,11 +109,13 @@ export class SessionRegistry {
 			void this.#routeClientAction(channel, action);
 		});
 
-		// Truncation is refused up front when it cannot be carried out.
-		// Accepting it would truncate the client's view while pi kept the full
-		// history — every later turn would then run on context the user
-		// believes is gone, with nothing reporting the mismatch.
 		this.#host.addClientActionValidator((channel, action) => {
+			if (action.type === ActionType.SessionActiveClientSet || action.type === ActionType.SessionActiveClientRemoved) {
+				return "This host does not accept active clients";
+			}
+
+			// Accepting an impossible truncation would shorten the client's view
+			// while pi kept using context the user believes is gone.
 			if (action.type !== ActionType.ChatTruncated) {
 				return undefined;
 			}

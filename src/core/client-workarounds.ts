@@ -4,7 +4,7 @@
  */
 
 import type { URI } from "@microsoft/agent-host-protocol";
-import type { JsonRpcMessage, JsonRpcRequest } from "../protocol/jsonrpc.ts";
+import type { JsonRpcMessage, JsonRpcNotification, JsonRpcRequest } from "../protocol/jsonrpc.ts";
 import { chatIdFromUri, chatUri, permissiveSessionId, sessionUri } from "./channels.ts";
 
 /**
@@ -65,9 +65,9 @@ export class ClientWorkarounds {
 		this.#sessionScheme = VSCODE_CLIENT_NAMES.has(clientInfo?.name ?? "") ? PROVIDER_SESSION_SCHEME : undefined;
 	}
 
-	/** Rewrites a request in place. Requests are parsed per message and ours. */
-	applyToRequest(request: JsonRpcRequest): void {
-		const params = request.params as { channel?: unknown; subscriptions?: unknown } | undefined;
+	/** Rewrites this connection's parsed request or notification in place. */
+	applyToIncoming(message: JsonRpcRequest | JsonRpcNotification): void {
+		const params = message.params as { channel?: unknown; subscriptions?: unknown } | undefined;
 		if (!params) {
 			return;
 		}

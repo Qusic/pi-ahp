@@ -59,7 +59,7 @@ import {
 } from "../protocol/jsonrpc.ts";
 import { negotiateProtocolVersion } from "../protocol/version.ts";
 import { channelKind, ROOT_CHANNEL } from "./channels.ts";
-import { ClientConnection, type Transport } from "./connection.ts";
+import { ClientConnection, type ClientInfo, type Transport } from "./connection.ts";
 import { Sequencer } from "./sequencer.ts";
 import { StateStore } from "./state-store.ts";
 
@@ -206,6 +206,8 @@ export class AhpHost {
 	readonly #options: HostOptions;
 	readonly #connections = new Set<ClientConnection>();
 	readonly #byClientId = new Map<string, ClientConnection>();
+	/** `reconnect` omits `clientInfo`, so retain it after its socket closes. */
+	readonly #clientInfoById = new Map<string, ClientInfo>();
 	#capabilities: HostCapabilities = {};
 	readonly #actionListeners = new Set<ClientActionListener>();
 	readonly #actionValidators = new Set<ClientActionValidator>();
@@ -286,7 +288,14 @@ export class AhpHost {
 	}
 
 	async #dispatchRequest(connection: ClientConnection, request: JsonRpcRequest): Promise<unknown> {
-		connection.workarounds.applyToRequest(request);
+		if (request.method === "reconnect") {
+			const clientId = (request.params as { clientId?: unknown } | undefined)?.clientId;
+			if (typeof clientId === "string") {
+				connection.clientInfo = this.#clientInfoById.get(clientId);
+				connection.workarounds.identify(connection.clientInfo);
+			}
+		}
+		connection.workarounds.applyToIncoming(request);
 		switch (request.method) {
 			// `ping` must be answered whether or not the client has completed
 			// `initialize` or holds any subscription.
@@ -395,6 +404,7 @@ export class AhpHost {
 	}
 
 	#handleNotification(connection: ClientConnection, message: JsonRpcNotification): void {
+		connection.workarounds.applyToIncoming(message);
 		switch (message.method) {
 			case "unsubscribe": {
 				const channel = readChannel(message.params);
@@ -429,6 +439,11 @@ export class AhpHost {
 
 		connection.clientId = params.clientId;
 		connection.clientInfo = params.clientInfo;
+		if (params.clientInfo) {
+			this.#clientInfoById.set(params.clientId, params.clientInfo);
+		} else {
+			this.#clientInfoById.delete(params.clientId);
+		}
 		connection.workarounds.identify(params.clientInfo);
 		connection.locale = params.locale;
 		connection.protocolVersion = protocolVersion;

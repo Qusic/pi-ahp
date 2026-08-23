@@ -205,6 +205,39 @@ describe("session lifecycle", () => {
 		await nextEvent(subscription, (candidate) => candidate.type === "action");
 		assert.equal((harness.host.store.get(uri) as SessionState).title, "Refactor auth");
 	});
+
+	it("declines VS Code's active client without blocking session creation", async () => {
+		const clientId = nextClientId();
+		const client = await harness.connect();
+		await client.request("initialize", {
+			clientId,
+			protocolVersions: SUPPORTED_PROTOCOL_VERSIONS,
+			clientInfo: { name: "vscode-editor-window" },
+		} as never);
+		const id = randomUUID();
+		const uri = sessionUri(id);
+		const clientUri = `pi:/${id}`;
+		const activeClient = { clientId, tools: [] };
+
+		// VS Code supplies this eagerly. It is ignored rather than making an
+		// otherwise usable session fail.
+		await client.request("createSession", { channel: clientUri, activeClient } as never);
+		await client.subscribe(clientUri);
+
+		for (const action of [
+			{ type: ActionType.SessionActiveClientSet, activeClient },
+			{ type: ActionType.SessionActiveClientRemoved, clientId },
+		] as const) {
+			const events = client.attachSubscription(clientUri);
+			client.dispatch(clientUri, action);
+			const event = await nextEvent(events, (candidate) => candidate.type === "action");
+			const envelope = event.params as { action?: { type?: string }; rejectionReason?: string };
+			assert.equal(envelope.action?.type, action.type);
+			assert.equal(envelope.rejectionReason, "This host does not accept active clients");
+		}
+
+		assert.deepEqual((harness.host.store.get(uri) as SessionState).activeClients, []);
+	});
 });
 
 describe("renaming a session", () => {
