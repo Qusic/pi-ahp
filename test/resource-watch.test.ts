@@ -77,12 +77,15 @@ async function nextChanges(subscription: Subscription, timeoutMs = 4_000): Promi
 		handle.unref?.();
 	});
 	const next = (async () => {
-		for await (const event of subscription) {
-			if (event.type === "action") {
-				return (event.params.action as { changes: { items: ResourceChange[] } }).changes.items;
+		while (true) {
+			const event = await subscription.next();
+			if (event.done) {
+				throw new Error("subscription ended early");
+			}
+			if (event.value.type === "action") {
+				return (event.value.params.action as { changes: { items: ResourceChange[] } }).changes.items;
 			}
 		}
-		throw new Error("subscription ended early");
 	})();
 	return Promise.race([next, timer]);
 }
@@ -137,10 +140,24 @@ describe("resource watch", () => {
 		const { subscription } = await fixture.client.subscribe(channel);
 
 		writeFileSync(join(fixture.workspace, "created.txt"), "hi");
-		const changes = await nextChanges(subscription);
+		const changes = await collectChanges(subscription, 100);
 
-		assert.ok(changes.some((change) => change.uri.endsWith("created.txt")));
-		assert.equal(checkSchema("state", "ResourceChange", changes[0]), undefined);
+		const created = changes.find((change) => change.uri.endsWith("created.txt"));
+		assert.ok(created);
+		assert.equal(checkSchema("state", "ResourceChange", created), undefined);
+	});
+
+	it("keeps reporting after its first action", async () => {
+		const { channel } = await fixture.client.createResourceWatch({ uri: uri(fixture.workspace) });
+		const { subscription } = await fixture.client.subscribe(channel);
+
+		writeFileSync(join(fixture.workspace, "first.txt"), "1");
+		const first = await collectChanges(subscription, 100);
+		writeFileSync(join(fixture.workspace, "second.txt"), "2");
+		const second = await collectChanges(subscription, 100);
+
+		assert.ok(first.some((change) => change.uri.endsWith("first.txt")));
+		assert.ok(second.some((change) => change.uri.endsWith("second.txt")));
 	});
 
 	it("classifies a removed path as deleted", async () => {
@@ -152,7 +169,7 @@ describe("resource watch", () => {
 		rmSync(target);
 		// `fs.watch` only says "rename" or "change", so the type comes from
 		// stat-ing at flush time.
-		const changes = await nextChanges(subscription);
+		const changes = await collectChanges(subscription, 100);
 		const deleted = changes.find((change) => change.uri.endsWith("doomed.txt"));
 		assert.equal(deleted?.type, ResourceChangeType.Deleted);
 	});
