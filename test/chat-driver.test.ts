@@ -118,7 +118,7 @@ describe("chat driver", () => {
 	before(async () => {
 		const host = new AhpHost({ serverInfo: { name: "pi-ahp", version: "test" } });
 		installRootChannel(host, []);
-		backend = new ScriptedBackend((text) => say(`echo: ${text}`));
+		backend = new ScriptedBackend((text) => (text === "long running" ? [] : say(`echo: ${text}`)));
 		const sessions = new SessionRegistry({ host, createBackend: () => backend });
 		host.serve({
 			sessions: {
@@ -219,7 +219,7 @@ describe("chat driver", () => {
 		assert.equal(state.turns.at(-1)?.state, TurnState.Complete);
 	});
 
-	it("aborts the backend when a client cancels the turn", async () => {
+	it("aborts the backend when a client cancels the active turn", async () => {
 		const abortsBefore = backend.aborts;
 		fixture.client.dispatch(fixture.chatChannel, {
 			type: ActionType.ChatTurnStarted,
@@ -228,6 +228,7 @@ describe("chat driver", () => {
 			message: { text: "long running", origin: { kind: "user" } },
 		} as never);
 		await waitFor(() => backend.prompts.includes("long running"));
+		assert.equal((fixture.host.store.get(fixture.chatChannel) as ChatState).activeTurn?.id, "t-cancel");
 
 		fixture.client.dispatch(fixture.chatChannel, {
 			type: ActionType.ChatTurnCancelled,

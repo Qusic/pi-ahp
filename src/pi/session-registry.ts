@@ -18,7 +18,10 @@ import { SessionManager } from "@earendil-works/pi-coding-agent";
 import {
 	ActionType,
 	type ChatState,
+	type Message,
+	MessageKind,
 	type ModelSelection,
+	PendingMessageKind,
 	type SessionState,
 	type StateAction,
 	type URI,
@@ -67,6 +70,46 @@ export interface LiveSession {
 /** Creates the agent backend for a session. Absent in storage-only mode. */
 export type BackendFactory = (session: LiveSession) => Promise<PiBackend> | PiBackend;
 
+function unsupportedMessageReason(message: Message): string | undefined {
+	if (message.agent) {
+		return "This host does not support custom agents";
+	}
+	return message.attachments?.length ? "This host does not support message attachments" : undefined;
+}
+
+function unsupportedClientActionReason(action: StateAction): string | undefined {
+	switch (action.type) {
+		case ActionType.SessionActiveClientSet:
+		case ActionType.SessionActiveClientRemoved:
+			return "This host does not accept active clients";
+		case ActionType.SessionWorkingDirectorySet:
+		case ActionType.SessionWorkingDirectoryRemoved:
+		case ActionType.ChatWorkingDirectorySet:
+		case ActionType.ChatWorkingDirectoryRemoved:
+			return "This agent does not support changing working directories";
+		case ActionType.SessionCustomizationToggled:
+			return "This host does not support customizations";
+		case ActionType.SessionMcpServerStartRequested:
+		case ActionType.SessionMcpServerStopRequested:
+			return "This host does not support MCP servers";
+		case ActionType.SessionIsReadChanged:
+		case ActionType.SessionIsArchivedChanged:
+			return "This host does not persist read or archive state";
+		case ActionType.SessionConfigChanged:
+			return "This session has no mutable configuration";
+		case ActionType.ChatToolCallConfirmed:
+		case ActionType.ChatToolCallComplete:
+		case ActionType.ChatToolCallResultConfirmed:
+		case ActionType.ChatToolCallContentChanged:
+			return "This host does not support client tool execution or confirmation";
+		case ActionType.ChatInputAnswerChanged:
+		case ActionType.ChatInputCompleted:
+			return "This host does not support interactive input requests";
+		default:
+			return undefined;
+	}
+}
+
 export interface CreateSessionRequest {
 	readonly channel: URI;
 	/**
@@ -109,24 +152,7 @@ export class SessionRegistry {
 			void this.#routeClientAction(channel, action);
 		});
 
-		this.#host.addClientActionValidator((channel, action) => {
-			if (action.type === ActionType.SessionActiveClientSet || action.type === ActionType.SessionActiveClientRemoved) {
-				return "This host does not accept active clients";
-			}
-
-			// Accepting an impossible truncation would shorten the client's view
-			// while pi kept using context the user believes is gone.
-			if (action.type !== ActionType.ChatTruncated) {
-				return undefined;
-			}
-			const session = this.#byChat.get(channel);
-			if (!session) {
-				return undefined;
-			}
-			return truncationAnchor(session, action.turnId)
-				? undefined
-				: `Cannot truncate: no session entry matches turn ${action.turnId ?? "(all)"}`;
-		});
+		this.#host.addClientActionValidator((channel, action) => this.#validateClientAction(channel, action));
 	}
 
 	// ── Lookup ──────────────────────────────────────────────────────────────
@@ -341,6 +367,60 @@ export class SessionRegistry {
 	}
 
 	// ── Client actions ──────────────────────────────────────────────────────
+
+	#validateClientAction(channel: URI, action: StateAction): string | undefined {
+		const unsupported = unsupportedClientActionReason(action);
+		if (unsupported) {
+			return unsupported;
+		}
+
+		const chat = this.#host.store.get(channel) as ChatState | undefined;
+		switch (action.type) {
+			case ActionType.ChatTurnStarted:
+				if (action.message.origin.kind !== MessageKind.User) {
+					return "A client can only start a turn with a user message";
+				}
+				if (action.queuedMessageId !== undefined) {
+					return "Only the host can start a queued message";
+				}
+				return unsupportedMessageReason(action.message) ?? (chat?.activeTurn ? "A turn is already active" : undefined);
+			case ActionType.ChatTurnCancelled:
+				return chat?.activeTurn?.id === action.turnId ? undefined : "No matching active turn to cancel";
+			case ActionType.ChatPendingMessageSet:
+				if (action.message.origin.kind !== MessageKind.User) {
+					return "A client can only queue a user message";
+				}
+				return unsupportedMessageReason(action.message);
+			case ActionType.ChatPendingMessageRemoved:
+				if (action.kind === PendingMessageKind.Steering) {
+					return "A steering message cannot be withdrawn after pi has queued it";
+				}
+				return chat?.queuedMessages?.some((message) => message.id === action.id)
+					? undefined
+					: "No matching queued message to remove";
+			case ActionType.ChatDraftChanged:
+				if (!action.draft) {
+					return undefined;
+				}
+				if (action.draft.origin.kind !== MessageKind.User) {
+					return "A client can only draft a user message";
+				}
+				return unsupportedMessageReason(action.draft);
+			case ActionType.ChatTruncated: {
+				// Accepting an impossible truncation would shorten the client's view
+				// while pi kept using context the user believes is gone.
+				const session = this.#byChat.get(channel);
+				if (!session) {
+					return undefined;
+				}
+				return truncationAnchor(session, action.turnId)
+					? undefined
+					: `Cannot truncate: no session entry matches turn ${action.turnId ?? "(all)"}`;
+			}
+			default:
+				return undefined;
+		}
+	}
 
 	/**
 	 * Routes a client action to whatever owns it.
