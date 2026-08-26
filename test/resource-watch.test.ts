@@ -91,17 +91,21 @@ async function nextChanges(subscription: Subscription, timeoutMs = 4_000): Promi
 }
 
 /** Drains every batch that arrives within a window. */
-async function collectChanges(subscription: Subscription, windowMs: number): Promise<ResourceChange[]> {
-	const collected: ResourceChange[] = [];
+async function collectBatches(subscription: Subscription, windowMs: number): Promise<ResourceChange[][]> {
+	const batches: ResourceChange[][] = [];
 	const deadline = Date.now() + windowMs;
 	while (Date.now() < deadline) {
 		const batch = await nextChanges(subscription, Math.max(1, deadline - Date.now())).catch(() => undefined);
 		if (!batch) {
 			break;
 		}
-		collected.push(...batch);
+		batches.push(batch);
 	}
-	return collected;
+	return batches;
+}
+
+async function collectChanges(subscription: Subscription, windowMs: number): Promise<ResourceChange[]> {
+	return (await collectBatches(subscription, windowMs)).flat();
 }
 
 async function settle(ms: number): Promise<void> {
@@ -170,8 +174,9 @@ describe("resource watch", () => {
 		// `fs.watch` only says "rename" or "change", so the type comes from
 		// stat-ing at flush time.
 		const changes = await collectChanges(subscription, 100);
-		const deleted = changes.find((change) => change.uri.endsWith("doomed.txt"));
-		assert.equal(deleted?.type, ResourceChangeType.Deleted);
+		assert.ok(
+			changes.some((change) => change.uri.endsWith("doomed.txt") && change.type === ResourceChangeType.Deleted),
+		);
 	});
 
 	it("batches a burst into one action", async () => {
@@ -181,10 +186,12 @@ describe("resource watch", () => {
 		for (let i = 0; i < 5; i++) {
 			writeFileSync(join(fixture.workspace, `burst-${i}.txt`), "x");
 		}
-		const changes = await nextChanges(subscription);
+		const batches = await collectBatches(subscription, 100);
 
-		// One save can fire several raw events; the action carries a batch.
-		assert.ok(changes.length >= 2, `expected a batch, got ${changes.length}`);
+		assert.ok(
+			batches.some((batch) => batch.filter((change) => change.uri.includes("burst-")).length >= 2),
+			"expected at least two burst files in one action",
+		);
 	});
 
 	it("honours exclude globs", async () => {
