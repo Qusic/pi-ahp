@@ -147,7 +147,7 @@ export class CompletionService {
 				attachment: {
 					type: MessageAttachmentKind.Resource,
 					label: entry.name,
-					displayKind: isDirectory ? "folder" : "document",
+					displayKind: isDirectory ? "directory" : "document",
 					uri: pathToFileURL(absolute).toString(),
 				},
 			});

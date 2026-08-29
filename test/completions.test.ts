@@ -109,7 +109,7 @@ describe("completions", () => {
 		const { items } = await complete("@sr");
 
 		assert.equal(items[0]?.insertText, "@src/");
-		assert.equal(items[0]?.attachment.displayKind, "folder");
+		assert.equal(items[0]?.attachment.displayKind, "directory");
 	});
 
 	it("descends into a directory prefix", async () => {
