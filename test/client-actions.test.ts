@@ -231,16 +231,27 @@ describe("pi client-action policy", () => {
 				turnId: "attachment-turn",
 				startedAt: new Date().toISOString(),
 				message: userMessage("with context", {
+					attachments: [{ type: MessageAttachmentKind.Simple, label: "context" }],
+				}),
+			},
+			/requires modelRepresentation/,
+		);
+		await expectRejected(
+			chat,
+			{
+				type: ActionType.ChatDraftChanged,
+				draft: userMessage("image", {
 					attachments: [
 						{
-							type: MessageAttachmentKind.Simple,
-							label: "context",
-							modelRepresentation: "context",
+							type: MessageAttachmentKind.EmbeddedResource,
+							label: "image.png",
+							contentType: "image/png",
+							data: "iVBORw0KGgo=",
 						},
 					],
 				}),
 			},
-			/message attachments/,
+			/valid UTF-8/,
 		);
 		await expectRejected(
 			chat,

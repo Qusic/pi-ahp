@@ -22,6 +22,7 @@ import type { AgentSessionEvent } from "@earendil-works/pi-coding-agent";
 import {
 	ActionType,
 	type ChatState,
+	type Message,
 	MessageKind,
 	type ModelSelection,
 	PendingMessageKind,
@@ -31,6 +32,7 @@ import {
 import { syncChatSummary } from "../channels/chat.ts";
 import type { AhpHost } from "../core/host.ts";
 import { TurnMapper } from "./event-mapper.ts";
+import { messageTextForPi } from "./message-input.ts";
 
 /**
  * The slice of a pi agent session this host needs.
@@ -147,7 +149,7 @@ export class ChatDriver {
 		}
 		switch (action.type) {
 			case ActionType.ChatTurnStarted:
-				this.#startTurn(action.turnId, action.message.text, action.message.model);
+				this.#startTurn(action.turnId, action.message);
 				return true;
 			case ActionType.ChatTurnCancelled:
 				void this.#backend.abort().catch((error: unknown) => {
@@ -163,10 +165,7 @@ export class ChatDriver {
 					// pi actually injects it — the client shows it as waiting
 					// until then.
 					this.#pendingSteeringId = action.id;
-					void this.#backend.steer(action.message.text).catch((error: unknown) => {
-						this.#log?.(`steer failed: ${String(error)}`);
-						this.#clearPendingSteering();
-					});
+					void this.#steer(action.message);
 				} else {
 					// A message queued while the chat is idle is consumed straight
 					// away; otherwise it waits for the running turn to finish.
@@ -180,7 +179,16 @@ export class ChatDriver {
 
 	// ── Turn lifecycle ──────────────────────────────────────────────────────
 
-	#startTurn(turnId: string, text: string, selection?: ModelSelection): void {
+	async #steer(message: Message): Promise<void> {
+		try {
+			await this.#backend.steer(messageTextForPi(message));
+		} catch (error) {
+			this.#log?.(`steer failed: ${String(error)}`);
+			this.#clearPendingSteering();
+		}
+	}
+
+	#startTurn(turnId: string, message: Message): void {
 		this.#mapper = new TurnMapper(turnId, Date.now(), {
 			...(this.#workingDirectory ? { workingDirectory: this.#workingDirectory } : {}),
 		});
@@ -189,14 +197,14 @@ export class ChatDriver {
 		// The client's choice has to land before the prompt, or the turn runs on
 		// whatever the previous one used.
 		const ready =
-			selection && this.#backend.selectModel
-				? this.#backend.selectModel(selection).catch((error: unknown) => {
+			message.model && this.#backend.selectModel
+				? this.#backend.selectModel(message.model).catch((error: unknown) => {
 						this.#log?.(`selectModel failed: ${String(error)}`);
 					})
 				: Promise.resolve();
 
 		void ready
-			.then(() => this.#backend.prompt(text))
+			.then(() => this.#backend.prompt(messageTextForPi(message)))
 			.catch((error: unknown) => {
 				// `prompt()` rejects before any agent event when the model is
 				// unavailable or a turn is already running. Nothing will ever emit
@@ -322,7 +330,7 @@ export class ChatDriver {
 				? this.#backend.selectModel(selection).catch(() => undefined)
 				: Promise.resolve();
 		void ready
-			.then(() => this.#backend.prompt(next.message.text))
+			.then(() => this.#backend.prompt(messageTextForPi(next.message)))
 			.catch((error: unknown) => {
 				this.#log?.(`queued prompt failed: ${String(error)}`);
 				this.#finishTurn("error", error instanceof Error ? error.message : String(error));

@@ -18,7 +18,6 @@ import { SessionManager } from "@earendil-works/pi-coding-agent";
 import {
 	ActionType,
 	type ChatState,
-	type Message,
 	MessageKind,
 	type ModelSelection,
 	PendingMessageKind,
@@ -34,6 +33,7 @@ import type { AhpHost } from "../core/host.ts";
 import { fileUriToPath } from "../core/uri.ts";
 import { ProtocolError } from "../protocol/errors.ts";
 import { ChatDriver, type PiBackend } from "./chat-driver.ts";
+import { messageRejectionReason } from "./message-input.ts";
 import { PI_PROVIDER } from "./provider.ts";
 import { dispatchOlderTurns, truncationAnchor } from "./session-history.ts";
 
@@ -69,13 +69,6 @@ export interface LiveSession {
 
 /** Creates the agent backend for a session. Absent in storage-only mode. */
 export type BackendFactory = (session: LiveSession) => Promise<PiBackend> | PiBackend;
-
-function unsupportedMessageReason(message: Message): string | undefined {
-	if (message.agent) {
-		return "This host does not support custom agents";
-	}
-	return message.attachments?.length ? "This host does not support message attachments" : undefined;
-}
 
 function unsupportedClientActionReason(action: StateAction): string | undefined {
 	switch (action.type) {
@@ -383,14 +376,14 @@ export class SessionRegistry {
 				if (action.queuedMessageId !== undefined) {
 					return "Only the host can start a queued message";
 				}
-				return unsupportedMessageReason(action.message) ?? (chat?.activeTurn ? "A turn is already active" : undefined);
+				return messageRejectionReason(action.message) ?? (chat?.activeTurn ? "A turn is already active" : undefined);
 			case ActionType.ChatTurnCancelled:
 				return chat?.activeTurn?.id === action.turnId ? undefined : "No matching active turn to cancel";
 			case ActionType.ChatPendingMessageSet:
 				if (action.message.origin.kind !== MessageKind.User) {
 					return "A client can only queue a user message";
 				}
-				return unsupportedMessageReason(action.message);
+				return messageRejectionReason(action.message);
 			case ActionType.ChatPendingMessageRemoved:
 				if (action.kind === PendingMessageKind.Steering) {
 					return "A steering message cannot be withdrawn after pi has queued it";
@@ -405,7 +398,7 @@ export class SessionRegistry {
 				if (action.draft.origin.kind !== MessageKind.User) {
 					return "A client can only draft a user message";
 				}
-				return unsupportedMessageReason(action.draft);
+				return messageRejectionReason(action.draft);
 			case ActionType.ChatTruncated: {
 				// Accepting an impossible truncation would shorten the client's view
 				// while pi kept using context the user believes is gone.

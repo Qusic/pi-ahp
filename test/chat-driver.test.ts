@@ -14,6 +14,7 @@ import type { AgentSessionEvent } from "@earendil-works/pi-coding-agent";
 import {
 	ActionType,
 	type ChatState,
+	MessageAttachmentKind,
 	PendingMessageKind,
 	SessionLifecycle,
 	type SessionState,
@@ -70,6 +71,15 @@ class ScriptedBackend implements PiBackend {
 	async abort(): Promise<void> {
 		this.aborts += 1;
 	}
+}
+
+function embeddedText(text: string, label = "context.txt") {
+	return {
+		type: MessageAttachmentKind.EmbeddedResource,
+		label,
+		contentType: "text/plain",
+		data: Buffer.from(text).toString("base64"),
+	} as const;
 }
 
 function say(text: string): AgentSessionEvent[] {
@@ -175,6 +185,27 @@ describe("chat driver", () => {
 		assert.equal((must(state.turns[0]).responseParts[0] as { content: string }).content, "echo: hello");
 	});
 
+	it("adapts supported attachments into pi prompt text", async () => {
+		const text = "inspect the path from the client";
+		const expected = `${text}\n\nselected context\n\nembedded context`;
+		fixture.client.dispatch(fixture.chatChannel, {
+			type: ActionType.ChatTurnStarted,
+			turnId: "t-path",
+			startedAt: new Date().toISOString(),
+			message: {
+				text,
+				origin: { kind: "user" },
+				attachments: [
+					{ type: MessageAttachmentKind.Simple, label: "selection", modelRepresentation: "selected context" },
+					embeddedText("embedded context", "note.txt"),
+				],
+			},
+		} as never);
+
+		await waitFor(() => backend.prompts.includes(expected));
+		assert.equal(backend.prompts.at(-1), expected);
+	});
+
 	it("keeps the session catalog's chat summary in step", async () => {
 		const session = fixture.host.store.get(fixture.sessionChannel) as SessionState;
 		const chat = fixture.host.store.get(fixture.chatChannel) as ChatState;
@@ -190,11 +221,17 @@ describe("chat driver", () => {
 			type: ActionType.ChatPendingMessageSet,
 			kind: PendingMessageKind.Steering,
 			id: "steer-1",
-			message: { text: "focus on tests", origin: { kind: "user" } },
+			message: {
+				text: "focus on tests",
+				origin: { kind: "user" },
+				attachments: [
+					{ type: MessageAttachmentKind.Simple, label: "context", modelRepresentation: "steering context" },
+				],
+			},
 		} as never);
 
 		await waitFor(() => backend.steers.length === 1);
-		assert.deepEqual(backend.steers, ["focus on tests"]);
+		assert.deepEqual(backend.steers, ["focus on tests\n\nsteering context"]);
 	});
 
 	it("consumes a queued message as its own turn once the chat goes idle", async () => {
@@ -206,13 +243,17 @@ describe("chat driver", () => {
 			type: ActionType.ChatPendingMessageSet,
 			kind: PendingMessageKind.Queued,
 			id: "q-1",
-			message: { text: "then do this", origin: { kind: "user" } },
+			message: {
+				text: "then do this",
+				origin: { kind: "user" },
+				attachments: [embeddedText("queued context", "queued.txt")],
+			},
 		} as never);
 
 		await waitFor(() => backend.prompts.length === promptsBefore + 1);
 
 		const state = fixture.host.store.get(fixture.chatChannel) as ChatState;
-		assert.equal(backend.prompts.at(-1), "then do this");
+		assert.equal(backend.prompts.at(-1), "then do this\n\nqueued context");
 		// The reducer removes the entry atomically with creating the turn, so a
 		// client can never see it both queued and running.
 		assert.equal(state.queuedMessages, undefined);
