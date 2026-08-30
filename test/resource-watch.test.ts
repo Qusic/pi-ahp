@@ -72,8 +72,9 @@ async function startFixture(options: { graceMs?: number } = {}): Promise<Fixture
 
 /** Collects the next batch of changes, failing fast on a stall. */
 async function nextChanges(subscription: Subscription, timeoutMs = 4_000): Promise<ResourceChange[]> {
+	let handle: ReturnType<typeof setTimeout>;
 	const timer = new Promise<never>((_, reject) => {
-		const handle = setTimeout(() => reject(new Error("no change arrived")), timeoutMs);
+		handle = setTimeout(() => reject(new Error("no change arrived")), timeoutMs);
 		handle.unref?.();
 	});
 	const next = (async () => {
@@ -87,7 +88,24 @@ async function nextChanges(subscription: Subscription, timeoutMs = 4_000): Promi
 			}
 		}
 	})();
-	return Promise.race([next, timer]);
+	return Promise.race([next, timer]).finally(() => clearTimeout(handle));
+}
+
+async function nextMatchingChange(
+	subscription: Subscription,
+	matches: (change: ResourceChange) => boolean,
+	timeoutMs = 4_000,
+): Promise<ResourceChange> {
+	const deadline = Date.now() + timeoutMs;
+	while (true) {
+		const change = (await nextChanges(subscription, Math.max(1, deadline - Date.now()))).find(matches);
+		if (change) {
+			return change;
+		}
+		if (Date.now() >= deadline) {
+			throw new Error("no matching change arrived");
+		}
+	}
 }
 
 /** Drains every batch that arrives within a window. */
@@ -144,10 +162,8 @@ describe("resource watch", () => {
 		const { subscription } = await fixture.client.subscribe(channel);
 
 		writeFileSync(join(fixture.workspace, "created.txt"), "hi");
-		const changes = await collectChanges(subscription, 100);
+		const created = await nextMatchingChange(subscription, (change) => change.uri.endsWith("created.txt"));
 
-		const created = changes.find((change) => change.uri.endsWith("created.txt"));
-		assert.ok(created);
 		assert.equal(checkSchema("state", "ResourceChange", created), undefined);
 	});
 
@@ -156,12 +172,9 @@ describe("resource watch", () => {
 		const { subscription } = await fixture.client.subscribe(channel);
 
 		writeFileSync(join(fixture.workspace, "first.txt"), "1");
-		const first = await collectChanges(subscription, 100);
+		await nextMatchingChange(subscription, (change) => change.uri.endsWith("first.txt"));
 		writeFileSync(join(fixture.workspace, "second.txt"), "2");
-		const second = await collectChanges(subscription, 100);
-
-		assert.ok(first.some((change) => change.uri.endsWith("first.txt")));
-		assert.ok(second.some((change) => change.uri.endsWith("second.txt")));
+		await nextMatchingChange(subscription, (change) => change.uri.endsWith("second.txt"));
 	});
 
 	it("classifies a removed path as deleted", async () => {
@@ -173,9 +186,9 @@ describe("resource watch", () => {
 		rmSync(target);
 		// `fs.watch` only says "rename" or "change", so the type comes from
 		// stat-ing at flush time.
-		const changes = await collectChanges(subscription, 100);
-		assert.ok(
-			changes.some((change) => change.uri.endsWith("doomed.txt") && change.type === ResourceChangeType.Deleted),
+		await nextMatchingChange(
+			subscription,
+			(change) => change.uri.endsWith("doomed.txt") && change.type === ResourceChangeType.Deleted,
 		);
 	});
 
