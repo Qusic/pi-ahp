@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { fileURLToPath } from "node:url";
 import {
 	type Message,
 	type MessageAttachment,
@@ -27,7 +28,7 @@ function embedded(
 }
 
 describe("pi message input", () => {
-	it("passes text through without interpreting resource metadata", () => {
+	it("appends a file resource as a path with its selection", () => {
 		const input = message([
 			{
 				type: MessageAttachmentKind.Resource,
@@ -43,17 +44,35 @@ describe("pi message input", () => {
 		]);
 
 		assert.equal(messageRejectionReason(input), undefined);
-		assert.equal(messageTextForPi(input), "question");
+		assert.equal(messageTextForPi(input), `question\n\n${fileURLToPath("file:///outside.ts")}:5:3-9:1`);
 	});
 
-	it("appends simple model representations in attachment order", () => {
+	it("appends attachment representations in order", () => {
 		const input = message([
 			{ type: MessageAttachmentKind.Simple, label: "first", modelRepresentation: "first context" },
 			{ type: MessageAttachmentKind.Resource, label: "path", uri: "file:///path.ts" },
 			{ type: MessageAttachmentKind.Simple, label: "second", modelRepresentation: "second context" },
 		]);
 
-		assert.equal(messageTextForPi(input), "question\n\nfirst context\n\nsecond context");
+		assert.equal(
+			messageTextForPi(input),
+			`question\n\nfirst context\n\n${fileURLToPath("file:///path.ts")}\n\nsecond context`,
+		);
+	});
+
+	it("preserves resource URIs whose schemes may carry their own routing", () => {
+		for (const uri of ["https://example.com/context.txt", "virtual://client/context.txt?revision=1"]) {
+			const input = message([{ type: MessageAttachmentKind.Resource, label: "remote", uri }]);
+			assert.equal(messageTextForPi(input), `question\n\n${uri}`);
+		}
+	});
+
+	it("preserves a VS Code-wrapped resource without guessing which host owns it", () => {
+		const wrapped = "vscode-agent-host://another-host/Users/user/project/some%20file.ts?_ah%3DeyJzY2hlbWUiOiJmaWxlIn0";
+		assert.equal(
+			messageTextForPi(message([{ type: MessageAttachmentKind.Resource, label: "some file.ts", uri: wrapped }])),
+			`question\n\n${wrapped}`,
+		);
 	});
 
 	it("requires client-created simple attachments to carry a model representation", () => {
@@ -74,39 +93,26 @@ describe("pi message input", () => {
 		assert.equal(messageTextForPi(input), "question\n\nconst answer = 42;");
 	});
 
-	it("includes the full embedded text under a 1-based selection marker", () => {
-		const content = "zero\r\none 😀\r\ntwo\nthree";
+	it("keeps embedded payload under its original 1-based selection marker", () => {
 		const input = message([
-			embedded(Buffer.from(content, "utf8").toString("base64"), {
+			embedded(Buffer.from("selected text", "utf8").toString("base64"), {
 				selection: {
 					range: {
-						start: { line: 1, character: 4 },
-						end: { line: 2, character: 3 },
+						start: { line: 20, character: 3 },
+						end: { line: 20, character: 16 },
 					},
 				},
 			}),
 		]);
 
-		assert.equal(messageTextForPi(input), "question\n\n[selection 2:5-3:4]\nzero\r\none 😀\r\ntwo\nthree");
+		assert.equal(messageTextForPi(input), "question\n\n[selection 21:4-21:17]\nselected text");
 	});
 
-	it("rejects malformed or non-text embedded resources", () => {
+	it("rejects malformed or non-text embedded payloads", () => {
 		const cases: Array<[MessageAttachment, RegExp]> = [
 			[embedded("%%%"), /valid base64/],
 			[embedded(null as never), /valid base64/],
 			[embedded(Buffer.from([0xc3, 0x28]).toString("base64")), /valid UTF-8/],
-			[
-				embedded(Buffer.from("one line").toString("base64"), {
-					selection: { range: { start: { line: 3, character: 0 }, end: { line: 3, character: 1 } } },
-				}),
-				/invalid selection/,
-			],
-			[
-				embedded(Buffer.from("one line").toString("base64"), {
-					selection: { range: { start: { line: 0, character: 4 }, end: { line: 0, character: 2 } } },
-				}),
-				/invalid selection/,
-			],
 		];
 
 		for (const [attachment, reason] of cases) {

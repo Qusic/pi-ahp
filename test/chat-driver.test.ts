@@ -10,6 +10,7 @@ import { must } from "./harness.ts";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, describe, it } from "node:test";
+import { fileURLToPath } from "node:url";
 import type { AgentSessionEvent } from "@earendil-works/pi-coding-agent";
 import {
 	ActionType,
@@ -187,7 +188,7 @@ describe("chat driver", () => {
 
 	it("adapts supported attachments into pi prompt text", async () => {
 		const text = "inspect the path from the client";
-		const expected = `${text}\n\nselected context\n\nembedded context`;
+		const expected = `${text}\n\n${fileURLToPath("file:///outside.ts")}\n\nselected context\n\nembedded context`;
 		fixture.client.dispatch(fixture.chatChannel, {
 			type: ActionType.ChatTurnStarted,
 			turnId: "t-path",
@@ -196,6 +197,7 @@ describe("chat driver", () => {
 				text,
 				origin: { kind: "user" },
 				attachments: [
+					{ type: MessageAttachmentKind.Resource, label: "outside.ts", uri: "file:///outside.ts" },
 					{ type: MessageAttachmentKind.Simple, label: "selection", modelRepresentation: "selected context" },
 					embeddedText("embedded context", "note.txt"),
 				],

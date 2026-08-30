@@ -1,8 +1,10 @@
+import { fileURLToPath } from "node:url";
 import {
 	type Message,
 	MessageAttachmentKind,
 	type MessageEmbeddedResourceAttachment,
-	type TextPosition,
+	type MessageResourceAttachment,
+	type TextRange,
 } from "@microsoft/agent-host-protocol";
 
 type PreparedMessage = { readonly text: string } | { readonly rejectionReason: string };
@@ -20,30 +22,8 @@ function decodeBase64(data: unknown): Buffer | undefined {
 	return canonical === data.replace(/=+$/u, "") ? decoded : undefined;
 }
 
-function positionExists(lines: readonly string[], position: TextPosition): boolean {
-	if (
-		!Number.isSafeInteger(position.line) ||
-		!Number.isSafeInteger(position.character) ||
-		position.line < 0 ||
-		position.character < 0
-	) {
-		return false;
-	}
-	const line = lines[position.line];
-	const length = line?.endsWith("\r") ? line.length - 1 : line?.length;
-	return length !== undefined && position.character <= length;
-}
-
-function hasValidSelection(text: string, attachment: MessageEmbeddedResourceAttachment): boolean {
-	const range = attachment.selection?.range;
-	if (!range) {
-		return true;
-	}
-	const lines = text.split("\n");
-	const ordered =
-		range.start.line < range.end.line ||
-		(range.start.line === range.end.line && range.start.character <= range.end.character);
-	return ordered && positionExists(lines, range.start) && positionExists(lines, range.end);
+function rangeText(range: TextRange): string {
+	return `${range.start.line + 1}:${range.start.character + 1}-${range.end.line + 1}:${range.end.character + 1}`;
 }
 
 function embeddedText(attachment: MessageEmbeddedResourceAttachment): PreparedMessage {
@@ -60,15 +40,27 @@ function embeddedText(attachment: MessageEmbeddedResourceAttachment): PreparedMe
 	} catch {
 		return { rejectionReason: `Embedded resource ${attachment.label} is not valid UTF-8` };
 	}
-	if (!hasValidSelection(decoded, attachment)) {
-		return { rejectionReason: `Embedded resource ${attachment.label} has an invalid selection` };
-	}
 	const range = attachment.selection?.range;
 	if (!range) {
 		return { text: decoded };
 	}
-	const marker = `[selection ${range.start.line + 1}:${range.start.character + 1}-${range.end.line + 1}:${range.end.character + 1}]`;
-	return { text: `${marker}\n${decoded}` };
+	return { text: `[selection ${rangeText(range)}]\n${decoded}` };
+}
+
+function resourceText(attachment: MessageResourceAttachment): PreparedMessage {
+	if (typeof attachment.uri !== "string") {
+		return { rejectionReason: "A resource attachment requires a URI" };
+	}
+	const range = attachment.selection?.range;
+	let reference = attachment.uri;
+	if (/^file:/iu.test(reference)) {
+		try {
+			reference = fileURLToPath(reference);
+		} catch {
+			// Preserve a remote or malformed file URI rather than guessing a path.
+		}
+	}
+	return { text: `${reference}${range ? `:${rangeText(range)}` : ""}` };
 }
 
 function prepareMessage(message: Message): PreparedMessage {
@@ -79,9 +71,14 @@ function prepareMessage(message: Message): PreparedMessage {
 	const representations: string[] = [];
 	for (const attachment of message.attachments ?? []) {
 		switch (attachment.type) {
-			case MessageAttachmentKind.Resource:
-				// Resource metadata has no pi equivalent; pi consumes Message.text.
+			case MessageAttachmentKind.Resource: {
+				const resource = resourceText(attachment);
+				if ("rejectionReason" in resource) {
+					return resource;
+				}
+				representations.push(resource.text);
 				break;
+			}
 			case MessageAttachmentKind.Simple:
 				if (typeof attachment.modelRepresentation !== "string") {
 					return { rejectionReason: "A simple attachment requires modelRepresentation" };
