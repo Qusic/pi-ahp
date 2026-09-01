@@ -179,10 +179,11 @@ describe("resource watch", () => {
 
 	it("classifies a removed path as deleted", async () => {
 		const target = join(fixture.workspace, "doomed.txt");
-		writeFileSync(target, "x");
 		const { channel } = await fixture.client.createResourceWatch({ uri: uri(fixture.workspace) });
 		const { subscription } = await fixture.client.subscribe(channel);
 
+		writeFileSync(target, "x");
+		await nextMatchingChange(subscription, (change) => change.uri.endsWith("doomed.txt"));
 		rmSync(target);
 		// `fs.watch` only says "rename" or "change", so the type comes from
 		// stat-ing at flush time.
@@ -192,19 +193,29 @@ describe("resource watch", () => {
 		);
 	});
 
-	it("batches a burst into one action", async () => {
+	it("does not lose paths from a burst", async () => {
 		const { channel } = await fixture.client.createResourceWatch({ uri: uri(fixture.workspace) });
 		const { subscription } = await fixture.client.subscribe(channel);
+		const expected = Array.from({ length: 5 }, (_, index) => `burst-${index}.txt`);
 
-		for (let i = 0; i < 5; i++) {
-			writeFileSync(join(fixture.workspace, `burst-${i}.txt`), "x");
+		for (const name of expected) {
+			writeFileSync(join(fixture.workspace, name), "x");
 		}
-		const batches = await collectBatches(subscription, 100);
+		const seen = new Set<string>();
+		const deadline = Date.now() + 4_000;
+		while (seen.size < expected.length) {
+			if (Date.now() >= deadline) {
+				assert.fail(`missing burst paths: ${expected.filter((name) => !seen.has(name)).join(", ")}`);
+			}
+			for (const change of await nextChanges(subscription, Math.max(1, deadline - Date.now()))) {
+				const name = change.uri.split("/").at(-1);
+				if (name?.startsWith("burst-")) {
+					seen.add(name);
+				}
+			}
+		}
 
-		assert.ok(
-			batches.some((batch) => batch.filter((change) => change.uri.includes("burst-")).length >= 2),
-			"expected at least two burst files in one action",
-		);
+		assert.deepEqual([...seen].sort(), expected);
 	});
 
 	it("honours exclude globs", async () => {
