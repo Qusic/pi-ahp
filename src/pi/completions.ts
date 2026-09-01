@@ -16,9 +16,8 @@
  * @see https://microsoft.github.io/agent-host-protocol/specification/chat-channel
  */
 
-import type { Dirent } from "node:fs";
-import { readdir } from "node:fs/promises";
-import { isAbsolute, join, relative, resolve, sep } from "node:path";
+import { glob } from "node:fs/promises";
+import { basename, join, relative, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 import {
 	type CompletionItem,
@@ -31,11 +30,29 @@ import {
 /** The character that opens a resource mention. */
 export const MENTION_TRIGGER = "@";
 
-/** Directories never worth offering; they drown out everything else. */
-const SKIPPED_DIRECTORIES = new Set([".git", "node_modules", ".venv", "__pycache__", "dist", "build"]);
+/**
+ * An intentionally small, arbitrary guard for this temporary glob-based
+ * implementation. Revisit it when completions gain a real file index.
+ */
+const SKIPPED_DIRECTORIES = new Set([".git", "node_modules"]);
 
 /** Upper bound on returned items. The client renders a picker, not a file tree. */
 const MAX_ITEMS = 50;
+
+/** Keeps a completion request bounded even when the workspace is enormous. */
+const MAX_SCANNED_ENTRIES = 10_000;
+
+function score(relativePath: string, query: string): number {
+	if (!query) {
+		return 1;
+	}
+	const path = relativePath.toLowerCase();
+	const name = basename(path);
+	if (name === query) return 4;
+	if (name.startsWith(query)) return 3;
+	if (name.includes(query)) return 2;
+	return path.includes(query) ? 1 : 0;
+}
 
 export interface CompletionServiceOptions {
 	/** Resolves the directory a chat's mentions are relative to. */
@@ -101,69 +118,44 @@ export class CompletionService {
 			return { items: [] };
 		}
 
-		// `@src/comp` splits into the directory to scan and the prefix to match.
-		const separatorIndex = mention.query.lastIndexOf("/");
-		const directoryPart = separatorIndex < 0 ? "" : mention.query.slice(0, separatorIndex);
-		const prefix = (separatorIndex < 0 ? mention.query : mention.query.slice(separatorIndex + 1)).toLowerCase();
-
-		const scanDirectory = resolve(workingDirectory, directoryPart);
-		if (!this.#isInside(workingDirectory, scanDirectory)) {
-			// A mention is workspace-relative; `@../../etc/passwd` is not a typo
-			// worth completing.
-			return { items: [] };
-		}
-
-		let entries: Dirent<string>[];
+		const query = mention.query.replaceAll("\\", "/").replace(/^\.\//u, "").toLowerCase();
+		const candidates: { absolute: string; relativePath: string; score: number }[] = [];
+		let scanned = 0;
 		try {
-			entries = await readdir(scanDirectory, { withFileTypes: true });
+			for await (const entry of glob("**/*", {
+				cwd: workingDirectory,
+				withFileTypes: true,
+				exclude: (candidate) => candidate.isDirectory() && SKIPPED_DIRECTORIES.has(candidate.name),
+			})) {
+				if (++scanned > MAX_SCANNED_ENTRIES) {
+					break;
+				}
+				if (!entry.isFile() && !entry.isSymbolicLink()) {
+					continue;
+				}
+				const absolute = join(entry.parentPath, entry.name);
+				const relativePath = relative(workingDirectory, absolute).split(sep).join("/");
+				const rank = score(relativePath, query);
+				if (rank) {
+					candidates.push({ absolute, relativePath, score: rank });
+				}
+			}
 		} catch {
 			return { items: [] };
 		}
 
-		const items: CompletionItem[] = [];
-		for (const entry of entries) {
-			if (items.length >= (this.#options.maxItems ?? MAX_ITEMS)) {
-				break;
-			}
-			if (entry.name.toLowerCase().startsWith(prefix) === false) {
-				continue;
-			}
-			if (entry.isDirectory() && SKIPPED_DIRECTORIES.has(entry.name)) {
-				continue;
-			}
-			if (prefix.length === 0 && entry.name.startsWith(".")) {
-				// Dotfiles are offered only once the user asks for them.
-				continue;
-			}
-
-			const absolute = join(scanDirectory, entry.name);
-			const relativePath = relative(workingDirectory, absolute).split(sep).join("/");
-			const isDirectory = entry.isDirectory();
-			items.push({
-				// A directory keeps the mention open so the user can descend.
-				insertText: `${MENTION_TRIGGER}${relativePath}${isDirectory ? "/" : ""}`,
-				rangeStart: mention.start,
-				rangeEnd: mention.end,
-				attachment: {
-					type: MessageAttachmentKind.Resource,
-					label: entry.name,
-					displayKind: isDirectory ? "directory" : "document",
-					uri: pathToFileURL(absolute).toString(),
-				},
-			});
-		}
-
-		// Directories first, then alphabetical — the order a picker wants.
-		items.sort((a, b) => {
-			const aDir = a.insertText.endsWith("/");
-			const bDir = b.insertText.endsWith("/");
-			return aDir === bDir ? a.insertText.localeCompare(b.insertText) : aDir ? -1 : 1;
-		});
+		candidates.sort((a, b) => b.score - a.score || a.relativePath.localeCompare(b.relativePath));
+		const items: CompletionItem[] = candidates.slice(0, this.#options.maxItems ?? MAX_ITEMS).map((candidate) => ({
+			insertText: `${MENTION_TRIGGER}${candidate.relativePath}`,
+			rangeStart: mention.start,
+			rangeEnd: mention.end,
+			attachment: {
+				type: MessageAttachmentKind.Resource,
+				label: basename(candidate.relativePath),
+				displayKind: "document",
+				uri: pathToFileURL(candidate.absolute).toString(),
+			},
+		}));
 		return { items };
-	}
-
-	#isInside(root: string, candidate: string): boolean {
-		const rel = relative(root, candidate);
-		return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
 	}
 }

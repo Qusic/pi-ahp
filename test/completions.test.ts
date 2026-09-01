@@ -63,10 +63,15 @@ describe("completions", () => {
 		writeFileSync(join(workspace, "report.txt"), "x");
 		writeFileSync(join(workspace, "other.js"), "x");
 		writeFileSync(join(workspace, ".hidden"), "x");
-		mkdirSync(join(workspace, "src"));
+		mkdirSync(join(workspace, "src", "lib"), { recursive: true });
 		writeFileSync(join(workspace, "src", "index.ts"), "x");
+		writeFileSync(join(workspace, "src", "lib", "deep.ts"), "x");
 		mkdirSync(join(workspace, "node_modules"));
 		writeFileSync(join(workspace, "node_modules", "reactive.js"), "x");
+		mkdirSync(join(workspace, "dist"));
+		writeFileSync(join(workspace, "dist", "generated.js"), "x");
+		mkdirSync(join(workspace, "build"));
+		writeFileSync(join(workspace, "build", "artifact.js"), "x");
 
 		service = new CompletionService({ workingDirectoryFor: () => workspace });
 	});
@@ -105,14 +110,17 @@ describe("completions", () => {
 		assert.equal(items[0]?.rangeEnd, 11);
 	});
 
-	it("keeps a directory mention open so the user can descend", async () => {
+	it("returns nested files instead of directory navigation items", async () => {
 		const { items } = await complete("@sr");
 
-		assert.equal(items[0]?.insertText, "@src/");
-		assert.equal(items[0]?.attachment.displayKind, "directory");
+		assert.deepEqual(
+			items.map((item) => item.insertText),
+			["@src/index.ts", "@src/lib/deep.ts"],
+		);
+		assert.ok(items.every((item) => item.attachment.displayKind === "document"));
 	});
 
-	it("descends into a directory prefix", async () => {
+	it("matches a typed relative-path prefix", async () => {
 		const { items } = await complete("@src/in");
 
 		assert.deepEqual(
@@ -121,31 +129,31 @@ describe("completions", () => {
 		);
 	});
 
-	it("lists directories before files", async () => {
-		const { items } = await complete("@");
-		const firstFile = items.findIndex((item) => !item.insertText.endsWith("/"));
-		const lastDirectory = items.map((item) => item.insertText.endsWith("/")).lastIndexOf(true);
+	it("matches a nested file by basename", async () => {
+		const { items } = await complete("@deep");
 
-		assert.ok(lastDirectory < firstFile, "directories must sort ahead of files");
-	});
-
-	it("hides noise directories and dotfiles until asked for", async () => {
-		const { items } = await complete("@");
-		const inserted = items.map((item) => item.insertText);
-
-		assert.equal(inserted.includes("@node_modules/"), false);
-		assert.equal(inserted.includes("@.hidden"), false);
-
-		// Typing the dot asks for them explicitly.
-		const explicit = await complete("@.h");
 		assert.deepEqual(
-			explicit.items.map((item) => item.insertText),
-			["@.hidden"],
+			items.map((item) => item.insertText),
+			["@src/lib/deep.ts"],
 		);
 	});
 
-	it("refuses to escape the working directory", async () => {
-		// A mention is workspace-relative; `@../..` is not a typo worth completing.
+	it("keeps the temporary directory skip list narrow", async () => {
+		const inserted = (await complete("@")).items.map((item) => item.insertText);
+
+		assert.equal(
+			inserted.some((item) => item.includes("node_modules")),
+			false,
+		);
+		assert.equal(
+			inserted.some((item) => item.includes(".hidden")),
+			false,
+		);
+		assert.ok(inserted.includes("@dist/generated.js"));
+		assert.ok(inserted.includes("@build/artifact.js"));
+	});
+
+	it("does not interpret a query as path traversal", async () => {
 		const { items } = await complete("@../../etc/pass");
 		assert.deepEqual(items, []);
 	});
@@ -198,7 +206,11 @@ describe("completions over the wire", () => {
 
 		const host = new AhpHost({ completionTriggerCharacters: [MENTION_TRIGGER] });
 		installRootChannel(host, []);
-		host.serve({ completions: new CompletionService({ workingDirectoryFor: () => workspace }) });
+		host.serve({
+			completions: new CompletionService({
+				workingDirectoryFor: (channel) => (channel === CHAT ? workspace : undefined),
+			}),
+		});
 
 		server = await serveWebSocket(host, { host: "127.0.0.1", port: 0 });
 		client = new AhpClient(await WebSocketTransport.connect(`ws://127.0.0.1:${server.port}`));
@@ -234,6 +246,31 @@ describe("completions over the wire", () => {
 		assert.equal(result.items.length, 1);
 		assert.equal(result.items[0]?.insertText, "@notes.md");
 		assert.equal(checkSchema("commands", "CompletionsResult", result), undefined);
+	});
+
+	it("maps only VS Code's session target onto the default chat", async () => {
+		const vscode = new AhpClient(await WebSocketTransport.connect(`ws://127.0.0.1:${server.port}`));
+		vscode.connect();
+		await vscode.request("initialize", {
+			clientId: "vscode-completions-client",
+			clientInfo: { name: "vscode-editor-window" },
+			protocolVersions: SUPPORTED_PROTOCOL_VERSIONS,
+		} as never);
+		try {
+			const params = { kind: CompletionItemKind.UserMessage, text: "@not", offset: 4 };
+			const [vscodeResult, standardSession] = await Promise.all([
+				vscode.request("completions", { ...params, channel: "pi:/completions" } as never),
+				client.request("completions", { ...params, channel: "ahp-session:/completions" } as never),
+			]);
+
+			assert.deepEqual(
+				vscodeResult.items.map((item) => item.insertText),
+				["@notes.md"],
+			);
+			assert.deepEqual(standardSession.items, []);
+		} finally {
+			await vscode.shutdown();
+		}
 	});
 });
 

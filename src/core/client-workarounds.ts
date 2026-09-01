@@ -31,7 +31,7 @@ const PROVIDER_SESSION_SCHEME = "pi";
  * VS Code addresses sessions and chats at URIs it computes, not the ones it was
  * given.
  *
- * Two assumptions drive it, neither of them in the protocol:
+ * Three assumptions drive it, none of them in the protocol:
  *
  *  - A session lives at `<agentProvider>:/<id>`. `agentHostSessionHandler`
  *    rebuilds the URI that way from the provider name rather than using the
@@ -41,6 +41,9 @@ const PROVIDER_SESSION_SCHEME = "pi";
  *  - A session's default chat lives at `ahp-chat://default/<base64url(session)>`,
  *    derived so producer and consumer "can compute it without a lookup table".
  *    `SessionState.defaultChat` and the session's chat list are both ignored.
+ *  - `completions` targets the backend session URI even though its `channel`
+ *    is specified as a chat URI. VS Code's host accepts either and silently
+ *    chooses the default chat; this host keeps that tolerance per connection.
  *
  * So nothing this host sends is addressable by it, and every subscription
  * misses: sessions list, and opening one shows an empty transcript. Publishing
@@ -73,7 +76,12 @@ export class ClientWorkarounds {
 		}
 		const rewrite = (uri: URI) => inbound(uri, this.#sessionScheme);
 		if (typeof params.channel === "string") {
-			params.channel = rewrite(params.channel);
+			let channel = rewrite(params.channel);
+			if (message.method === "completions" && this.#sessionScheme) {
+				const sessionId = permissiveSessionId(channel);
+				channel = sessionId ? chatUri(sessionId) : channel;
+			}
+			params.channel = channel;
 		}
 		// `reconnect` names its channels here rather than in `channel`.
 		if (Array.isArray(params.subscriptions)) {
