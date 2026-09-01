@@ -14,7 +14,7 @@ import { installRootChannel } from "../src/channels/root.ts";
 import { AhpHost } from "../src/core/host.ts";
 import { PI_PROVIDER } from "../src/pi/provider.ts";
 import { PiSessionCatalogue } from "../src/pi/session-catalogue.ts";
-import { SessionRegistry } from "../src/pi/session-registry.ts";
+import { type BackendFactory, SessionRegistry } from "../src/pi/session-registry.ts";
 import { type RunningServer, serveWebSocket } from "../src/transport/websocket.ts";
 
 export const TEST_AGENT: AgentInfo = {
@@ -48,6 +48,8 @@ export async function startHarness(
 		sessions?: boolean;
 		/** Working directory for sessions created without one. */
 		workingDirectory?: string;
+		/** Backend for live session tests; omitted for storage-only sessions. */
+		createBackend?: BackendFactory;
 		/** Root of the session catalogue; defaults to pi's real sessions directory. */
 		catalogueRoot?: string;
 	} = {},
@@ -64,6 +66,7 @@ export async function startHarness(
 		sessions = new SessionRegistry({
 			host,
 			defaultWorkingDirectory: options.workingDirectory ?? process.cwd(),
+			...(options.createBackend ? { createBackend: options.createBackend } : {}),
 			deleteFile: (path) => deletedFiles.push(path),
 		});
 		host.serve({ catalogue: new PiSessionCatalogue(options.catalogueRoot) });
