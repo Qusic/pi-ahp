@@ -108,24 +108,6 @@ async function nextMatchingChange(
 	}
 }
 
-/** Drains every batch that arrives within a window. */
-async function collectBatches(subscription: Subscription, windowMs: number): Promise<ResourceChange[][]> {
-	const batches: ResourceChange[][] = [];
-	const deadline = Date.now() + windowMs;
-	while (Date.now() < deadline) {
-		const batch = await nextChanges(subscription, Math.max(1, deadline - Date.now())).catch(() => undefined);
-		if (!batch) {
-			break;
-		}
-		batches.push(batch);
-	}
-	return batches;
-}
-
-async function collectChanges(subscription: Subscription, windowMs: number): Promise<ResourceChange[]> {
-	return (await collectBatches(subscription, windowMs)).flat();
-}
-
 async function settle(ms: number): Promise<void> {
 	await new Promise((resolve) => {
 		const handle = setTimeout(resolve, ms);
@@ -230,17 +212,11 @@ describe("resource watch", () => {
 		writeFileSync(join(fixture.workspace, "node_modules", "ignored.txt"), "x");
 		writeFileSync(join(fixture.workspace, "noticed.txt"), "x");
 
-		const changes = await collectChanges(subscription, 400);
-
-		assert.ok(changes.some((change) => change.uri.endsWith("noticed.txt")));
-		// `**/node_modules/**` matches paths *inside* the directory, not the
-		// directory entry itself. Reporting that the folder appeared is useful
-		// and leaks nothing; its contents stay excluded.
-		assert.equal(
-			changes.some((change) => change.uri.includes("/node_modules/")),
-			false,
-			"nothing inside an excluded directory may be reported",
-		);
+		await nextMatchingChange(subscription, (change) => {
+			// The directory entry itself may be reported; nothing inside it may.
+			assert.equal(change.uri.includes("/node_modules/"), false);
+			return change.uri.endsWith("noticed.txt");
+		});
 	});
 
 	it("honours include globs", async () => {
@@ -254,9 +230,10 @@ describe("resource watch", () => {
 		writeFileSync(join(fixture.workspace, "skipped.txt"), "x");
 		writeFileSync(join(fixture.workspace, "kept.md"), "x");
 
-		const changes = await collectChanges(subscription, 400);
-		assert.ok(changes.length > 0, "expected the included file to be reported");
-		assert.ok(changes.every((change) => change.uri.endsWith(".md")));
+		await nextMatchingChange(subscription, (change) => {
+			assert.ok(change.uri.endsWith(".md"));
+			return change.uri.endsWith("kept.md");
+		});
 	});
 
 	it("rejects watching something that does not exist", async () => {
