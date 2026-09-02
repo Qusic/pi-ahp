@@ -51,11 +51,10 @@ const PROVIDER_SESSION_SCHEME = "pi";
  * onto every other client, so the translation is per connection and only for
  * the clients that need it.
  *
- * Two things it depends on. The client is identified at `initialize`, not on
- * first use, because the session list and the session snapshot both go out
- * before it asks for anything they name. And the two directions have to stay
- * symmetric: a URI rewritten one way only answers on a channel the client is
- * not listening to.
+ * Normally the client is identified at `initialize`, before the session list
+ * and snapshots go out. After a host restart, `reconnect` omits that identity;
+ * its derived-chat subscription is the fallback fingerprint. Both directions
+ * stay symmetric so replies use channels the client is listening to.
  *
  * Goes when VS Code addresses what it was given.
  */
@@ -66,6 +65,23 @@ export class ClientWorkarounds {
 	/** Reads the handshake; see the note on timing above. */
 	identify(clientInfo: { name?: string } | undefined): void {
 		this.#sessionScheme = VSCODE_CLIENT_NAMES.has(clientInfo?.name ?? "") ? PROVIDER_SESSION_SCHEME : undefined;
+	}
+
+	/** Recovers the dialect after a host restart, when reconnect omits clientInfo. */
+	identifyReconnect(subscriptions: readonly unknown[] | undefined): void {
+		if (this.#sessionScheme) {
+			return;
+		}
+		for (const uri of subscriptions ?? []) {
+			if (typeof uri !== "string") {
+				continue;
+			}
+			const session = sessionFromDerivedChat(uri);
+			if (session?.startsWith(`${PROVIDER_SESSION_SCHEME}:/`)) {
+				this.#sessionScheme = PROVIDER_SESSION_SCHEME;
+				return;
+			}
+		}
 	}
 
 	/** Rewrites this connection's parsed request or notification in place. */
@@ -105,12 +121,17 @@ export class ClientWorkarounds {
  * something any client may legitimately do (`permissiveSessionId`), and one
  * that did would not want it moved.
  */
+function sessionFromDerivedChat(uri: URI): URI | undefined {
+	const [, encoded = ""] = DERIVED_CHAT_URI.exec(uri) ?? [];
+	const session = encoded ? Buffer.from(encoded, "base64url").toString("utf8") : "";
+	return permissiveSessionId(session) ? session : undefined;
+}
+
 function inbound(uri: URI, scheme: string | undefined): URI {
-	const derived = DERIVED_CHAT_URI.exec(uri);
-	if (derived) {
-		const [, encoded = ""] = derived;
-		const id = permissiveSessionId(Buffer.from(encoded, "base64url").toString("utf8"));
-		return id ? chatUri(id) : uri;
+	const derivedSession = sessionFromDerivedChat(uri);
+	const derivedSessionId = derivedSession ? permissiveSessionId(derivedSession) : undefined;
+	if (derivedSessionId) {
+		return chatUri(derivedSessionId);
 	}
 	if (!scheme || !uri.startsWith(`${scheme}:/`)) {
 		return uri;

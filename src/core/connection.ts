@@ -1,9 +1,4 @@
-/**
- * A connected client: its transport, subscriptions, and reverse-RPC state.
- *
- * `clientId` is chosen by the client at `initialize` and reused on `reconnect`,
- * so a connection object outlives a single socket.
- */
+/** One transport connection and its per-socket subscriptions. */
 
 import type { URI } from "@microsoft/agent-host-protocol";
 import type { JsonRpcMessage } from "../protocol/jsonrpc.ts";
@@ -17,28 +12,14 @@ export interface Transport {
 	onClose(handler: () => void): void;
 }
 
-export interface ClientInfo {
-	readonly name: string;
-	readonly version?: string;
-	readonly title?: string;
-}
-
 export class ClientConnection {
 	/** Assigned at `initialize` / `reconnect`; empty until the handshake completes. */
-	clientId: string;
+	clientId = "";
 	readonly subscriptions = new Set<URI>();
-
-	transport: Transport;
-	clientInfo: ClientInfo | undefined;
-	locale: string | undefined;
-	protocolVersion: string | undefined;
-	/** Set once `initialize` succeeds. `ping` is answered before this flips. */
-	initialized = false;
+	readonly transport: Transport;
 	readonly workarounds = new ClientWorkarounds();
-	lastSeenServerSeq = 0;
 
-	constructor(clientId: string, transport: Transport) {
-		this.clientId = clientId;
+	constructor(transport: Transport) {
 		this.transport = transport;
 	}
 

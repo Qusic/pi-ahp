@@ -14,6 +14,7 @@ import { installRootChannel } from "../src/channels/root.ts";
 import { AhpHost } from "../src/core/host.ts";
 import { PI_PROVIDER } from "../src/pi/provider.ts";
 import { PiSessionCatalogue } from "../src/pi/session-catalogue.ts";
+import { SessionHydrator } from "../src/pi/session-hydrator.ts";
 import { type BackendFactory, SessionRegistry } from "../src/pi/session-registry.ts";
 import { type RunningServer, serveWebSocket } from "../src/transport/websocket.ts";
 
@@ -63,17 +64,26 @@ export async function startHarness(
 	const deletedFiles: string[] = [];
 	let sessions: SessionRegistry | undefined;
 	if (options.sessions) {
-		sessions = new SessionRegistry({
+		const catalogue = new PiSessionCatalogue(options.catalogueRoot);
+		const registry = new SessionRegistry({
 			host,
 			defaultWorkingDirectory: options.workingDirectory ?? process.cwd(),
 			...(options.createBackend ? { createBackend: options.createBackend } : {}),
 			deleteFile: (path) => deletedFiles.push(path),
+			findSessionFile: (id) => catalogue.findSessionFile(id),
 		});
-		host.serve({ catalogue: new PiSessionCatalogue(options.catalogueRoot) });
+		sessions = registry;
 		host.serve({
+			catalogue,
+			hydrator: new SessionHydrator({
+				host,
+				catalogue,
+				isLive: (session) => registry.has(session),
+				adopt: (session) => void registry.adopt(session),
+			}),
 			sessions: {
-				create: (params) => must(sessions).create(params as never),
-				dispose: (channel) => must(sessions).dispose(channel),
+				create: (params) => registry.create(params as never),
+				dispose: (channel) => registry.dispose(channel),
 			},
 		});
 	}

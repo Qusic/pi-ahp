@@ -59,7 +59,7 @@ import {
 } from "../protocol/jsonrpc.ts";
 import { negotiateProtocolVersion } from "../protocol/version.ts";
 import { channelKind, ROOT_CHANNEL } from "./channels.ts";
-import { ClientConnection, type ClientInfo, type Transport } from "./connection.ts";
+import { ClientConnection, type Transport } from "./connection.ts";
 import { Sequencer } from "./sequencer.ts";
 import { StateStore } from "./state-store.ts";
 
@@ -205,9 +205,8 @@ export class AhpHost {
 	readonly #sequencer: Sequencer;
 	readonly #options: HostOptions;
 	readonly #connections = new Set<ClientConnection>();
-	readonly #byClientId = new Map<string, ClientConnection>();
-	/** `reconnect` omits `clientInfo`, so retain it after its socket closes. */
-	readonly #clientInfoById = new Map<string, ClientInfo>();
+	/** `reconnect` omits clientInfo; an undefined value still records an id seen by this host process. */
+	readonly #clientInfoById = new Map<string, InitializeParams["clientInfo"]>();
 	#capabilities: HostCapabilities = {};
 	readonly #actionListeners = new Set<ClientActionListener>();
 	readonly #actionValidators = new Set<ClientActionValidator>();
@@ -240,16 +239,13 @@ export class AhpHost {
 
 	/** Attaches a transport. The `clientId` is not known until `initialize`. */
 	accept(transport: Transport): ClientConnection {
-		const connection = new ClientConnection("", transport);
+		const connection = new ClientConnection(transport);
 		this.#connections.add(connection);
 		transport.onMessage((message) => {
 			this.#handleMessage(connection, message);
 		});
 		transport.onClose(() => {
 			this.#connections.delete(connection);
-			if (connection.clientId && this.#byClientId.get(connection.clientId) === connection) {
-				this.#byClientId.delete(connection.clientId);
-			}
 			// A dropped socket releases its subscriptions just like an explicit
 			// unsubscribe; resources tied to them must not outlive the client.
 			for (const channel of connection.subscriptions) {
@@ -289,10 +285,10 @@ export class AhpHost {
 
 	async #dispatchRequest(connection: ClientConnection, request: JsonRpcRequest): Promise<unknown> {
 		if (request.method === "reconnect") {
-			const clientId = (request.params as { clientId?: unknown } | undefined)?.clientId;
-			if (typeof clientId === "string") {
-				connection.clientInfo = this.#clientInfoById.get(clientId);
-				connection.workarounds.identify(connection.clientInfo);
+			const params = request.params as ReconnectParams | undefined;
+			if (typeof params?.clientId === "string") {
+				connection.workarounds.identify(this.#clientInfoById.get(params.clientId));
+				connection.workarounds.identifyReconnect(params.subscriptions);
 			}
 		}
 		connection.workarounds.applyToIncoming(request);
@@ -430,25 +426,11 @@ export class AhpHost {
 		}
 		const protocolVersion = negotiateProtocolVersion(params.protocolVersions);
 
-		// A reconnecting client may reuse a clientId while the previous socket is
-		// still half-open. Last writer wins; the stale connection is dropped.
-		const previous = this.#byClientId.get(params.clientId);
-		if (previous && previous !== connection) {
-			this.#connections.delete(previous);
-		}
+		this.#bindClient(connection, params.clientId);
 
-		connection.clientId = params.clientId;
-		connection.clientInfo = params.clientInfo;
-		if (params.clientInfo) {
-			this.#clientInfoById.set(params.clientId, params.clientInfo);
-		} else {
-			this.#clientInfoById.delete(params.clientId);
-		}
-		connection.workarounds.identify(params.clientInfo);
-		connection.locale = params.locale;
-		connection.protocolVersion = protocolVersion;
-		connection.initialized = true;
-		this.#byClientId.set(params.clientId, connection);
+		const clientInfo = params.clientInfo ?? this.#clientInfoById.get(params.clientId);
+		this.#clientInfoById.set(params.clientId, clientInfo);
+		connection.workarounds.identify(clientInfo);
 
 		const snapshots: Snapshot[] = [];
 		for (const uri of params.initialSubscriptions ?? []) {
@@ -463,7 +445,6 @@ export class AhpHost {
 			}
 		}
 
-		connection.lastSeenServerSeq = this.#sequencer.current;
 		return {
 			protocolVersion,
 			serverSeq: this.#sequencer.current,
@@ -476,19 +457,23 @@ export class AhpHost {
 		};
 	}
 
-	#reconnect(connection: ClientConnection, params: ReconnectParams): ReconnectResult {
+	async #reconnect(connection: ClientConnection, params: ReconnectParams): Promise<ReconnectResult> {
 		if (typeof params?.clientId !== "string" || params.clientId.length === 0) {
 			throw ProtocolError.invalidParams("reconnect requires a clientId");
 		}
-		connection.clientId = params.clientId;
-		connection.initialized = true;
-		this.#byClientId.set(params.clientId, connection);
+		const knownClient = this.#clientInfoById.has(params.clientId);
+		if (!knownClient) {
+			this.#clientInfoById.set(params.clientId, undefined);
+		}
+		this.#bindClient(connection, params.clientId);
 
 		const requested = params.subscriptions ?? [];
 		const missing: URI[] = [];
 		connection.subscriptions.clear();
 		for (const uri of requested) {
-			// Root always exists; everything else must still be live to resume.
+			if (uri !== ROOT_CHANNEL && !this.#store.has(uri)) {
+				await this.#capabilities.hydrator?.hydrate(uri).catch(() => false);
+			}
 			if (uri === ROOT_CHANNEL || this.#store.has(uri)) {
 				connection.subscribe(uri);
 			} else {
@@ -497,15 +482,13 @@ export class AhpHost {
 		}
 
 		const lastSeen = params.lastSeenServerSeq ?? 0;
-		if (this.#sequencer.canReplayFrom(lastSeen)) {
+		if (knownClient && this.#sequencer.canReplayFrom(lastSeen)) {
 			const actions = this.#sequencer.replayFrom(lastSeen, connection.subscriptions);
-			connection.lastSeenServerSeq = this.#sequencer.current;
 			return { type: ReconnectResultType.Replay, actions, missing };
 		}
 
-		// The gap predates the replay buffer: resynchronise from scratch.
-		// `ReconnectSnapshotResult` carries no `missing` field — a client infers the
-		// unresumable channels from the snapshots it did not get back.
+		// Replay is unavailable after buffer eviction or in a fresh host process.
+		// Durable subscriptions were hydrated above; return current snapshots.
 		const snapshots: Snapshot[] = [];
 		for (const uri of connection.subscriptions) {
 			const snapshot = this.#store.snapshot(uri, this.#sequencer.current);
@@ -513,8 +496,18 @@ export class AhpHost {
 				snapshots.push(snapshot);
 			}
 		}
-		connection.lastSeenServerSeq = this.#sequencer.current;
 		return { type: ReconnectResultType.Snapshot, snapshots };
+	}
+
+	/** Replaces a half-open socket when the same clientId reconnects. */
+	#bindClient(connection: ClientConnection, clientId: string): void {
+		for (const previous of this.#connections) {
+			if (previous !== connection && previous.clientId === clientId) {
+				this.#connections.delete(previous);
+				previous.transport.close();
+			}
+		}
+		connection.clientId = clientId;
 	}
 
 	// ── Subscriptions ───────────────────────────────────────────────────────
@@ -628,7 +621,6 @@ export class AhpHost {
 		for (const connection of this.#connections) {
 			if (connection.isSubscribed(channel)) {
 				connection.send(message);
-				connection.lastSeenServerSeq = this.#sequencer.current;
 			}
 		}
 	}
