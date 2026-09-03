@@ -38,39 +38,27 @@ describe("handshake", () => {
 		assert.equal(result.serverInfo?.name, "pi-ahp");
 	});
 
-	it("honours client preference order over the host's own", async () => {
-		const client = await harness.connect();
-		// The host prefers 0.6.0, but the client asked for 0.5.2 first.
-		const result = await client.initialize({
-			clientId: nextClientId(),
-			protocolVersions: ["0.5.2", "0.6.0"],
-		});
-
-		assert.equal(result.protocolVersion, "0.5.2");
-	});
-
-	it("ignores versions it does not know and picks the first it does", async () => {
+	it("ignores versions it does not know before the current one", async () => {
 		const client = await harness.connect();
 		const result = await client.initialize({
 			clientId: nextClientId(),
-			protocolVersions: ["99.0.0", "0.6.0"],
+			protocolVersions: ["99.0.0", PROTOCOL_VERSION],
 		});
 
-		assert.equal(result.protocolVersion, "0.6.0");
+		assert.equal(result.protocolVersion, PROTOCOL_VERSION);
 	});
 
-	it("rejects an unsupported version with UnsupportedProtocolVersion", async () => {
+	it("rejects an older wire model with UnsupportedProtocolVersion", async () => {
 		const client = await harness.connect();
-		const error = await client.initialize({ clientId: nextClientId(), protocolVersions: ["99.0.0"] }).then(
+		const error = await client.initialize({ clientId: nextClientId(), protocolVersions: ["0.8.0"] }).then(
 			() => undefined,
 			(reason: unknown) => reason,
 		);
 
 		assert.ok(error instanceof RpcError, `expected RpcError, got ${String(error)}`);
 		assert.equal(error.code, AhpErrorCodes.UnsupportedProtocolVersion);
-		// The error advertises what the host can speak so the client can downgrade.
 		const data = error.data as { supportedVersions?: string[] } | undefined;
-		assert.deepEqual(data?.supportedVersions, [...SUPPORTED_PROTOCOL_VERSIONS]);
+		assert.deepEqual(data?.supportedVersions, [PROTOCOL_VERSION]);
 	});
 
 	it("returns a snapshot for each initialSubscription in the same round-trip", async () => {

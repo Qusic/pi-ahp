@@ -18,9 +18,11 @@
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, it } from "node:test";
+import { describe, it } from "node:test";
 import {
 	annotationsReducer,
+	automationReducer,
+	automationRunReducer,
 	changesetReducer,
 	chatReducer,
 	resourceWatchReducer,
@@ -40,6 +42,8 @@ const REDUCERS: Record<string, AnyReducer> = {
 	changeset: changesetReducer as AnyReducer,
 	annotations: annotationsReducer as AnyReducer,
 	resourceWatch: resourceWatchReducer as AnyReducer,
+	automation: automationReducer as AnyReducer,
+	automationRun: automationRunReducer as AnyReducer,
 };
 
 interface ReducerCase {
@@ -72,28 +76,10 @@ function nullToUndefined<T>(value: T): T {
 	return value;
 }
 
-/**
- * The reducers stamp `modifiedAt` from `Date.now()`. The fixtures were captured
- * with the clock pinned to this value, so pinning it here compares timestamps
- * for real instead of skipping them.
- */
-const MOCK_NOW = 9999;
-
 describe("protocol reducer conformance", () => {
 	const files = readdirSync(REDUCER_CASE_DIR)
 		.filter((name) => name.endsWith(".json"))
 		.sort();
-
-	let realDateNow: typeof Date.now;
-
-	beforeEach(() => {
-		realDateNow = Date.now;
-		Date.now = () => MOCK_NOW;
-	});
-
-	afterEach(() => {
-		Date.now = realDateNow;
-	});
 
 	it("has the upstream corpus available", () => {
 		assert.ok(files.length > 200, `expected the full corpus, found ${files.length} cases`);

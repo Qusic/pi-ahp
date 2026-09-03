@@ -1,4 +1,4 @@
-import { must } from "./harness.ts";
+import { must, turnError } from "./harness.ts";
 /**
  * Live end-to-end smoke: a real client, a real model, the whole stack.
  *
@@ -119,7 +119,7 @@ describe("live turn", { skip: LIVE ? false : SKIP_REASON }, () => {
 
 		const state = host.store.get(chatChannel) as ChatState;
 		const turn = must(state.turns[0]);
-		assert.equal(turn.state, TurnState.Complete, `turn failed: ${turn.error?.message ?? ""}`);
+		assert.equal(turn.state, TurnState.Complete, `turn failed: ${turnError(turn)?.message ?? ""}`);
 		assert.equal(state.activeTurn, undefined);
 
 		const text = turn.responseParts
@@ -154,7 +154,7 @@ describe("live turn", { skip: LIVE ? false : SKIP_REASON }, () => {
 		await waitFor(() => (host.store.get(chatChannel) as ChatState).turns.length === 1);
 
 		const turn = must((host.store.get(chatChannel) as ChatState).turns[0]);
-		assert.equal(turn.state, TurnState.Complete, `turn failed: ${turn.error?.message ?? ""}`);
+		assert.equal(turn.state, TurnState.Complete, `turn failed: ${turnError(turn)?.message ?? ""}`);
 
 		const toolCalls = turn.responseParts.filter((part) => part.kind === ResponsePartKind.ToolCall);
 		assert.ok(toolCalls.length > 0, "expected at least one tool call");

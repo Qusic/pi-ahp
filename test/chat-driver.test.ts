@@ -1,4 +1,4 @@
-import { must } from "./harness.ts";
+import { must, turnError } from "./harness.ts";
 /**
  * The chat driver end-to-end: a client turn reaching a backend, streamed output
  * coming back as actions, and queued-message consumption.
@@ -284,7 +284,7 @@ describe("chat driver", () => {
 });
 
 describe("chat driver — backend failure", () => {
-	it("marks the session creationFailed when the backend cannot start", async () => {
+	it("marks the session failed when the backend cannot start", async () => {
 		const host = new AhpHost();
 		installRootChannel(host, []);
 		const sessions = new SessionRegistry({
@@ -299,7 +299,7 @@ describe("chat driver — backend failure", () => {
 		await waitFor(() => (host.store.get(uri) as SessionState).lifecycle !== SessionLifecycle.Creating);
 
 		const state = host.store.get(uri) as SessionState;
-		assert.equal(state.lifecycle, SessionLifecycle.CreationFailed);
+		assert.equal(state.lifecycle, SessionLifecycle.Failed);
 		assert.match(state.creationError?.message ?? "", /no credentials/);
 	});
 
@@ -346,7 +346,7 @@ describe("chat driver — backend failure", () => {
 			const state = host.store.get(chat) as ChatState;
 			assert.equal(state.activeTurn, undefined);
 			assert.equal(state.turns[0]?.state, TurnState.Error);
-			assert.match(state.turns[0]?.error?.message ?? "", /model unavailable/);
+			assert.match(turnError(state.turns[0])?.message ?? "", /model unavailable/);
 		} finally {
 			await client.shutdown();
 			await server.close();

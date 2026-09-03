@@ -635,9 +635,12 @@ export class TurnMapper {
 						type: ActionType.ChatError,
 						turnId: this.turnId,
 						duration,
-						error: {
-							errorType: "agentRunFailed",
-							message: message ?? this.#errorMessage ?? "The agent run failed",
+						part: {
+							kind: ResponsePartKind.Error,
+							error: {
+								errorType: "agentRunFailed",
+								message: message ?? this.#errorMessage ?? "The agent run failed",
+							},
 						},
 					},
 				];

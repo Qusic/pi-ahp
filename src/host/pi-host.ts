@@ -146,7 +146,7 @@ export async function createPiHost(options: PiHostOptions = {}): Promise<PiHost>
 		sessions: {
 			create(params: CreateSessionParams): void {
 				// `CreateSessionParams` carries fields this milestone ignores
-				// (fork, config, activeClient); narrowing here keeps the registry
+				// (config, activeClient, progressToken); narrowing here keeps the registry
 				// honest about what it actually supports.
 				sessions.create(params as CreateSessionRequest);
 			},

@@ -1,4 +1,4 @@
-import { must } from "./harness.ts";
+import { must, turnError } from "./harness.ts";
 /**
  * The event mapper, exercised as a pure function.
  *
@@ -196,10 +196,24 @@ describe("event mapper — turn boundary", () => {
 	});
 
 	it("reports a failed run as an error and marks the chat", () => {
-		const { state } = runTurn([pi.agentStart(), pi.assistantStart(), pi.streamError("overloaded_error"), pi.settled()]);
+		const { actions, state } = runTurn([
+			pi.agentStart(),
+			pi.assistantStart(),
+			pi.streamError("overloaded_error"),
+			pi.settled(),
+		]);
 
+		const errorAction = must(
+			actions.find((action) => action.type === ActionType.ChatError),
+			"chat/error action",
+		);
+		assert.deepEqual(errorAction.part, {
+			kind: ResponsePartKind.Error,
+			error: { errorType: "agentRunFailed", message: "overloaded_error" },
+		});
+		assert.equal(checkSchema("actions", "StateAction", errorAction), undefined);
 		assert.equal(state.turns[0]?.state, TurnState.Error);
-		assert.equal(state.turns[0]?.error?.message, "overloaded_error");
+		assert.equal(turnError(state.turns[0])?.message, "overloaded_error");
 		assert.ok(state.status & SessionStatus.Error);
 	});
 
@@ -504,7 +518,7 @@ describe("event mapper — outcome from stopReason", () => {
 		]);
 
 		assert.equal(state.turns[0]?.state, TurnState.Error);
-		assert.equal(state.turns[0]?.error?.message, "upstream exploded");
+		assert.equal(turnError(state.turns[0])?.message, "upstream exploded");
 	});
 });
 

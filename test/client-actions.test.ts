@@ -120,6 +120,7 @@ describe("pi client-action policy", () => {
 			ActionType.SessionActiveClientRemoved,
 			ActionType.SessionWorkingDirectorySet,
 			ActionType.SessionWorkingDirectoryRemoved,
+			ActionType.SessionWorkingDirectoryReplaced,
 			ActionType.SessionCustomizationToggled,
 			ActionType.SessionMcpServerStartRequested,
 			ActionType.SessionMcpServerStopRequested,
@@ -127,6 +128,7 @@ describe("pi client-action policy", () => {
 			ActionType.SessionIsArchivedChanged,
 			ActionType.SessionConfigChanged,
 			ActionType.ChatTurnStarted,
+			ActionType.ChatTurnResume,
 			ActionType.ChatToolCallConfirmed,
 			ActionType.ChatToolCallComplete,
 			ActionType.ChatToolCallResultConfirmed,
@@ -152,13 +154,18 @@ describe("pi client-action policy", () => {
 			...rejected(session, /changing working directories/, [
 				{ type: ActionType.SessionWorkingDirectorySet, directory: "file:///tmp/other" },
 				{ type: ActionType.SessionWorkingDirectoryRemoved, directory: `file://${workspace}` },
+				{
+					type: ActionType.SessionWorkingDirectoryReplaced,
+					directory: `file://${workspace}`,
+					replacement: "file:///tmp/other",
+				},
 			]),
 			...rejected(chat, /changing working directories/, [
 				{ type: ActionType.ChatWorkingDirectorySet, directory: "file:///tmp/other" },
 				{ type: ActionType.ChatWorkingDirectoryRemoved, directory: `file://${workspace}` },
 			]),
 			...rejected(session, /customizations/, [
-				{ type: ActionType.SessionCustomizationToggled, id: "plugin", enabled: false },
+				{ type: ActionType.SessionCustomizationToggled, id: "plugin", enablement: [] },
 			]),
 			...rejected(session, /MCP servers/, [
 				{ type: ActionType.SessionMcpServerStartRequested, id: "mcp" },
@@ -188,6 +195,7 @@ describe("pi client-action policy", () => {
 				{ type: ActionType.ChatToolCallResultConfirmed, turnId: "turn", toolCallId: "tool", approved: true },
 				{ type: ActionType.ChatToolCallContentChanged, turnId: "turn", toolCallId: "tool", content: [] },
 			]),
+			...rejected(chat, /cannot resume an errored turn/, [{ type: ActionType.ChatTurnResume, turnId: "turn" }]),
 			...rejected(chat, /interactive input requests/, [
 				{ type: ActionType.ChatInputAnswerChanged, requestId: "input", questionId: "question" },
 				{ type: ActionType.ChatInputCompleted, requestId: "input", response: ChatInputResponseKind.Cancel },

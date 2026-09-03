@@ -21,6 +21,7 @@ import {
 	MessageKind,
 	type ModelSelection,
 	PendingMessageKind,
+	ResponsePartKind,
 	type SessionState,
 	type StateAction,
 	type URI,
@@ -77,6 +78,7 @@ function unsupportedClientActionReason(action: StateAction): string | undefined 
 			return "This host does not accept active clients";
 		case ActionType.SessionWorkingDirectorySet:
 		case ActionType.SessionWorkingDirectoryRemoved:
+		case ActionType.SessionWorkingDirectoryReplaced:
 		case ActionType.ChatWorkingDirectorySet:
 		case ActionType.ChatWorkingDirectoryRemoved:
 			return "This agent does not support changing working directories";
@@ -98,6 +100,8 @@ function unsupportedClientActionReason(action: StateAction): string | undefined 
 		case ActionType.ChatInputAnswerChanged:
 		case ActionType.ChatInputCompleted:
 			return "This host does not support interactive input requests";
+		case ActionType.ChatTurnResume:
+			return "This host cannot resume an errored turn";
 		default:
 			return undefined;
 	}
@@ -353,7 +357,10 @@ export class SessionRegistry {
 					type: ActionType.ChatError,
 					turnId: chat.activeTurn.id,
 					duration: 0,
-					error: { errorType: "backendStartFailed", message },
+					part: {
+						kind: ResponsePartKind.Error,
+						error: { errorType: "backendStartFailed", message },
+					},
 				});
 			}
 		}

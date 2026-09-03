@@ -9,11 +9,11 @@
  * @see https://microsoft.github.io/agent-host-protocol/specification/versioning
  */
 
-import { AhpErrorCodes, SUPPORTED_PROTOCOL_VERSIONS } from "@microsoft/agent-host-protocol";
+import { AhpErrorCodes, PROTOCOL_VERSION } from "@microsoft/agent-host-protocol";
 import { ProtocolError } from "./errors.ts";
 
-/** Versions this host speaks, most-preferred first. */
-const HOST_SUPPORTED_VERSIONS: readonly string[] = SUPPORTED_PROTOCOL_VERSIONS;
+/** Generated wire models do not down-convert required fields across minor versions. */
+const HOST_SUPPORTED_VERSIONS: readonly string[] = [PROTOCOL_VERSION];
 
 /**
  * Picks the client's most-preferred version that this host also speaks.

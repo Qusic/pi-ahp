@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
  * exercise the same code path a real consumer — VS Code, AHPX — would.
  */
 
-import type { AgentInfo } from "@microsoft/agent-host-protocol";
+import { type AgentInfo, type ErrorInfo, ResponsePartKind, type Turn } from "@microsoft/agent-host-protocol";
 import { AhpClient } from "@microsoft/agent-host-protocol/client";
 import { WebSocketTransport } from "@microsoft/agent-host-protocol/ws";
 import { installRootChannel } from "../src/channels/root.ts";
@@ -144,4 +144,10 @@ export function must<T>(value: T | undefined | null, what = "value"): T {
 		assert.fail(`expected ${what} to be present`);
 	}
 	return value;
+}
+
+/** Returns the durable final error part of an errored turn. */
+export function turnError(turn: Turn | undefined): ErrorInfo | undefined {
+	const part = turn?.responseParts.at(-1);
+	return part?.kind === ResponsePartKind.Error ? part.error : undefined;
 }

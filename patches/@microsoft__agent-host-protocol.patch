@@ -1,10 +1,63 @@
+diff --git a/dist/types/channels-automation/state.d.ts b/dist/types/channels-automation/state.d.ts
+index e60572397bfc729a092ec1186f068855b2d9dbf8..5413e76aa04150a56638197b1bfb5441a3164658 100644
+--- a/dist/types/channels-automation/state.d.ts
++++ b/dist/types/channels-automation/state.d.ts
+@@ -21,7 +21,7 @@ import type { AgentSelection } from '../channels-session/state.js';
+  * @category Automation State
+  * @nonexhaustive
+  */
+-export declare const enum AutomationOperation {
++export declare enum AutomationOperation {
+     /** Replace editable fields using {@link AutomationUpdateRequestedAction | `automation/updateRequested`}. */
+     Update = "update",
+     /** Permanently remove the automation using {@link AutomationRemovedAction | `automation/removed`}. */
+@@ -75,7 +75,7 @@ export interface AutomationSchedule {
+  * @category Automation State
+  * @nonexhaustive
+  */
+-export declare const enum AutomationMisfirePolicy {
++export declare enum AutomationMisfirePolicy {
+     /** Discard missed occurrences and wait for the next future occurrence. */
+     Skip = "skip",
+     /**
+@@ -90,7 +90,7 @@ export declare const enum AutomationMisfirePolicy {
+  * @category Automation State
+  * @exhaustive
+  */
+-export declare const enum AutomationTriggerKind {
++export declare enum AutomationTriggerKind {
+     /** A portable recurring {@link AutomationSchedule}. */
+     Schedule = "schedule",
+     /** A host-defined external event discovered from trigger definitions. */
+diff --git a/dist/types/channels-automation-run/state.d.ts b/dist/types/channels-automation-run/state.d.ts
+index 8712442c3ab49bf8856cac03986718f9e6acbdcb..10fab085ce35595633751c21492ba20b1fe78b7d 100644
+--- a/dist/types/channels-automation-run/state.d.ts
++++ b/dist/types/channels-automation-run/state.d.ts
+@@ -16,7 +16,7 @@ import type { ErrorInfo, URI, UsageInfo } from '../common/state.js';
+  * @category Automation Run State
+  * @exhaustive
+  */
+-export declare const enum AutomationRunStatus {
++export declare enum AutomationRunStatus {
+     /** The durable run record exists but execution has not started. */
+     Pending = "pending",
+     /** One or more linked sessions are executing or awaiting interaction. */
+@@ -34,7 +34,7 @@ export declare const enum AutomationRunStatus {
+  * @category Automation Run State
+  * @exhaustive
+  */
+-export declare const enum AutomationRunOriginKind {
++export declare enum AutomationRunOriginKind {
+     /** A client explicitly invoked {@link RunAutomationParams | runAutomation}. */
+     Manual = "manual",
+     /** An automatic schedule or event trigger fired. */
 diff --git a/dist/types/channels-changeset/commands.d.ts b/dist/types/channels-changeset/commands.d.ts
-index 0474ed5f31b3c406205216911bde6fc897aa7699..23f1869bb4b8976e6b9617cab75c628ab9cb19ca 100644
+index 2c28f5dd15342202d401855f734ccfe69db75c87..209317e36edc19a54c19afafea0189f0c55ab648 100644
 --- a/dist/types/channels-changeset/commands.d.ts
 +++ b/dist/types/channels-changeset/commands.d.ts
-@@ -12,7 +12,7 @@ import type { BaseParams } from '../common/commands.js';
-  *
+@@ -13,7 +13,7 @@ import type { BaseParams } from '../common/commands.js';
   * @category Commands
+  * @nonexhaustive
   */
 -export declare const enum ChangesetOperationTargetKind {
 +export declare enum ChangesetOperationTargetKind {
@@ -12,30 +65,30 @@ index 0474ed5f31b3c406205216911bde6fc897aa7699..23f1869bb4b8976e6b9617cab75c628a
      Resource = "resource",
      /** Operation acts on a line range within a single file. */
 diff --git a/dist/types/channels-changeset/state.d.ts b/dist/types/channels-changeset/state.d.ts
-index ff9357a891675fa1f74e6c51e5d520ea25cf934d..23cb049848b6505e3feeef76a8cd2ec3c659c834 100644
+index 6078dd40f88635cac42e419036d0bb2f562dae8f..e95bc1026d6714fffb2725f347984b485a2519ae 100644
 --- a/dist/types/channels-changeset/state.d.ts
 +++ b/dist/types/channels-changeset/state.d.ts
-@@ -96,7 +96,7 @@ export interface ChangesetCapabilities {
-  *
+@@ -99,7 +99,7 @@ export interface ChangesetCapabilities {
   * @category Changesets
+  * @nonexhaustive
   */
 -export declare const enum ChangesetStatus {
 +export declare enum ChangesetStatus {
      /** The server is still computing the contents of this changeset. */
      Computing = "computing",
      /** The changeset has been fully computed and is up-to-date. */
-@@ -182,7 +182,7 @@ export interface ChangesetFile {
-  *
+@@ -186,7 +186,7 @@ export interface ChangesetFile {
   * @category Changesets
+  * @nonexhaustive
   */
 -export declare const enum ChangesetOperationStatus {
 +export declare enum ChangesetOperationStatus {
      /**
       * The operation is ready to be invoked. This is the default when
       * {@link ChangesetOperation.status} is omitted.
-@@ -205,7 +205,7 @@ export declare const enum ChangesetOperationStatus {
-  *
+@@ -210,7 +210,7 @@ export declare const enum ChangesetOperationStatus {
   * @category Changesets
+  * @nonexhaustive
   */
 -export declare const enum ChangesetOperationScope {
 +export declare enum ChangesetOperationScope {
@@ -43,12 +96,12 @@ index ff9357a891675fa1f74e6c51e5d520ea25cf934d..23cb049848b6505e3feeef76a8cd2ec3
      Changeset = "changeset",
      /** Applies to a single file within the changeset. */
 diff --git a/dist/types/channels-chat/commands.d.ts b/dist/types/channels-chat/commands.d.ts
-index 460bd3035eca27d2d770a6b04a6dda5f3dd1b70d..a7daaa6e4b8a171bab66b7e8ec01d1be7894e58c 100644
+index 03984863c0c964f4497d8d6186767bda893f7efe..ec6195529a4041beeb00c9edddce56d6a1e19cdc 100644
 --- a/dist/types/channels-chat/commands.d.ts
 +++ b/dist/types/channels-chat/commands.d.ts
-@@ -9,7 +9,7 @@ import type { Message, SideChatSelection } from './state.js';
- /**
+@@ -10,7 +10,7 @@ import type { Message, SideChatSelection } from './state.js';
   * How a new chat uses its source chat and turn.
+  * @nonexhaustive
   */
 -export declare const enum ChatSourceKind {
 +export declare enum ChatSourceKind {
@@ -56,165 +109,165 @@ index 460bd3035eca27d2d770a6b04a6dda5f3dd1b70d..a7daaa6e4b8a171bab66b7e8ec01d1be
      Fork = "fork",
      /** Supply source context without copying it into the new chat's visible history. */
 diff --git a/dist/types/channels-chat/state.d.ts b/dist/types/channels-chat/state.d.ts
-index f53a2e79dfd5c9ff09ebb8e0014f7d8259c8dc59..17323c342b778e1ab0a8b0e1a0c9c08e8eb77c1d 100644
+index 9ce412a09e26f97276eee3187f800ce3fa292f8f..4403c20d2d99130f4cf871b8e9e910ebf5df78a8 100644
 --- a/dist/types/channels-chat/state.d.ts
 +++ b/dist/types/channels-chat/state.d.ts
-@@ -132,7 +132,7 @@ export interface ChatSummary {
-  *
+@@ -135,7 +135,7 @@ export interface ChatSummary {
   * @category Chat State
+  * @nonexhaustive
   */
 -export declare const enum ChatOriginKind {
 +export declare enum ChatOriginKind {
      /** User created the chat explicitly (e.g. via the host UI). */
      User = "user",
      /** Forked from an existing chat at a specific turn. */
-@@ -223,7 +223,7 @@ export type ChatOrigin = {
-  *
+@@ -227,7 +227,7 @@ export type ChatOrigin = {
   * @category Chat State
+  * @exhaustive
   */
 -export declare const enum ChatInteractivity {
 +export declare enum ChatInteractivity {
      /** User can send messages and watch (default when absent) */
      Full = "full",
      /** User can watch but not send messages */
-@@ -236,7 +236,7 @@ export declare const enum ChatInteractivity {
-  *
+@@ -241,7 +241,7 @@ export declare const enum ChatInteractivity {
   * @category Pending Message Types
+  * @exhaustive
   */
 -export declare const enum PendingMessageKind {
 +export declare enum PendingMessageKind {
      /** Injected into the current turn at a convenient point */
      Steering = "steering",
      /** Sent automatically as a new turn after the current turn finishes */
-@@ -262,7 +262,7 @@ export interface PendingMessage {
-  *
+@@ -268,7 +268,7 @@ export interface PendingMessage {
   * @category Chat Input Types
+  * @exhaustive
   */
 -export declare const enum ChatInputResponseKind {
 +export declare enum ChatInputResponseKind {
      Accept = "accept",
      Decline = "decline",
      Cancel = "cancel"
-@@ -272,7 +272,7 @@ export declare const enum ChatInputResponseKind {
-  *
+@@ -279,7 +279,7 @@ export declare const enum ChatInputResponseKind {
   * @category Chat Input Types
+  * @nonexhaustive
   */
 -export declare const enum ChatInputQuestionKind {
 +export declare enum ChatInputQuestionKind {
      Text = "text",
      Number = "number",
      Integer = "integer",
-@@ -394,7 +394,7 @@ export interface ChatInputRequest {
-  *
+@@ -402,7 +402,7 @@ export interface ChatInputRequest {
   * @category Chat Input Types
+  * @nonexhaustive
   */
 -export declare const enum ChatInputAnswerValueKind {
 +export declare enum ChatInputAnswerValueKind {
      Text = "text",
      Number = "number",
      Boolean = "boolean",
-@@ -449,7 +449,7 @@ export interface ChatInputSkipped {
-  *
+@@ -458,7 +458,7 @@ export interface ChatInputSkipped {
   * @category Chat Input Types
+  * @exhaustive
   */
 -export declare const enum ChatInputAnswerState {
 +export declare enum ChatInputAnswerState {
      Draft = "draft",
      Submitted = "submitted",
      Skipped = "skipped"
-@@ -465,7 +465,7 @@ export type ChatInputAnswer = ChatInputAnswered | ChatInputSkipped;
-  *
+@@ -475,7 +475,7 @@ export type ChatInputAnswer = ChatInputAnswered | ChatInputSkipped;
   * @category Turn Types
+  * @exhaustive
   */
 -export declare const enum TurnState {
 +export declare enum TurnState {
      Complete = "complete",
      Cancelled = "cancelled",
      Error = "error"
-@@ -475,7 +475,7 @@ export declare const enum TurnState {
-  *
+@@ -486,7 +486,7 @@ export declare const enum TurnState {
   * @category Turn Types
+  * @nonexhaustive
   */
 -export declare const enum MessageAttachmentKind {
 +export declare enum MessageAttachmentKind {
      /** A simple, opaque attachment whose representation is described by the producer. */
      Simple = "simple",
      /** An attachment whose data is embedded inline as a base64 string. */
-@@ -779,7 +779,7 @@ export type MessageAttachment = SimpleMessageAttachment | MessageEmbeddedResourc
-  *
+@@ -793,7 +793,7 @@ export type MessageAttachment = SimpleMessageAttachment | MessageEmbeddedResourc
   * @category Response Parts
+  * @nonexhaustive
   */
 -export declare const enum ResponsePartKind {
 +export declare enum ResponsePartKind {
      Markdown = "markdown",
      ContentRef = "contentRef",
      ToolCall = "toolCall",
-@@ -898,7 +898,7 @@ export interface SystemNotificationResponsePart {
-  *
+@@ -935,7 +935,7 @@ export interface SystemNotificationResponsePart {
   * @category Tool Call Types
+  * @nonexhaustive
   */
 -export declare const enum ToolCallStatus {
 +export declare enum ToolCallStatus {
      Streaming = "streaming",
      PendingConfirmation = "pending-confirmation",
      Running = "running",
-@@ -921,7 +921,7 @@ export declare const enum ToolCallStatus {
-  *
+@@ -959,7 +959,7 @@ export declare const enum ToolCallStatus {
   * @category Tool Call Types
+  * @nonexhaustive
   */
 -export declare const enum ToolCallConfirmationReason {
 +export declare enum ToolCallConfirmationReason {
      NotNeeded = "not-needed",
      UserAction = "user-action",
      Setting = "setting"
-@@ -931,7 +931,7 @@ export declare const enum ToolCallConfirmationReason {
-  *
+@@ -970,7 +970,7 @@ export declare const enum ToolCallConfirmationReason {
   * @category Tool Call Types
+  * @nonexhaustive
   */
 -export declare const enum ToolCallRiskAssessmentKind {
 +export declare enum ToolCallRiskAssessmentKind {
      Judge = "judge"
  }
  /**
-@@ -939,7 +939,7 @@ export declare const enum ToolCallRiskAssessmentKind {
-  *
+@@ -979,7 +979,7 @@ export declare const enum ToolCallRiskAssessmentKind {
   * @category Tool Call Types
+  * @nonexhaustive
   */
 -export declare const enum ToolCallRiskAssessmentStatus {
 +export declare enum ToolCallRiskAssessmentStatus {
      Loading = "loading",
      Complete = "complete"
  }
-@@ -974,7 +974,7 @@ export type ToolCallRiskAssessment = ToolCallRiskAssessmentLoadingState | ToolCa
-  *
+@@ -1015,7 +1015,7 @@ export type ToolCallRiskAssessment = ToolCallRiskAssessmentLoadingState | ToolCa
   * @category Tool Call Types
+  * @exhaustive
   */
 -export declare const enum ToolCallCancellationReason {
 +export declare enum ToolCallCancellationReason {
      Denied = "denied",
      Skipped = "skipped",
      ResultDenied = "result-denied"
-@@ -984,7 +984,7 @@ export declare const enum ToolCallCancellationReason {
-  *
+@@ -1026,7 +1026,7 @@ export declare const enum ToolCallCancellationReason {
   * @category Tool Call Types
+  * @nonexhaustive
   */
 -export declare const enum ConfirmationOptionKind {
 +export declare enum ConfirmationOptionKind {
      Approve = "approve",
      Deny = "deny"
  }
-@@ -1011,7 +1011,7 @@ export interface ConfirmationOption {
-      */
-     group?: number;
- }
+@@ -1059,7 +1059,7 @@ export interface ConfirmationOption {
+  * @category Tool Call Types
+  * @nonexhaustive
+  */
 -export declare const enum ToolCallContributorKind {
 +export declare enum ToolCallContributorKind {
      Client = "client",
      MCP = "mcp"
  }
-@@ -1291,7 +1291,7 @@ export type ToolCallConfirmationState = ToolCallPendingConfirmationState | ToolC
-  *
+@@ -1340,7 +1340,7 @@ export type ToolCallConfirmationState = ToolCallPendingConfirmationState | ToolC
   * @category Tool Result Content
+  * @nonexhaustive
   */
 -export declare const enum ToolResultContentType {
 +export declare enum ToolResultContentType {
@@ -222,12 +275,12 @@ index f53a2e79dfd5c9ff09ebb8e0014f7d8259c8dc59..17323c342b778e1ab0a8b0e1a0c9c08e
      EmbeddedResource = "embeddedResource",
      Resource = "resource",
 diff --git a/dist/types/channels-resource-watch/state.d.ts b/dist/types/channels-resource-watch/state.d.ts
-index 8cc925a46ba42679eb89c857d80827371bbc0ae2..8643d445a8f3c831f1811c31bdab7aa448f65e85 100644
+index 35736c916d0d33948dd44a7e4bc03234d6ae1162..c96477bd811ec7897e47d01ade53e2a7eeb4f6c3 100644
 --- a/dist/types/channels-resource-watch/state.d.ts
 +++ b/dist/types/channels-resource-watch/state.d.ts
-@@ -50,7 +50,7 @@ export interface ResourceWatchState {
-  *
+@@ -53,7 +53,7 @@ export interface ResourceWatchState {
   * @category Resource Watch Types
+  * @exhaustive
   */
 -export declare const enum ResourceChangeType {
 +export declare enum ResourceChangeType {
@@ -235,12 +288,12 @@ index 8cc925a46ba42679eb89c857d80827371bbc0ae2..8643d445a8f3c831f1811c31bdab7aa4
      Updated = "updated",
      Deleted = "deleted"
 diff --git a/dist/types/channels-root/state.d.ts b/dist/types/channels-root/state.d.ts
-index 929d7eef9534fb3a4d55ab41430f6ee1c26eaa88..f3fb6d03c617b665af34445e1e75d749ab400aca 100644
+index b66f78e9e312103a48779fe7cd8403b187419959..1206e3084739935db65760420737d82199980394 100644
 --- a/dist/types/channels-root/state.d.ts
 +++ b/dist/types/channels-root/state.d.ts
-@@ -11,7 +11,7 @@ import type { Customization } from '../channels-session/state.js';
-  *
+@@ -14,7 +14,7 @@ import type { Customization } from '../channels-session/state.js';
   * @category Root State
+  * @exhaustive
   */
 -export declare const enum PolicyState {
 +export declare enum PolicyState {
@@ -248,12 +301,12 @@ index 929d7eef9534fb3a4d55ab41430f6ee1c26eaa88..f3fb6d03c617b665af34445e1e75d749
      Disabled = "disabled",
      Unconfigured = "unconfigured"
 diff --git a/dist/types/channels-session/commands.d.ts b/dist/types/channels-session/commands.d.ts
-index c34d8952f575acbbfccb57a25bbf0196059e2268..8f0bb3a394414fd338ef149413a5c445c45e113f 100644
+index f414070fd5e0cec138b911a76d2fd2a0b835d318..b0dd8b2430f7ffe4fa8223961397cc7da84632c3 100644
 --- a/dist/types/channels-session/commands.d.ts
 +++ b/dist/types/channels-session/commands.d.ts
-@@ -170,7 +170,7 @@ export interface FetchTurnsResult {
-  *
+@@ -152,7 +152,7 @@ export interface FetchTurnsResult {
   * @category Commands
+  * @nonexhaustive
   */
 -export declare const enum CompletionItemKind {
 +export declare enum CompletionItemKind {
@@ -261,66 +314,84 @@ index c34d8952f575acbbfccb57a25bbf0196059e2268..8f0bb3a394414fd338ef149413a5c445
       * Completions for the text of a {@link Message} the user is composing.
       * Each returned item carries an attachment that gets associated with the
 diff --git a/dist/types/channels-session/state.d.ts b/dist/types/channels-session/state.d.ts
-index 5ce95516448f1f972a853acdaa89d1a9cc47c315..ca485c15b2d6a4f7a261ceeea779c372afcb08e1 100644
+index ef657ff5168821e0ed04b410ebbe06160331aa31..76668ff403a47fca4685f9956afaec9177c1d03a 100644
 --- a/dist/types/channels-session/state.d.ts
 +++ b/dist/types/channels-session/state.d.ts
-@@ -12,7 +12,7 @@ import type { ConfigPropertySchema, ErrorInfo, Icon, ProtectedResourceMetadata,
-  *
+@@ -15,7 +15,7 @@ import type { ConfigPropertySchema, ErrorInfo, Icon, ProtectedResourceMetadata,
   * @category Session State
+  * @nonexhaustive
   */
 -export declare const enum SessionLifecycle {
 +export declare enum SessionLifecycle {
      Creating = "creating",
      Ready = "ready",
-     CreationFailed = "creationFailed"
-@@ -26,7 +26,7 @@ export declare const enum SessionLifecycle {
-  *
+     Failed = "failed"
+@@ -30,7 +30,7 @@ export declare const enum SessionLifecycle {
   * @category Session State
+  * @nonexhaustive
   */
 -export declare const enum SessionStatus {
 +export declare enum SessionStatus {
      /** Session is idle — no turn is active. */
      Idle = 1,
      /** Session ended with an error. */
-@@ -216,7 +216,7 @@ export interface SessionActiveClient {
-  *
+@@ -50,7 +50,7 @@ export declare const enum SessionStatus {
+  * @category Session State
+  * @nonexhaustive
+  */
+-export declare const enum SessionOriginKind {
++export declare enum SessionOriginKind {
+     /** The session was created as part of an automation run. */
+     Automation = "automation"
+ }
+@@ -259,7 +259,7 @@ export interface SessionActiveClient {
   * @category Session Input Types
+  * @nonexhaustive
   */
 -export declare const enum SessionInputRequestKind {
 +export declare enum SessionInputRequestKind {
      /** A user-facing elicitation mirrored from an unresolved chat response part. */
      ChatInput = "chatInput",
      /** A tool call awaiting parameter- or result-confirmation. */
-@@ -574,7 +574,7 @@ export interface ToolAnnotations {
-  *
+@@ -622,7 +622,7 @@ export interface ToolAnnotations {
   * @category Customization Types
+  * @nonexhaustive
   */
 -export declare const enum CustomizationType {
 +export declare enum CustomizationType {
      Plugin = "plugin",
      Directory = "directory",
      Agent = "agent",
-@@ -638,7 +638,7 @@ interface CustomizationBase {
-  *
+@@ -638,7 +638,7 @@ export declare const enum CustomizationType {
   * @category Customization Types
+  * @nonexhaustive
+  */
+-export declare const enum CustomizationEnablementKind {
++export declare enum CustomizationEnablementKind {
+     Global = "global",
+     Workspace = "workspace",
+     Session = "session"
+@@ -710,7 +710,7 @@ interface CustomizationBase {
+  * @category Customization Types
+  * @exhaustive
   */
 -export declare const enum CustomizationLoadStatus {
 +export declare enum CustomizationLoadStatus {
      Loading = "loading",
      Loaded = "loaded",
      Degraded = "degraded",
-@@ -1065,7 +1065,7 @@ export type Customization = PluginCustomization | DirectoryCustomization | McpSe
-  *
+@@ -1165,7 +1165,7 @@ export type Customization = PluginCustomization | DirectoryCustomization | McpSe
   * @category MCP Server State
+  * @nonexhaustive
   */
 -export declare const enum McpServerStatus {
 +export declare enum McpServerStatus {
      /** Server has been registered but is not yet running. */
      Starting = "starting",
      /** Server is running and serving requests. */
-@@ -1090,7 +1090,7 @@ export declare const enum McpServerStatus {
-  *
+@@ -1191,7 +1191,7 @@ export declare const enum McpServerStatus {
   * @category MCP Server State
+  * @nonexhaustive
   */
 -export declare const enum McpAuthRequiredReason {
 +export declare enum McpAuthRequiredReason {
@@ -328,12 +399,21 @@ index 5ce95516448f1f972a853acdaa89d1a9cc47c315..ca485c15b2d6a4f7a261ceeea779c372
      Required = "required",
      /** A previously valid token expired or was revoked (HTTP 401). */
 diff --git a/dist/types/channels-terminal/state.d.ts b/dist/types/channels-terminal/state.d.ts
-index 5f3994763b419905ba055e7c96b9b5d1fe2ff6ad..e8239dcf920b80d98ea0209637443523e825b7ed 100644
+index b331660025e7e3ddb51ec5e0648a1748b5f9ad3c..4bcd7141a82f10000578b7605960997ac57b770f 100644
 --- a/dist/types/channels-terminal/state.d.ts
 +++ b/dist/types/channels-terminal/state.d.ts
-@@ -25,7 +25,7 @@ export interface TerminalInfo {
-  *
+@@ -28,7 +28,7 @@ export interface TerminalInfo {
   * @category Terminal Types
+  * @exhaustive
+  */
+-export declare const enum TerminalLifecycleStatus {
++export declare enum TerminalLifecycleStatus {
+     Running = "running",
+     Exited = "exited"
+ }
+@@ -62,7 +62,7 @@ export type TerminalLifecycleState = TerminalRunningLifecycleState | TerminalExi
+  * @category Terminal Types
+  * @exhaustive
   */
 -export declare const enum TerminalClaimKind {
 +export declare enum TerminalClaimKind {
@@ -341,12 +421,12 @@ index 5f3994763b419905ba055e7c96b9b5d1fe2ff6ad..e8239dcf920b80d98ea0209637443523
      Session = "session"
  }
 diff --git a/dist/types/common/actions.d.ts b/dist/types/common/actions.d.ts
-index 1cdef460f376f62a3e3aabbb8bdf1af8779e9589..c7adc6c9649519999e5820e97aabc5f5ed5cf02a 100644
+index 54b2da295b7a99192719ef4dbac79c8ea728b8f7..a5aca6854da794a378fac1ff29dff9d9fbfa5efe 100644
 --- a/dist/types/common/actions.d.ts
 +++ b/dist/types/common/actions.d.ts
-@@ -18,7 +18,7 @@ import type { ResourceWatchChangedAction } from '../channels-resource-watch/acti
-  *
+@@ -21,7 +21,7 @@ import type { AutomationRunLifecycleChangedAction, AutomationRunSessionSetAction
   * @category Actions
+  * @nonexhaustive
   */
 -export declare const enum ActionType {
 +export declare enum ActionType {
@@ -354,39 +434,39 @@ index 1cdef460f376f62a3e3aabbb8bdf1af8779e9589..c7adc6c9649519999e5820e97aabc5f5
      RootActiveSessionsChanged = "root/activeSessionsChanged",
      SessionReady = "session/ready",
 diff --git a/dist/types/common/commands.d.ts b/dist/types/common/commands.d.ts
-index 682eae406441d156e72b410017f03aad96e91e8e..97e6e7bd9f702ff50111a5c8fe1e67855a0a0da8 100644
+index 7d0ae25e6df2379e84553509a5033945d7d4c34a..daa35c58346c541280e770d42b214b12aac5b5ac 100644
 --- a/dist/types/common/commands.d.ts
 +++ b/dist/types/common/commands.d.ts
-@@ -270,7 +270,7 @@ export interface PingParams extends BaseParams {
-  *
+@@ -363,7 +363,7 @@ export interface PingParams extends BaseParams {
   * @category Commands
+  * @exhaustive
   */
 -export declare const enum ReconnectResultType {
 +export declare enum ReconnectResultType {
      Replay = "replay",
      Snapshot = "snapshot"
  }
-@@ -440,7 +440,7 @@ export interface DispatchActionParams {
-  *
+@@ -534,7 +534,7 @@ export interface DispatchActionParams {
   * @category Commands
+  * @exhaustive
   */
 -export declare const enum ContentEncoding {
 +export declare enum ContentEncoding {
      Base64 = "base64",
      Utf8 = "utf-8"
  }
-@@ -525,7 +525,7 @@ export interface ResourceReadResult {
-  *
+@@ -620,7 +620,7 @@ export interface ResourceReadResult {
   * @category Commands
+  * @exhaustive
   */
 -export declare const enum ResourceWriteMode {
 +export declare enum ResourceWriteMode {
      Truncate = "truncate",
      Append = "append",
      Insert = "insert"
-@@ -813,7 +813,7 @@ export interface ResourceMoveResult {
-  *
+@@ -909,7 +909,7 @@ export interface ResourceMoveResult {
   * @category Commands
+  * @nonexhaustive
   */
 -export declare const enum ResourceType {
 +export declare enum ResourceType {
@@ -394,12 +474,12 @@ index 682eae406441d156e72b410017f03aad96e91e8e..97e6e7bd9f702ff50111a5c8fe1e6785
      Directory = "directory",
      Symlink = "symlink"
 diff --git a/dist/types/common/notifications.d.ts b/dist/types/common/notifications.d.ts
-index 2c909a6c56321826fd3c585d9ed281496a214054..b818537ceaf4a0653f213cd15cc86227b5922103 100644
+index cdbc405b4fc4860baabfc67031eaf4deaf4221ac..88d29219b7e45e0254033af946d22b180360fc24 100644
 --- a/dist/types/common/notifications.d.ts
 +++ b/dist/types/common/notifications.d.ts
-@@ -10,7 +10,7 @@ import type { URI } from './state.js';
-  *
+@@ -11,7 +11,7 @@ import type { ProtectedResourceMetadata, URI } from './state.js';
   * @category Protocol Notifications
+  * @nonexhaustive
   */
 -export declare const enum AuthRequiredReason {
 +export declare enum AuthRequiredReason {
