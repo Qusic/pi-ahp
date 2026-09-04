@@ -58,7 +58,7 @@
               inherit (finalAttrs) src;
               inherit pnpm;
               fetcherVersion = 4;
-              hash = "sha256-1rlaZu4nfFVOCWuwuaGMRAjtO6w9V31HQzUMuEMCHqk=";
+              hash = "sha256-2Y4GKtcfRC0zXJdR/nYuf+I09ZgR9wJxh3BAkJQb+qo=";
             };
 
             __structuredAttrs = true;
@@ -72,6 +72,7 @@
               pnpmConfigHook
               makeWrapper
               jq
+              python3
             ]);
 
             installPhase = ''

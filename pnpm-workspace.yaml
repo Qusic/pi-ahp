@@ -1,5 +1,6 @@
 allowBuilds:
   '@google/genai': false
+  node-pty: true
   protobufjs: false
 minimumReleaseAgeExclude:
   - '@microsoft/agent-host-protocol'
