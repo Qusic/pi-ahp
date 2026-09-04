@@ -29,7 +29,7 @@ import {
 import { installDefaultChat, syncChatSummary } from "../channels/chat.ts";
 import { notifySessionAdded, notifySessionRemoved, notifySessionSummaryChanged } from "../channels/root.ts";
 import { initialSessionState, sessionSummaryOf } from "../channels/session.ts";
-import { chatUri, permissiveSessionId, ROOT_CHANNEL } from "../core/channels.ts";
+import { chatUri, ROOT_CHANNEL, sessionIdFromUri } from "../core/channels.ts";
 import type { AhpHost } from "../core/host.ts";
 import { fileUriToPath } from "../core/uri.ts";
 import { ProtocolError } from "../protocol/errors.ts";
@@ -176,11 +176,8 @@ export class SessionRegistry {
 	 */
 	create(request: CreateSessionRequest): void {
 		const uri = request.channel;
-		// Accept the URI shape the client chose, not only the spec's canonical
-		// one. The reference host lets its provider mint the URI and merely logs
-		// a mismatch, so clients written against it still open sessions as
-		// `<provider>:/<uuid>`.
-		const sessionId = permissiveSessionId(uri);
+		// Only canonical and provider-alias URIs can be recovered after a host restart.
+		const sessionId = sessionIdFromUri(uri, [PI_PROVIDER]);
 		if (!sessionId) {
 			throw ProtocolError.invalidParams(`Not a session URI: ${uri}`);
 		}
@@ -197,7 +194,7 @@ export class SessionRegistry {
 			: (this.#options.defaultWorkingDirectory ?? process.cwd());
 
 		const title = "New Session";
-		// The URI may carry a non-standard scheme; it is a session either way.
+		// A provider-alias URI still needs the session reducer.
 		this.#host.store.create(uri, initialSessionState(PI_PROVIDER, title, workingDirectory), "session");
 
 		// pi writes the session file lazily on first append, so allocating the
@@ -277,7 +274,11 @@ export class SessionRegistry {
 			// Disposing a session cascades to every chat in its catalog.
 			this.#host.store.delete(session.chatChannel);
 		} else {
-			const sessionId = permissiveSessionId(uri);
+			const kind = this.#host.store.kindOf(uri);
+			if (kind !== undefined && kind !== "session") {
+				throw ProtocolError.sessionNotFound(uri);
+			}
+			const sessionId = sessionIdFromUri(uri, [PI_PROVIDER]);
 			if (!sessionId) {
 				throw ProtocolError.sessionNotFound(uri);
 			}

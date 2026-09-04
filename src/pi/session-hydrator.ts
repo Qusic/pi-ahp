@@ -19,7 +19,7 @@ import {
 	type URI,
 } from "@microsoft/agent-host-protocol";
 import { chatSummaryOf } from "../channels/chat.ts";
-import { chatIdFromUri, chatUri, isChatChannel, permissiveSessionId, sessionUri } from "../core/channels.ts";
+import { chatIdFromUri, chatUri, isChatChannel, sessionIdFromUri, sessionUri } from "../core/channels.ts";
 import type { AhpHost, ChannelHydrator } from "../core/host.ts";
 import { rebuildTurnsFromSession } from "./history.ts";
 import { THINKING_CONFIG_KEY } from "./models.ts";
@@ -66,9 +66,9 @@ export class SessionHydrator implements ChannelHydrator {
 
 	async hydrate(channel: URI): Promise<boolean> {
 		// A chat and its session share one id, so either URI loads the pair.
-		// Session URIs are matched permissively: clients written against the
-		// reference host still use `<provider>:/<uuid>`.
-		const sessionId = isChatChannel(channel) ? chatIdFromUri(channel) : permissiveSessionId(channel);
+		// The provider alias is explicit: an unknown channel scheme must not
+		// become a session merely because its path resembles one.
+		const sessionId = isChatChannel(channel) ? chatIdFromUri(channel) : sessionIdFromUri(channel, [PI_PROVIDER]);
 		if (!sessionId) {
 			return false;
 		}

@@ -37,9 +37,8 @@ export function isChatChannel(uri: URI): boolean {
  * serve.
  *
  * Deliberately strict: it drives `subscribe`, where guessing wrong would create
- * a channel with the wrong reducer. Session URIs with a non-standard scheme are
- * handled by {@link permissiveSessionId} on the paths that know they are
- * dealing with a session.
+ * a channel with the wrong reducer. A command that creates a resource can
+ * register its client-chosen URI with an explicit kind instead.
  */
 export function channelKind(uri: URI): ChannelKind | undefined {
 	if (isRootChannel(uri)) {
@@ -63,52 +62,31 @@ export function channelKind(uri: URI): ChannelKind | undefined {
 	return undefined;
 }
 
-/** `ahp-session:/<id>` → `<id>`. Returns `undefined` when the URI is not a session. */
-function sessionIdFromUri(uri: URI): string | undefined {
-	return isSessionChannel(uri) ? uri.slice(`${SESSION_SCHEME}/`.length) || undefined : undefined;
+interface SingleSegmentChannel {
+	readonly scheme: string;
+	readonly id: string;
 }
 
-/** Schemes that are definitely not a session, so a permissive parse can rule them out. */
-const NON_SESSION_SCHEMES = new Set([
-	"ahp-root",
-	CHAT_SCHEME.slice(0, -1),
-	TERMINAL_SCHEME.slice(0, -1),
-	CHANGESET_SCHEME.slice(0, -1),
-	RESOURCE_WATCH_SCHEME.slice(0, -1),
-	"ahp-otlp",
-	"file",
-	"http",
-	"https",
-]);
+function parseSingleSegmentChannel(uri: URI): SingleSegmentChannel | undefined {
+	const match = /^([a-zA-Z][a-zA-Z0-9+.-]*):\/([^/?#]+)$/.exec(uri);
+	const scheme = match?.[1];
+	const id = match?.[2];
+	return scheme && id ? { scheme: scheme.toLowerCase(), id } : undefined;
+}
 
 /**
- * Extracts a session id from a URI, tolerating a non-standard scheme.
- *
- * The spec says a session lives at `ahp-session:/<uuid>`, but the reference
- * host does not enforce it: its provider mints the session URI and a mismatch
- * with the client's requested `channel` is only logged
- * (`protocolServerHandler.ts`). Real clients learned the older
- * `<provider>:/<uuid>` shape from that behaviour and still send it — an iOS
- * client tested against VS Code opens sessions as `pi:/<uuid>`.
- *
- * Rejecting those would be defensible and useless. The id is the only part this
- * host needs, so any single-segment URI whose scheme is not some other channel
- * type is read as a session.
+ * Identifies a session from its canonical scheme or explicit provider aliases
+ * given as bare scheme names. Shape alone never makes an unknown URI a session.
  */
-export function permissiveSessionId(uri: URI): string | undefined {
-	const standard = sessionIdFromUri(uri);
-	if (standard) {
-		return standard;
-	}
-	const match = /^([a-zA-Z][a-zA-Z0-9+.-]*):\/{1,3}([^/?#]+)$/.exec(uri);
-	if (!match) {
+export function sessionIdFromUri(uri: URI, providerAliases: readonly string[] = []): string | undefined {
+	const parsed = parseSingleSegmentChannel(uri);
+	if (!parsed) {
 		return undefined;
 	}
-	// Both groups are non-optional in the pattern, so a match guarantees them;
-	// `noUncheckedIndexedAccess` cannot see that, and the defaults say it
-	// without asserting.
-	const [, scheme = "", id] = match;
-	return NON_SESSION_SCHEMES.has(scheme.toLowerCase()) ? undefined : id;
+	const canonical = SESSION_SCHEME.slice(0, -1);
+	return parsed.scheme === canonical || providerAliases.some((alias) => parsed.scheme === alias.toLowerCase())
+		? parsed.id
+		: undefined;
 }
 
 export function sessionUri(sessionId: string): URI {

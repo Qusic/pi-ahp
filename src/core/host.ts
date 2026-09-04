@@ -519,9 +519,8 @@ export class AhpHost {
 		}
 		if (!this.#store.has(channel)) {
 			// Not in memory does not mean it does not exist: a session from the
-			// catalogue lives on disk until someone opens it. The hydrator also
-			// decides whether a non-standard scheme names a real session, so the
-			// scheme check only applies once it has declined.
+			// catalogue lives on disk until someone opens it. The hydrator gets the
+			// first chance to resolve known aliases before the strict scheme check.
 			const hydrated = (await this.#capabilities.hydrator?.hydrate(channel)) ?? false;
 			if (!hydrated) {
 				throw channelKind(channel) === undefined

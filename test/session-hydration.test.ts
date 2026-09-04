@@ -31,9 +31,11 @@ import {
 import { AhpClient, RpcError } from "@microsoft/agent-host-protocol/client";
 import { WebSocketTransport } from "@microsoft/agent-host-protocol/ws";
 import { installRootChannel } from "../src/channels/root.ts";
-import { chatUri, permissiveSessionId, sessionUri } from "../src/core/channels.ts";
+import { chatUri, sessionIdFromUri, sessionUri } from "../src/core/channels.ts";
+import { ClientWorkarounds } from "../src/core/client-workarounds.ts";
 import { AhpHost } from "../src/core/host.ts";
 import type { PiBackend } from "../src/pi/chat-driver.ts";
+import { PI_PROVIDER } from "../src/pi/provider.ts";
 import { PiSessionCatalogue } from "../src/pi/session-catalogue.ts";
 import { SessionHydrator } from "../src/pi/session-hydrator.ts";
 import { SessionRegistry } from "../src/pi/session-registry.ts";
@@ -354,32 +356,61 @@ describe("read and unread", () => {
 	});
 });
 
-describe("non-standard session URIs", () => {
-	it("accepts a provider-scheme URI on createSession", () => {
-		// The spec says `ahp-session:/<uuid>`, but the reference host lets its
-		// provider mint the URI and only logs a mismatch with what the client
-		// asked for. Clients written against it still send `<provider>:/<uuid>`.
-		assert.equal(
-			permissiveSessionId("pi:/9991C40A-74CC-4991-85CC-F37CD2BFF065"),
-			"9991C40A-74CC-4991-85CC-F37CD2BFF065",
-		);
-		assert.equal(permissiveSessionId("copilot:/test-session"), "test-session");
+describe("session URI classification", () => {
+	it("recognises only canonical or explicitly allowed session schemes", () => {
+		const id = "9991C40A-74CC-4991-85CC-F37CD2BFF065";
+		assert.equal(sessionIdFromUri(`pi:/${id}`, [PI_PROVIDER]), id);
+		assert.equal(sessionIdFromUri("ahp-session:/abc"), "abc");
+		assert.equal(sessionIdFromUri("copilot:/test-session"), undefined);
+		assert.equal(sessionIdFromUri("copilot:/test-session", ["copilot"]), "test-session");
+		assert.equal(sessionIdFromUri("pi://test-session", [PI_PROVIDER]), undefined);
 	});
 
-	it("still reads the canonical form", () => {
-		assert.equal(permissiveSessionId("ahp-session:/abc"), "abc");
-	});
-
-	it("refuses URIs that name some other channel type", () => {
-		// Guessing wrong here would build a channel with the wrong reducer.
-		for (const uri of ["ahp-chat:/c1", "ahp-root://", "ahp-terminal:/t1", "file:///etc/passwd"]) {
-			assert.equal(permissiveSessionId(uri), undefined, uri);
+	it("does not infer sessions from other channel schemes", () => {
+		for (const uri of ["ahp-chat:/c1", "ahp-terminal:/t1", "agenthost-terminal:/t1", "file:///etc/passwd"]) {
+			assert.equal(sessionIdFromUri(uri, [PI_PROVIDER]), undefined, uri);
 		}
 	});
 
-	it("creates and disposes a session at a provider-scheme URI", async () => {
+	it("leaves VS Code's client-chosen terminal URI outside session translation", () => {
+		const channel = "agenthost-terminal:/terminal-1";
+		const workarounds = new ClientWorkarounds();
+		workarounds.identify({ name: "vscode-editor-window" });
+
+		const message = { jsonrpc: "2.0" as const, method: "action", params: { channel } };
+		assert.deepEqual(workarounds.applyToMessage(message), message);
+	});
+
+	it("does not hydrate or dispose a durable session through VS Code's terminal URI", async () => {
 		const fixture = await startFixture();
 		try {
+			const client = await fixture.asVSCode();
+			const channel = `agenthost-terminal:/${fixture.sessionId}`;
+			await assert.rejects(
+				client.subscribe(channel),
+				RpcError,
+				"an uncreated terminal must not open a matching session",
+			);
+			await assert.rejects(
+				client.request("disposeSession", { channel } as never),
+				RpcError,
+				"a terminal URI must not delete a matching session",
+			);
+			assert.equal(fixture.host.store.has(channel), false);
+			assert.deepEqual(fixture.deletedFiles, []);
+		} finally {
+			await fixture.close();
+		}
+	});
+
+	it("accepts the provider scheme but rejects an undeclared session scheme", async () => {
+		const fixture = await startFixture();
+		try {
+			await assert.rejects(
+				fixture.client.request("createSession", { channel: `custom:/${randomUUID()}` } as never),
+				RpcError,
+			);
+
 			const uri = `pi:/${randomUUID().toUpperCase()}`;
 			await fixture.client.request("createSession", { channel: uri } as never);
 

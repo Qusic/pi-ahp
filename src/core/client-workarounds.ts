@@ -5,7 +5,7 @@
 
 import type { URI } from "@microsoft/agent-host-protocol";
 import type { JsonRpcMessage, JsonRpcNotification, JsonRpcRequest } from "../protocol/jsonrpc.ts";
-import { chatIdFromUri, chatUri, permissiveSessionId, sessionUri } from "./channels.ts";
+import { chatIdFromUri, chatUri, sessionIdFromUri, sessionUri } from "./channels.ts";
 
 /**
  * Where a URI this host minted can appear on the wire: an action envelope's
@@ -26,6 +26,10 @@ const VSCODE_CLIENT_NAMES = new Set(["vscode-editor-window", "vscode-agents-wind
  * the reason for it in three signatures.
  */
 const PROVIDER_SESSION_SCHEME = "pi";
+
+function providerSessionId(uri: URI): string | undefined {
+	return sessionIdFromUri(uri, [PROVIDER_SESSION_SCHEME]);
+}
 
 /**
  * VS Code addresses sessions and chats at URIs it computes, not the ones it was
@@ -94,7 +98,7 @@ export class ClientWorkarounds {
 		if (typeof params.channel === "string") {
 			let channel = rewrite(params.channel);
 			if (message.method === "completions" && this.#sessionScheme) {
-				const sessionId = permissiveSessionId(channel);
+				const sessionId = providerSessionId(channel);
 				channel = sessionId ? chatUri(sessionId) : channel;
 			}
 			params.channel = channel;
@@ -116,27 +120,25 @@ export class ClientWorkarounds {
  * Translates a URI this client computed into the one this host minted.
  *
  * A derived chat URI is unwrapped whoever sent it — it names no channel this
- * host could otherwise serve. A session URI is only rewritten for a client
- * being answered under `scheme`, because choosing your own session URI is
- * something any client may legitimately do (`permissiveSessionId`), and one
- * that did would not want it moved.
+ * host could otherwise serve. A provider-aliased session URI is only rewritten
+ * for a client identified as using that alias; unknown schemes are left alone.
  */
 function sessionFromDerivedChat(uri: URI): URI | undefined {
 	const [, encoded = ""] = DERIVED_CHAT_URI.exec(uri) ?? [];
 	const session = encoded ? Buffer.from(encoded, "base64url").toString("utf8") : "";
-	return permissiveSessionId(session) ? session : undefined;
+	return providerSessionId(session) ? session : undefined;
 }
 
 function inbound(uri: URI, scheme: string | undefined): URI {
 	const derivedSession = sessionFromDerivedChat(uri);
-	const derivedSessionId = derivedSession ? permissiveSessionId(derivedSession) : undefined;
+	const derivedSessionId = derivedSession ? providerSessionId(derivedSession) : undefined;
 	if (derivedSessionId) {
 		return chatUri(derivedSessionId);
 	}
 	if (!scheme || !uri.startsWith(`${scheme}:/`)) {
 		return uri;
 	}
-	const sessionId = permissiveSessionId(uri);
+	const sessionId = providerSessionId(uri);
 	return sessionId ? sessionUri(sessionId) : uri;
 }
 
@@ -146,7 +148,7 @@ function outbound(uri: URI, scheme: string): URI {
 	if (chatId) {
 		return `ahp-chat://default/${Buffer.from(`${scheme}:/${chatId}`).toString("base64url")}`;
 	}
-	const sessionId = permissiveSessionId(uri);
+	const sessionId = providerSessionId(uri);
 	return sessionId ? `${scheme}:/${sessionId}` : uri;
 }
 
