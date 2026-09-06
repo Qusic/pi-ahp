@@ -248,9 +248,10 @@ describe("terminal service", () => {
 
 	it("forwards output, input, resize, title, and clear without interpreting VT data", async () => {
 		const { channel, pty } = await createTerminal();
-		await owner.subscribe(channel);
+		const { subscription } = await owner.subscribe(channel);
 		assert.equal(terminalState(fixture, channel).title, "test-shell");
 		pty.emitData("hello\u001b[31m red");
+		await waitFor(() => terminalState(fixture, channel).content.length > 0);
 		assert.deepEqual(terminalState(fixture, channel).content, [{ type: "unclassified", value: "hello\u001b[31m red" }]);
 
 		owner.dispatch(channel, { type: ActionType.TerminalInput, data: "echo hi\r" });
@@ -267,8 +268,30 @@ describe("terminal service", () => {
 		await waitFor(() => rootState(fixture).terminals?.[0]?.title === "Tests");
 		assert.equal(terminalState(fixture, channel).title, "Tests");
 
-		owner.dispatch(channel, { type: ActionType.TerminalCleared });
-		await waitFor(() => terminalState(fixture, channel).content.length === 0);
+		pty.emitData("stale pending output");
+		const clear = owner.dispatch(channel, { type: ActionType.TerminalCleared });
+		await nextAction(subscription, clear.clientSeq);
+		await new Promise((resolve) => setTimeout(resolve, 20));
+		assert.deepEqual(terminalState(fixture, channel).content, []);
+	});
+
+	it("batches burst output and flushes pending data before exit", async () => {
+		const { channel, pty } = await createTerminal();
+		const before = fixture.host.serverSeq;
+		for (let index = 0; index < 100; index += 1) pty.emitData("x");
+		await waitFor(() => terminalState(fixture, channel).content.length > 0);
+		assert.equal(fixture.host.serverSeq, before + 1);
+		assert.deepEqual(terminalState(fixture, channel).content, [{ type: "unclassified", value: "x".repeat(100) }]);
+
+		pty.emitData("tail");
+		pty.emitExit(0);
+		assert.deepEqual(terminalState(fixture, channel).content, [
+			{ type: "unclassified", value: `${"x".repeat(100)}tail` },
+		]);
+		assert.deepEqual(terminalState(fixture, channel).lifecycle, {
+			status: TerminalLifecycleStatus.Exited,
+			exitCode: 0,
+		});
 	});
 
 	it("restricts interaction and claim transfer without preventing cleanup", async () => {
@@ -355,6 +378,7 @@ describe("terminal service", () => {
 		const lastSeenServerSeq = fixture.host.serverSeq;
 		await owner.shutdown();
 		pty.emitData("offline output");
+		await waitFor(() => fixture.host.serverSeq > lastSeenServerSeq);
 
 		const resumed = await fixture.open();
 		const result = await resumed.reconnect({
@@ -379,7 +403,11 @@ describe("terminal service", () => {
 		const lastSeenServerSeq = fixture.host.serverSeq;
 		await owner.shutdown();
 		const chunks = ["zero", "one", "two", "three", "four", "five"];
-		for (const chunk of chunks) pty.emitData(chunk);
+		for (const chunk of chunks) {
+			const before = fixture.host.serverSeq;
+			pty.emitData(chunk);
+			await waitFor(() => fixture.host.serverSeq > before);
+		}
 
 		const resumed = await fixture.open();
 		const result = await resumed.reconnect({
@@ -406,6 +434,7 @@ describe("terminal service", () => {
 	it("bounds snapshot scrollback while retaining the newest VT stream", async () => {
 		const { channel, pty } = await createTerminal();
 		pty.emitData(`discard${"x".repeat(EXPECTED_SCROLLBACK_CHARS)}`);
+		await waitFor(() => terminalState(fixture, channel).content.length > 0);
 		const [part] = terminalState(fixture, channel).content;
 		assert.ok(part?.type === "unclassified");
 		assert.equal(part.value.length, EXPECTED_SCROLLBACK_CHARS);

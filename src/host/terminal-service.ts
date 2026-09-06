@@ -46,11 +46,15 @@ interface TerminalEntry {
 	readonly pty: PtyProcess;
 	dataListener: Disposable | undefined;
 	exitListener: Disposable | undefined;
+	pendingData: string;
+	flushTimer: NodeJS.Timeout | undefined;
 }
 
 const DEFAULT_COLS = 80;
 const DEFAULT_ROWS = 24;
 const MAX_DIMENSION = 65_535;
+const OUTPUT_BATCH_DELAY_MS = 8;
+const OUTPUT_BATCH_THRESHOLD_CHARS = 16 * 1024;
 
 function validDimension(value: number): boolean {
 	return Number.isSafeInteger(value) && value > 0 && value <= MAX_DIMENSION;
@@ -159,7 +163,13 @@ export class TerminalService implements TerminalHandler {
 		};
 		this.#host.store.create(channel, state, "terminal");
 
-		const entry: TerminalEntry = { pty, dataListener: undefined, exitListener: undefined };
+		const entry: TerminalEntry = {
+			pty,
+			dataListener: undefined,
+			exitListener: undefined,
+			pendingData: "",
+			flushTimer: undefined,
+		};
 		this.#entries.set(channel, entry);
 		entry.dataListener = pty.onData((data) => this.#onData(channel, entry, data));
 		entry.exitListener = pty.onExit((event) => this.#onExit(channel, entry, event.exitCode));
@@ -247,20 +257,46 @@ export class TerminalService implements TerminalHandler {
 				this.#publishCatalogue();
 				break;
 			case ActionType.TerminalCleared:
-				// The reducer already cleared retained output; the PTY itself is unchanged.
+				// The reducer already cleared retained output; discard older data that
+				// arrived before the action but was still waiting in the output batch.
+				this.#discardPendingData(entry);
 				break;
 		}
 	}
 
 	#onData(channel: URI, entry: TerminalEntry, data: string): void {
 		if (this.#entries.get(channel) !== entry || data.length === 0) return;
+		entry.pendingData += data;
+		if (entry.pendingData.length >= OUTPUT_BATCH_THRESHOLD_CHARS) {
+			this.#flushPendingData(channel, entry);
+			return;
+		}
+		if (!entry.flushTimer) {
+			entry.flushTimer = setTimeout(() => this.#flushPendingData(channel, entry), OUTPUT_BATCH_DELAY_MS);
+			entry.flushTimer.unref?.();
+		}
+	}
+
+	#flushPendingData(channel: URI, entry: TerminalEntry): void {
+		if (entry.flushTimer) clearTimeout(entry.flushTimer);
+		entry.flushTimer = undefined;
+		const data = entry.pendingData;
+		entry.pendingData = "";
+		if (this.#entries.get(channel) !== entry || data.length === 0) return;
 		this.#host.dispatchServerAction(channel, { type: ActionType.TerminalData, data });
+	}
+
+	#discardPendingData(entry: TerminalEntry): void {
+		if (entry.flushTimer) clearTimeout(entry.flushTimer);
+		entry.flushTimer = undefined;
+		entry.pendingData = "";
 	}
 
 	#onExit(channel: URI, entry: TerminalEntry, exitCode: number): void {
 		if (this.#entries.get(channel) !== entry) return;
 		const state = this.#state(channel);
 		if (!state || state.lifecycle.status === TerminalLifecycleStatus.Exited) return;
+		this.#flushPendingData(channel, entry);
 		entry.dataListener?.dispose();
 		entry.exitListener?.dispose();
 		entry.dataListener = undefined;
@@ -271,6 +307,8 @@ export class TerminalService implements TerminalHandler {
 
 	#remove(channel: URI, entry: TerminalEntry, notify: boolean): void {
 		if (this.#entries.get(channel) !== entry) return;
+		if (notify) this.#flushPendingData(channel, entry);
+		else this.#discardPendingData(entry);
 		const state = this.#state(channel);
 		this.#entries.delete(channel);
 		entry.dataListener?.dispose();
