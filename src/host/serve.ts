@@ -1,11 +1,4 @@
-/**
- * Starting the host, without deciding where the settings came from.
- *
- * `pi-ahp` reads them from a file; `pi-ahp-tunnel` derives them from a tunnel
- * and never touches one. Routing the tunnel path back through a settings-shaped
- * command line would mean keeping a flag in sync for every value, so both entry
- * points call this instead.
- */
+/** Shared host construction; each entry point owns its endpoint and authentication policy. */
 
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -31,8 +24,8 @@ export const VERSION = manifest.version;
 export interface ServeOptions {
 	readonly host: string;
 	readonly port: number;
-	/** Absent or empty disables the upgrade check. */
-	readonly token?: string | undefined;
+	/** Absent or empty disables the WebSocket upgrade credential. */
+	readonly connectionToken?: string | undefined;
 	readonly workingDirectory: string;
 	readonly log?: ((message: string) => void) | undefined;
 }
@@ -48,7 +41,7 @@ export async function startHost(options: ServeOptions): Promise<RunningServer> {
 	return serveWebSocket(ahpHost, {
 		host: options.host,
 		port: options.port,
-		...(options.token ? { token: options.token } : {}),
+		...(options.connectionToken ? { connectionToken: options.connectionToken } : {}),
 		...(options.log ? { log: options.log } : {}),
 	});
 }

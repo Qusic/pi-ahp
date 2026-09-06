@@ -43,7 +43,7 @@ export interface Harness {
 export async function startHarness(
 	options: {
 		agents?: AgentInfo[];
-		token?: string;
+		connectionToken?: string;
 		replayBufferCapacity?: number;
 		/** Wire the session lifecycle handler and catalogue. */
 		sessions?: boolean;
@@ -91,10 +91,10 @@ export async function startHarness(
 	const server = await serveWebSocket(host, {
 		host: "127.0.0.1",
 		port: 0,
-		...(options.token ? { token: options.token } : {}),
+		...(options.connectionToken ? { connectionToken: options.connectionToken } : {}),
 	});
 	const base = `ws://127.0.0.1:${server.port}`;
-	const url = options.token ? `${base}?token=${options.token}` : base;
+	const url = options.connectionToken ? `${base}?token=${options.connectionToken}` : base;
 	const clients: AhpClient[] = [];
 
 	return {

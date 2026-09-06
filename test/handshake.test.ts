@@ -115,12 +115,12 @@ describe("handshake", () => {
 });
 
 describe("connection token", () => {
-	// VS Code's agent-host client appends the token as `tkn`, the name it uses
-	// for every connection token, and offers no way to change it. A host that
-	// only reads `token` rejects it with a 401 that names nothing.
+	// VS Code names a manually configured connection token `tkn`; generic AHP
+	// examples use `token`. A direct listener configured with a token accepts
+	// either spelling.
 	for (const param of ["token", "tkn"]) {
 		it(`accepts the token as \`${param}\``, async () => {
-			const harness = await startHarness({ token: "secret" });
+			const harness = await startHarness({ connectionToken: "secret" });
 			try {
 				const client = await harness.connectWith(`?${param}=secret`);
 				const result = await client.initialize({
@@ -135,9 +135,23 @@ describe("connection token", () => {
 	}
 
 	it("rejects a wrong token", async () => {
-		const harness = await startHarness({ token: "secret" });
+		const harness = await startHarness({ connectionToken: "secret" });
 		try {
 			await assert.rejects(harness.connectWith("?tkn=wrong"));
+		} finally {
+			await harness.dispose();
+		}
+	});
+
+	it("ignores a VS Code tkn when the listener requires no token", async () => {
+		const harness = await startHarness();
+		try {
+			const client = await harness.connectWith("?tkn=legacy-tunnel-value");
+			const result = await client.initialize({
+				clientId: nextClientId(),
+				protocolVersions: SUPPORTED_PROTOCOL_VERSIONS,
+			});
+			assert.equal(result.protocolVersion, PROTOCOL_VERSION);
 		} finally {
 			await harness.dispose();
 		}

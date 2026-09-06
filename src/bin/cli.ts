@@ -3,7 +3,7 @@
  * `pi-ahp` — starts the host and prints the endpoint clients connect to.
  */
 
-import { loadSettings, SettingsError } from "../core/config.ts";
+import { loadDirectListenerSettings, SettingsError } from "../host/direct-settings.ts";
 import { closeOnSignal, startHost, VERSION } from "../host/serve.ts";
 
 function log(message: string): void {
@@ -24,21 +24,21 @@ async function main(): Promise<void> {
 				"",
 				"Usage: pi-ahp [--port <n>] [--host <addr>] [--cwd <path>] [--verbose]",
 				"",
-				"Settings persist at ~/.pi/ahp/settings.json; the port and token are",
-				"generated on first run.",
+				"Direct-listener settings persist at ~/.pi/ahp/settings.json; the",
+				"port and token are generated on first run.",
 			].join("\n"),
 		);
 		return;
 	}
 
 	const verbose = args.includes("--verbose");
-	const settings = await loadSettings();
+	const settings = await loadDirectListenerSettings();
 	const workingDirectory = flagValue(args, "--cwd") ?? process.cwd();
 
 	const server = await startHost({
 		host: flagValue(args, "--host") ?? settings.host,
 		port: Number(flagValue(args, "--port") ?? settings.port),
-		token: settings.token ?? undefined,
+		connectionToken: settings.token ?? undefined,
 		workingDirectory,
 		...(verbose ? { log } : {}),
 	});

@@ -1,20 +1,17 @@
 #!/usr/bin/env node
 /**
- * `pi-ahp-tunnel` — serves the host over a Microsoft dev tunnel, in the shape
- * VS Code discovers.
- *
- * VS Code finds agent hosts by listing tunnels labelled `vscode-server-launcher`
- * with a `protocolvN` label of at least 5, connecting to a fixed port, and
- * deriving the connection token from the tunnel id. All four are hard-coded in
- * its `tunnelAgentHostService`, so none of them is configurable here — which is
- * also why this command reads no settings file: every value it needs is either
- * fixed by VS Code or computed from the tunnel.
+ * Serves pi-ahp in the fixed Dev Tunnel shape VS Code discovers. Dev Tunnels
+ * controls remote access; the forwarded loopback listener has no URL token.
  */
 
 import { spawn } from "node:child_process";
 import { startHost, VERSION } from "../host/serve.ts";
-import { createTunnel, ensurePort, findTunnel, log, rename, requireLogin, TunnelError } from "../tunnel/devtunnel.ts";
-import { deriveConnectionToken, displayLabel, nameLabel, splitTunnelId, TUNNEL_PORT } from "../tunnel/vscode.ts";
+import { createTunnel, ensurePort, findTunnel, rename, requireLogin, TunnelError } from "../tunnel/devtunnel.ts";
+import { displayLabel, nameLabel, TUNNEL_PORT } from "../tunnel/vscode.ts";
+
+function log(message: string): void {
+	process.stderr.write(`${message}\n`);
+}
 
 async function main(): Promise<void> {
 	const args = process.argv.slice(2);
@@ -38,8 +35,9 @@ async function main(): Promise<void> {
 				"Add -d for device-code auth when there is no browser. See",
 				"`devtunnel user login --help` for the rest.",
 				"",
-				"Reads no settings: the port and token are fixed by what VS Code",
-				`looks for (port ${TUNNEL_PORT}, token derived from the tunnel id).`,
+				"Does not read or modify pi-ahp's direct-listener settings. The",
+				`port is fixed by VS Code (${TUNNEL_PORT}); remote access is controlled`,
+				"by Microsoft Dev Tunnels rather than an additional URL token.",
 			].join("\n"),
 		);
 		return;
@@ -73,18 +71,17 @@ async function main(): Promise<void> {
 		log(`tunnel: ${qualifiedId} (new${name ? `, named ${name}` : ""})`);
 	}
 	ensurePort(qualifiedId);
-	const { tunnelId } = splitTunnelId(qualifiedId);
 
 	// The host must be up before the tunnel forwards to it, or the first client
 	// through the relay hits a closed port.
 	const server = await startHost({
 		host: "127.0.0.1",
 		port: TUNNEL_PORT,
-		token: deriveConnectionToken(tunnelId),
 		workingDirectory,
 		...(verbose ? { log } : {}),
 	});
 	log(`listening on 127.0.0.1:${server.port}, working directory: ${workingDirectory}`);
+	log("remote access control: Microsoft Dev Tunnels; local listener: no URL token");
 
 	const host = spawn("devtunnel", ["host", qualifiedId], { stdio: "inherit" });
 	let stopping = false;

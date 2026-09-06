@@ -11,14 +11,21 @@
 import { spawnSync } from "node:child_process";
 import { IDENTITY_LABEL, LAUNCHER_LABEL, PROTOCOL_LABEL, TUNNEL_PORT } from "./vscode.ts";
 
-export function log(message: string): void {
-	process.stderr.write(`${message}\n`);
-}
-
 export class TunnelError extends Error {}
 
+interface CommandResult {
+	readonly status: number;
+	readonly stdout: string;
+	readonly stderr: string;
+}
+
+interface PortDetails {
+	readonly protocol?: unknown;
+	readonly accessControl?: unknown;
+}
+
 /** Both streams: the CLI reports success as JSON on stdout and errors on stderr. */
-function devtunnel(args: string[]): { status: number; stdout: string; stderr: string } {
+function devtunnel(args: string[]): CommandResult {
 	const result = spawnSync("devtunnel", args, { encoding: "utf8" });
 	if (result.error) {
 		throw new TunnelError(
@@ -92,29 +99,47 @@ export function createTunnel(name: string | undefined): string {
 	return id;
 }
 
+function createPort(id: string): CommandResult {
+	return devtunnel(["port", "create", id, "-p", String(TUNNEL_PORT), "--protocol", "http", "--json"]);
+}
+
 /**
- * Adds the port VS Code looks for, if it is not already there.
- *
- * Passing `-p` to `devtunnel host` instead fails on an existing tunnel with
- * "Batch update of ports is not supported". `https` rather than the CLI's
- * `auto` default is what VS Code sets on its own tunnels.
+ * Ensures the fixed port uses an HTTP origin. The relay terminates TLS, while
+ * pi-ahp's local listener speaks HTTP/WebSocket. Since the CLI cannot update a
+ * port's protocol, an old uncustomized `https` port is replaced; a port-specific
+ * ACL is never discarded automatically.
  */
 export function ensurePort(id: string): void {
-	const { status, stdout, stderr } = devtunnel([
-		"port",
-		"create",
-		id,
-		"-p",
-		String(TUNNEL_PORT),
-		"--protocol",
-		"https",
-		"--json",
-	]);
-	// Re-adding the port answers "Conflict with existing entity", on stderr,
-	// with a non-zero status — which is the normal path on every run after the
-	// first, not a failure.
-	if (status !== 0 && !/conflict with existing/i.test(stderr)) {
-		throw new TunnelError(`devtunnel port create failed:\n${(stderr || stdout).trim()}`);
+	const shown = devtunnel(["port", "show", id, "-p", String(TUNNEL_PORT), "--json"]);
+	if (shown.status === 0) {
+		let port: PortDetails | undefined;
+		try {
+			port = (JSON.parse(shown.stdout) as { port?: PortDetails }).port;
+		} catch {
+			throw new TunnelError(`devtunnel port show returned invalid JSON:\n${shown.stdout.trim()}`);
+		}
+		if (port?.protocol === "http") return;
+		if (typeof port?.protocol !== "string") {
+			throw new TunnelError(`devtunnel port show returned no protocol:\n${shown.stdout.trim()}`);
+		}
+		const hasPortAcl = Array.isArray(port.accessControl) ? port.accessControl.length > 0 : port.accessControl != null;
+		if (hasPortAcl) {
+			throw new TunnelError(
+				`devtunnel port ${TUNNEL_PORT} uses ${port.protocol} and has port-specific access control; replace it manually`,
+			);
+		}
+
+		const removed = devtunnel(["port", "delete", id, "-p", String(TUNNEL_PORT), "--json"]);
+		if (removed.status !== 0) {
+			throw new TunnelError(`devtunnel port delete failed:\n${(removed.stderr || removed.stdout).trim()}`);
+		}
+	} else if (!/tunnel port not found/i.test(shown.stderr || shown.stdout)) {
+		throw new TunnelError(`devtunnel port show failed:\n${(shown.stderr || shown.stdout).trim()}`);
+	}
+
+	const created = createPort(id);
+	if (created.status !== 0) {
+		throw new TunnelError(`devtunnel port create failed:\n${(created.stderr || created.stdout).trim()}`);
 	}
 }
 

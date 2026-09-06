@@ -1,7 +1,7 @@
 /**
- * Host settings, persisted at `~/.pi/ahp/settings.json`.
+ * Direct `pi-ahp` listener settings, persisted at `~/.pi/ahp/settings.json`.
  *
- * Two modes, deliberately kept apart:
+ * Two file states, deliberately kept apart:
  *
  * - **No file.** Nothing can be defaulted usefully — a port has to be free and
  *   a token has to be secret — so one of each is produced and written out. This
@@ -18,7 +18,7 @@ import { createServer } from "node:net";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 
-export interface HostSettings {
+export interface DirectListenerSettings {
 	port: number;
 	/** `null` disables the check; clients then connect without `?token=`. */
 	token: string | null;
@@ -58,7 +58,7 @@ export class SettingsError extends Error {
 	}
 }
 
-export async function loadSettings(path: string = getSettingsPath()): Promise<HostSettings> {
+export async function loadDirectListenerSettings(path: string = getSettingsPath()): Promise<DirectListenerSettings> {
 	let raw: string;
 	try {
 		raw = readFileSync(path, "utf8");
@@ -66,7 +66,7 @@ export async function loadSettings(path: string = getSettingsPath()): Promise<Ho
 		if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
 			throw error;
 		}
-		const settings: HostSettings = {
+		const settings: DirectListenerSettings = {
 			port: await freePort(),
 			token: randomBytes(32).toString("base64url"),
 			host: DEFAULT_HOST,
@@ -103,7 +103,7 @@ export async function loadSettings(path: string = getSettingsPath()): Promise<Ho
 	};
 }
 
-function writeSettings(settings: HostSettings, path: string = getSettingsPath()): void {
+function writeSettings(settings: DirectListenerSettings, path: string = getSettingsPath()): void {
 	mkdirSync(dirname(path), { recursive: true });
 	// Owner-only: the token is a bearer credential for the endpoint.
 	writeFileSync(path, `${JSON.stringify(settings, null, 2)}\n`, { mode: 0o600 });

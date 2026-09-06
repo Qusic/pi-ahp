@@ -20,8 +20,8 @@ import type { JsonRpcMessage } from "../protocol/jsonrpc.ts";
 export interface WebSocketTransportOptions {
 	readonly host?: string;
 	readonly port?: number;
-	/** Required as `?token=` on the upgrade request when set. */
-	readonly token?: string;
+	/** Expected as `?token=` or VS Code's `?tkn=` when set. */
+	readonly connectionToken?: string;
 	readonly log?: (message: string) => void;
 }
 
@@ -86,14 +86,12 @@ export async function serveWebSocket(
 	const wss = new WebSocketServer({ noServer: true });
 
 	httpServer.on("upgrade", (request, socket, head) => {
-		if (options.token) {
+		if (options.connectionToken) {
 			const url = new URL(request.url ?? "/", "http://localhost");
-			// `tkn` is VS Code's connection-token parameter, which its agent-host
-			// client sends and does not let you rename; `token` is what the spec's
-			// own examples use. Accepting both is the difference between VS Code
-			// connecting and getting a 401 it cannot explain.
+			// VS Code calls a manually configured connection token `tkn`; generic
+			// AHP examples use `token`, so a protected direct listener accepts both.
 			const presented = url.searchParams.get("token") ?? url.searchParams.get("tkn");
-			if (presented !== options.token) {
+			if (presented !== options.connectionToken) {
 				options.log?.("Rejecting upgrade: bad token");
 				socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
 				socket.destroy();
