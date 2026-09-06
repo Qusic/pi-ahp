@@ -13,7 +13,7 @@
  */
 
 import { isUtf8 } from "node:buffer";
-import { constants, type Dirent, realpathSync, type Stats } from "node:fs";
+import { constants, type Dirent, type Stats } from "node:fs";
 import {
 	access,
 	copyFile,
@@ -22,15 +22,14 @@ import {
 	mkdir,
 	readdir,
 	readFile,
-	readlink,
 	realpath,
 	rename,
 	rm,
 	stat,
 	writeFile,
 } from "node:fs/promises";
-import { basename, dirname, join, resolve as resolvePath, sep } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import {
 	AhpErrorCodes,
 	ContentEncoding,
@@ -50,6 +49,7 @@ import {
 } from "@microsoft/agent-host-protocol";
 import mime from "mime";
 import { ProtocolError } from "../protocol/errors.ts";
+import { ResourcePathPolicy } from "./resource-paths.ts";
 
 export interface ResourceServiceOptions {
 	/**
@@ -62,6 +62,8 @@ export interface ResourceServiceOptions {
 	 * they are canonicalized once so later symlink changes cannot retarget them.
 	 */
 	readonly roots?: readonly string[];
+	/** Shared with resource watches when both surfaces use the same policy. */
+	readonly pathPolicy?: ResourcePathPolicy;
 }
 
 function isUtf8Text(data: Buffer): boolean {
@@ -78,28 +80,6 @@ function etagOf(stats: Stats): string {
 
 function errorCodeOf(error: unknown): string | undefined {
 	return (error as NodeJS.ErrnoException | undefined)?.code;
-}
-
-/** Resolves symlinks in the existing prefix while preserving a missing suffix. */
-async function canonicalPath(path: string): Promise<string> {
-	const absolute = resolvePath(path);
-	try {
-		return await realpath(absolute);
-	} catch (error) {
-		if (errorCodeOf(error) !== "ENOENT") throw error;
-	}
-
-	try {
-		if ((await lstat(absolute)).isSymbolicLink()) {
-			const target = await readlink(absolute);
-			return canonicalPath(resolvePath(dirname(absolute), target));
-		}
-	} catch (error) {
-		if (errorCodeOf(error) !== "ENOENT") throw error;
-	}
-
-	const parent = dirname(absolute);
-	return parent === absolute ? absolute : join(await canonicalPath(parent), basename(absolute));
 }
 
 /** Maps a Node filesystem error onto the protocol's error codes. */
@@ -125,56 +105,17 @@ function translate(error: unknown, uri: string): ProtocolError {
 }
 
 export class ResourceService {
-	readonly #roots: readonly string[];
+	readonly #paths: ResourcePathPolicy;
 	readonly #writeTails = new Map<string, Promise<void>>();
 
 	constructor(options: ResourceServiceOptions = {}) {
-		this.#roots = (options.roots ?? []).map((root) => realpathSync(resolvePath(root)));
-	}
-
-	// ── Path handling ───────────────────────────────────────────────────────
-
-	/**
-	 * Converts a `file:` URI to a path and enforces the root allowlist.
-	 *
-	 * The check follows symlinks in the existing path prefix and preserves any
-	 * missing suffix, so neither existing nor dangling links can escape a root.
-	 */
-	async #toPath(uri: string): Promise<string> {
-		if (typeof uri !== "string" || !uri.startsWith("file://")) {
-			throw ProtocolError.invalidParams(`Only file: URIs are supported, got: ${uri}`);
-		}
-		let path: string;
-		try {
-			path = fileURLToPath(uri);
-		} catch {
-			throw ProtocolError.invalidParams(`Malformed file URI: ${uri}`);
-		}
-		if (this.#roots.length > 0) {
-			await this.#assertInsideRoot(path, uri);
-		}
-		return path;
-	}
-
-	async #assertInsideRoot(path: string, uri: string): Promise<void> {
-		let candidate: string;
-		try {
-			candidate = await canonicalPath(path);
-		} catch (error) {
-			throw translate(error, uri);
-		}
-		const permitted = this.#roots.some(
-			(root) => candidate === root || candidate.startsWith(root.endsWith(sep) ? root : root + sep),
-		);
-		if (!permitted) {
-			throw new ProtocolError(AhpErrorCodes.PermissionDenied, `Outside the permitted roots: ${uri}`);
-		}
+		this.#paths = options.pathPolicy ?? new ResourcePathPolicy(options.roots);
 	}
 
 	// ── Commands ────────────────────────────────────────────────────────────
 
 	async read(params: ResourceReadParams): Promise<ResourceReadResult> {
-		const path = await this.#toPath(params.uri);
+		const path = await this.#paths.pathFor(params.uri);
 		try {
 			const buffer = await readFile(path);
 			// Never claim UTF-8 when decoding would replace invalid bytes. Unknown
@@ -194,7 +135,7 @@ export class ResourceService {
 	}
 
 	async write(params: ResourceWriteParams): Promise<Record<string, never>> {
-		const path = await this.#toPath(params.uri);
+		const path = await this.#paths.pathFor(params.uri);
 		if (params.encoding !== ContentEncoding.Base64 && params.encoding !== ContentEncoding.Utf8) {
 			throw ProtocolError.invalidParams(`Unsupported content encoding: ${params.encoding}`);
 		}
@@ -280,7 +221,7 @@ export class ResourceService {
 	}
 
 	async list(uri: string): Promise<ResourceListResult> {
-		const path = await this.#toPath(uri);
+		const path = await this.#paths.pathFor(uri);
 		try {
 			const found = await readdir(path, { withFileTypes: true });
 			const entries: DirectoryEntry[] = await Promise.all(
@@ -300,7 +241,7 @@ export class ResourceService {
 		if (!entry.isSymbolicLink()) return entry.isDirectory();
 		const path = join(parent, entry.name);
 		try {
-			if (this.#roots.length > 0) await this.#assertInsideRoot(path, pathToFileURL(path).toString());
+			await this.#paths.pathFor(pathToFileURL(path).toString());
 			return (await stat(path)).isDirectory();
 		} catch {
 			// DirectoryEntry has no symlink kind; an unresolved or forbidden link is
@@ -310,7 +251,7 @@ export class ResourceService {
 	}
 
 	async resolve(params: ResourceResolveParams): Promise<ResourceResolveResult> {
-		const path = await this.#toPath(params.uri);
+		const path = await this.#paths.pathFor(params.uri);
 		const followSymlinks = params.followSymlinks ?? true;
 		try {
 			const stats = followSymlinks ? await stat(path) : await lstat(path);
@@ -337,7 +278,7 @@ export class ResourceService {
 	}
 
 	async mkdir(params: ResourceMkdirParams): Promise<Record<string, never>> {
-		const path = await this.#toPath(params.uri);
+		const path = await this.#paths.pathFor(params.uri);
 		try {
 			await mkdir(path, { recursive: true });
 			return {};
@@ -347,7 +288,7 @@ export class ResourceService {
 	}
 
 	async delete(params: ResourceDeleteParams): Promise<Record<string, never>> {
-		const path = await this.#toPath(params.uri);
+		const path = await this.#paths.pathFor(params.uri);
 		try {
 			const stats = await lstat(path);
 			if (stats.isDirectory() && !params.recursive) {
@@ -364,8 +305,8 @@ export class ResourceService {
 	}
 
 	async move(params: ResourceMoveParams): Promise<Record<string, never>> {
-		const source = await this.#toPath(params.source);
-		const destination = await this.#toPath(params.destination);
+		const source = await this.#paths.pathFor(params.source);
+		const destination = await this.#paths.pathFor(params.destination);
 		await this.#guardDestination(destination, params.destination, params.failIfExists);
 		try {
 			await rename(source, destination);
@@ -376,8 +317,8 @@ export class ResourceService {
 	}
 
 	async copy(params: ResourceCopyParams): Promise<Record<string, never>> {
-		const source = await this.#toPath(params.source);
-		const destination = await this.#toPath(params.destination);
+		const source = await this.#paths.pathFor(params.source);
+		const destination = await this.#paths.pathFor(params.destination);
 		await this.#guardDestination(destination, params.destination, params.failIfExists);
 		try {
 			const stats = await lstat(source);

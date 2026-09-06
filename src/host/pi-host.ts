@@ -13,6 +13,7 @@ import { deleteSessionFile } from "../pi/delete-session.ts";
 import { InProcessPiBackend } from "../pi/in-process-backend.ts";
 import { buildAgentInfo, THINKING_CONFIG_KEY } from "../pi/models.ts";
 import { type ProjectTrustPolicy, resolveProjectTrust } from "../pi/project-trust.ts";
+import { ResourcePathPolicy } from "../pi/resource-paths.ts";
 import { ResourceService } from "../pi/resource-service.ts";
 import { ResourceWatchService } from "../pi/resource-watch.ts";
 import { PiSessionCatalogue } from "../pi/session-catalogue.ts";
@@ -40,8 +41,8 @@ export interface PiHostOptions extends HostOptions {
 	 */
 	readonly projectTrustPolicy?: ProjectTrustPolicy;
 	/**
-	 * Directories the `resource*` family may reach. Empty means unrestricted.
-	 * See `src/pi/resource-service.ts` for why that is the default.
+	 * Directories the resource commands and watches may reach. Empty means
+	 * unrestricted. See `src/pi/resource-paths.ts` for why that is the default.
 	 */
 	readonly resourceRoots?: readonly string[];
 }
@@ -105,7 +106,12 @@ export async function createPiHost(options: PiHostOptions = {}): Promise<PiHost>
 		fallback && fallbackThinking ? { id: fallback.id, config: { [THINKING_CONFIG_KEY]: fallbackThinking } } : undefined;
 
 	const catalogue = new PiSessionCatalogue();
-	const watches = new ResourceWatchService(host, { ...(options.log ? { log: options.log } : {}) });
+	const resourcePaths = new ResourcePathPolicy(options.resourceRoots);
+	const resources = new ResourceService({ pathPolicy: resourcePaths });
+	const watches = new ResourceWatchService(host, {
+		pathPolicy: resourcePaths,
+		...(options.log ? { log: options.log } : {}),
+	});
 	const terminals = new TerminalService(host, {
 		defaultWorkingDirectory: workingDirectory,
 		...(options.log ? { log: options.log } : {}),
@@ -132,7 +138,7 @@ export async function createPiHost(options: PiHostOptions = {}): Promise<PiHost>
 
 	host.serve({
 		catalogue,
-		resources: new ResourceService({ ...(options.resourceRoots ? { roots: options.resourceRoots } : {}) }),
+		resources,
 		resourceWatches: watches,
 		terminals,
 		sessionConfig: new SessionConfigService({

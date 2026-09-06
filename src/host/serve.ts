@@ -31,7 +31,11 @@ export interface ServeOptions {
 }
 
 export async function startHost(options: ServeOptions): Promise<RunningServer> {
-	const { host: ahpHost, terminals } = await createPiHost({
+	const {
+		host: ahpHost,
+		terminals,
+		watches,
+	} = await createPiHost({
 		serverInfo: { name: NAME, version: VERSION },
 		defaultDirectory: `file://${options.workingDirectory}`,
 		workingDirectory: options.workingDirectory,
@@ -48,7 +52,7 @@ export async function startHost(options: ServeOptions): Promise<RunningServer> {
 		...server,
 		async close() {
 			terminals.shutdown();
-			await server.close();
+			await Promise.all([server.close(), watches.dispose()]);
 		},
 	};
 }
