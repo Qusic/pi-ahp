@@ -19,6 +19,7 @@ import { PiSessionCatalogue } from "../pi/session-catalogue.ts";
 import { SessionConfigService } from "../pi/session-config.ts";
 import { SessionHydrator } from "../pi/session-hydrator.ts";
 import { type BackendFactory, type CreateSessionRequest, SessionRegistry } from "../pi/session-registry.ts";
+import { TerminalService } from "./terminal-service.ts";
 
 export interface PiHostOptions extends HostOptions {
 	/** Working directory for sessions created without one. Defaults to `process.cwd()`. */
@@ -50,6 +51,7 @@ export interface PiHost {
 	readonly sessions: SessionRegistry;
 	readonly catalogue: PiSessionCatalogue;
 	readonly watches: ResourceWatchService;
+	readonly terminals: { shutdown(): void };
 }
 
 /**
@@ -104,6 +106,10 @@ export async function createPiHost(options: PiHostOptions = {}): Promise<PiHost>
 
 	const catalogue = new PiSessionCatalogue();
 	const watches = new ResourceWatchService(host, { ...(options.log ? { log: options.log } : {}) });
+	const terminals = new TerminalService(host, {
+		defaultWorkingDirectory: workingDirectory,
+		...(options.log ? { log: options.log } : {}),
+	});
 
 	const createBackend: BackendFactory =
 		options.createBackend ??
@@ -128,6 +134,7 @@ export async function createPiHost(options: PiHostOptions = {}): Promise<PiHost>
 		catalogue,
 		resources: new ResourceService({ ...(options.resourceRoots ? { roots: options.resourceRoots } : {}) }),
 		resourceWatches: watches,
+		terminals,
 		sessionConfig: new SessionConfigService({
 			defaultWorkingDirectory: workingDirectory,
 			...(options.projectTrustPolicy ? { projectTrustPolicy: options.projectTrustPolicy } : {}),
@@ -168,5 +175,5 @@ export async function createPiHost(options: PiHostOptions = {}): Promise<PiHost>
 		}),
 	});
 
-	return { host, sessions, catalogue, watches };
+	return { host, sessions, catalogue, watches, terminals };
 }

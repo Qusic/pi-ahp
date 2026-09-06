@@ -111,7 +111,7 @@ describe("pi client-action policy", () => {
 
 	it("accounts for every client action on channels this host serves", () => {
 		const actual = Object.values(ActionType)
-			.filter((type) => /^(root|session|chat)\//u.test(type) && isClientDispatchable({ type } as never))
+			.filter((type) => /^(root|session|chat|terminal)\//u.test(type) && isClientDispatchable({ type } as never))
 			.sort();
 		const expected = [
 			ActionType.RootConfigChanged,
@@ -143,6 +143,11 @@ describe("pi client-action policy", () => {
 			ActionType.ChatInputAnswerChanged,
 			ActionType.ChatInputCompleted,
 			ActionType.ChatTruncated,
+			ActionType.TerminalInput,
+			ActionType.TerminalResized,
+			ActionType.TerminalClaimed,
+			ActionType.TerminalTitleChanged,
+			ActionType.TerminalCleared,
 		].sort();
 
 		assert.deepEqual(actual, expected);

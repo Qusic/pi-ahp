@@ -31,19 +31,26 @@ export interface ServeOptions {
 }
 
 export async function startHost(options: ServeOptions): Promise<RunningServer> {
-	const { host: ahpHost } = await createPiHost({
+	const { host: ahpHost, terminals } = await createPiHost({
 		serverInfo: { name: NAME, version: VERSION },
 		defaultDirectory: `file://${options.workingDirectory}`,
 		workingDirectory: options.workingDirectory,
 		...(options.log ? { log: options.log } : {}),
 	});
 
-	return serveWebSocket(ahpHost, {
+	const server = await serveWebSocket(ahpHost, {
 		host: options.host,
 		port: options.port,
 		...(options.connectionToken ? { connectionToken: options.connectionToken } : {}),
 		...(options.log ? { log: options.log } : {}),
 	});
+	return {
+		...server,
+		async close() {
+			terminals.shutdown();
+			await server.close();
+		},
+	};
 }
 
 /** Closes `server` on SIGINT/SIGTERM. */

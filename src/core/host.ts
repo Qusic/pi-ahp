@@ -15,6 +15,7 @@ import {
 	type CreateResourceWatchParams,
 	type CreateResourceWatchResult,
 	type CreateSessionParams,
+	type CreateTerminalParams,
 	type DispatchActionParams,
 	type FetchTurnsParams,
 	type FetchTurnsResult,
@@ -81,6 +82,8 @@ export interface HostCapabilities {
 	readonly catalogue?: SessionCatalogue;
 	/** `createSession` / `disposeSession`. */
 	readonly sessions?: SessionLifecycleHandler;
+	/** `createTerminal` / `disposeTerminal`. */
+	readonly terminals?: TerminalHandler;
 	/** The `resource*` request/response family. */
 	readonly resources?: ResourceHandler;
 	/** `createResourceWatch`. */
@@ -130,6 +133,12 @@ export interface SessionLifecycleHandler {
 	dispose(channel: URI): void | Promise<void>;
 }
 
+/** Handles interactive terminal lifecycle commands. */
+export interface TerminalHandler {
+	create(params: CreateTerminalParams, clientId: string): void | Promise<void>;
+	dispose(channel: URI): void | Promise<void>;
+}
+
 /** Post-commit hook for actions a client dispatched. */
 export type ClientActionListener = (channel: URI, action: StateAction) => void;
 
@@ -140,7 +149,7 @@ export type ClientActionListener = (channel: URI, action: StateAction) => void;
  * *before* the reducer, which is the only point where refusing is meaningful:
  * once an action is applied and broadcast, every client has already moved on.
  */
-export type ClientActionValidator = (channel: URI, action: StateAction) => string | undefined;
+export type ClientActionValidator = (channel: URI, action: StateAction, clientId: string) => string | undefined;
 
 /** Notified when the number of clients subscribed to a channel changes. */
 export type SubscriberCountListener = (channel: URI, count: number) => void;
@@ -326,6 +335,24 @@ export class AhpHost {
 					throw ProtocolError.invalidParams("disposeSession requires a channel");
 				}
 				await this.#capabilities.sessions.dispose(channel);
+				return null;
+			}
+			case "createTerminal": {
+				if (!this.#capabilities.terminals) {
+					throw ProtocolError.methodNotFound("createTerminal");
+				}
+				await this.#capabilities.terminals.create(request.params as CreateTerminalParams, connection.clientId);
+				return null;
+			}
+			case "disposeTerminal": {
+				if (!this.#capabilities.terminals) {
+					throw ProtocolError.methodNotFound("disposeTerminal");
+				}
+				const channel = readChannel(request.params);
+				if (!channel) {
+					throw ProtocolError.invalidParams("disposeTerminal requires a channel");
+				}
+				await this.#capabilities.terminals.dispose(channel);
 				return null;
 			}
 			case "resourceRead":
@@ -565,7 +592,7 @@ export class AhpHost {
 			return;
 		}
 		for (const validator of this.#actionValidators) {
-			const reason = validator(channel, action);
+			const reason = validator(channel, action, connection.clientId);
 			if (reason !== undefined) {
 				this.#rejectAction(channel, action, origin, reason);
 				return;
