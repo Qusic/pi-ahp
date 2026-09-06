@@ -20,6 +20,9 @@ importers:
       '@microsoft/agent-host-protocol':
         specifier: 0.9.0
         version: 0.9.0(patch_hash=0efa08de6e4194334d5737b54d27e5f4f5317c76af4a2ba39c0703c4dc140c36)
+      mime:
+        specifier: ^4.1.0
+        version: 4.1.0
       node-pty:
         specifier: ^1.2.0-beta.15
         version: 1.2.0-beta.15
@@ -676,6 +679,11 @@ packages:
   marked@18.0.5:
     resolution: {integrity: sha512-S6GcvALHg6K4ohtu4E7x0a1AqhAjp6cV8KhLSyN9qVapnzJkusVBxZRcIU9AeYsbe6P1hKDusSbEOzGyyuce6w==}
     engines: {node: '>= 20'}
+    hasBin: true
+
+  mime@4.1.0:
+    resolution: {integrity: sha512-X5ju04+cAzsojXKes0B/S4tcYtFAJ6tTMuSPBEn9CPGlrWr8Fiw7qYeLT0XyH80HSoAoqWCaz+MWKh22P7G1cw==}
+    engines: {node: '>=16'}
     hasBin: true
 
   minimatch@10.2.5:
@@ -1502,6 +1510,8 @@ snapshots:
   lru-cache@11.5.2: {}
 
   marked@18.0.5: {}
+
+  mime@4.1.0: {}
 
   minimatch@10.2.5:
     dependencies:

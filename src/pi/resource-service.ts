@@ -12,7 +12,8 @@
  * @see https://microsoft.github.io/agent-host-protocol/specification/root-channel
  */
 
-import { constants } from "node:fs";
+import { isUtf8 } from "node:buffer";
+import { constants, type Dirent, realpathSync, type Stats } from "node:fs";
 import {
 	access,
 	copyFile,
@@ -21,13 +22,14 @@ import {
 	mkdir,
 	readdir,
 	readFile,
+	readlink,
 	realpath,
 	rename,
 	rm,
 	stat,
 	writeFile,
 } from "node:fs/promises";
-import { dirname, resolve as resolvePath, sep } from "node:path";
+import { basename, dirname, join, resolve as resolvePath, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {
 	AhpErrorCodes,
@@ -46,6 +48,7 @@ import {
 	ResourceWriteMode,
 	type ResourceWriteParams,
 } from "@microsoft/agent-host-protocol";
+import mime from "mime";
 import { ProtocolError } from "../protocol/errors.ts";
 
 export interface ResourceServiceOptions {
@@ -55,50 +58,53 @@ export interface ResourceServiceOptions {
 	 * Empty (the default) means unrestricted, matching the reference host —
 	 * which is honest rather than lax: a client that can reach this endpoint can
 	 * already start a session and run shell commands, so a filesystem allowlist
-	 * on its own is not a security boundary. Set roots when the endpoint is
-	 * exposed more widely than the agent's own reach.
+	 * on its own is not a security boundary. Configured roots must already exist;
+	 * they are canonicalized once so later symlink changes cannot retarget them.
 	 */
 	readonly roots?: readonly string[];
 }
 
-/** Text types that survive a UTF-8 round-trip; everything else defaults to base64. */
-const TEXT_EXTENSIONS = new Map<string, string>([
-	[".txt", "text/plain"],
-	[".md", "text/markdown"],
-	[".json", "application/json"],
-	[".js", "text/javascript"],
-	[".mjs", "text/javascript"],
-	[".ts", "text/x-typescript"],
-	[".tsx", "text/x-typescript"],
-	[".jsx", "text/javascript"],
-	[".css", "text/css"],
-	[".html", "text/html"],
-	[".xml", "application/xml"],
-	[".yaml", "application/yaml"],
-	[".yml", "application/yaml"],
-	[".toml", "application/toml"],
-	[".sh", "text/x-shellscript"],
-	[".py", "text/x-python"],
-	[".rs", "text/x-rust"],
-	[".go", "text/x-go"],
-]);
-
-function extensionOf(path: string): string {
-	const base = path.slice(path.lastIndexOf(sep) + 1);
-	const dot = base.lastIndexOf(".");
-	return dot <= 0 ? "" : base.slice(dot).toLowerCase();
+function isUtf8Text(data: Buffer): boolean {
+	return isUtf8(data) && !data.includes(0);
 }
 
-function isProbablyText(path: string): boolean {
-	return TEXT_EXTENSIONS.has(extensionOf(path));
+function contentTypeOf(path: string, textFallback = false): string | undefined {
+	return mime.getType(path) ?? (textFallback ? "text/plain" : undefined);
+}
+
+function etagOf(stats: Stats): string {
+	return `${stats.dev}-${stats.ino}-${stats.size}-${stats.mtimeMs}-${stats.ctimeMs}`;
 }
 
 function errorCodeOf(error: unknown): string | undefined {
 	return (error as NodeJS.ErrnoException | undefined)?.code;
 }
 
+/** Resolves symlinks in the existing prefix while preserving a missing suffix. */
+async function canonicalPath(path: string): Promise<string> {
+	const absolute = resolvePath(path);
+	try {
+		return await realpath(absolute);
+	} catch (error) {
+		if (errorCodeOf(error) !== "ENOENT") throw error;
+	}
+
+	try {
+		if ((await lstat(absolute)).isSymbolicLink()) {
+			const target = await readlink(absolute);
+			return canonicalPath(resolvePath(dirname(absolute), target));
+		}
+	} catch (error) {
+		if (errorCodeOf(error) !== "ENOENT") throw error;
+	}
+
+	const parent = dirname(absolute);
+	return parent === absolute ? absolute : join(await canonicalPath(parent), basename(absolute));
+}
+
 /** Maps a Node filesystem error onto the protocol's error codes. */
 function translate(error: unknown, uri: string): ProtocolError {
+	if (error instanceof ProtocolError) return error;
 	switch (errorCodeOf(error)) {
 		case "ENOENT":
 			return ProtocolError.notFound(uri);
@@ -120,9 +126,10 @@ function translate(error: unknown, uri: string): ProtocolError {
 
 export class ResourceService {
 	readonly #roots: readonly string[];
+	readonly #writeTails = new Map<string, Promise<void>>();
 
 	constructor(options: ResourceServiceOptions = {}) {
-		this.#roots = (options.roots ?? []).map((root) => resolvePath(root));
+		this.#roots = (options.roots ?? []).map((root) => realpathSync(resolvePath(root)));
 	}
 
 	// ── Path handling ───────────────────────────────────────────────────────
@@ -130,13 +137,11 @@ export class ResourceService {
 	/**
 	 * Converts a `file:` URI to a path and enforces the root allowlist.
 	 *
-	 * The check runs against the **resolved real path** where the target
-	 * exists, so a symlink cannot be used to step outside a root. For a path
-	 * that does not exist yet (a write or mkdir target) the nearest existing
-	 * ancestor is resolved instead, which closes the same hole for creation.
+	 * The check follows symlinks in the existing path prefix and preserves any
+	 * missing suffix, so neither existing nor dangling links can escape a root.
 	 */
 	async #toPath(uri: string): Promise<string> {
-		if (!uri.startsWith("file://")) {
+		if (typeof uri !== "string" || !uri.startsWith("file://")) {
 			throw ProtocolError.invalidParams(`Only file: URIs are supported, got: ${uri}`);
 		}
 		let path: string;
@@ -152,23 +157,12 @@ export class ResourceService {
 	}
 
 	async #assertInsideRoot(path: string, uri: string): Promise<void> {
-		let candidate = resolvePath(path);
-		for (;;) {
-			try {
-				candidate = await realpath(candidate);
-				break;
-			} catch (error) {
-				if (errorCodeOf(error) !== "ENOENT") {
-					throw translate(error, uri);
-				}
-				const parent = dirname(candidate);
-				if (parent === candidate) {
-					break; // Reached the filesystem root without resolving.
-				}
-				candidate = parent;
-			}
+		let candidate: string;
+		try {
+			candidate = await canonicalPath(path);
+		} catch (error) {
+			throw translate(error, uri);
 		}
-
 		const permitted = this.#roots.some(
 			(root) => candidate === root || candidate.startsWith(root.endsWith(sep) ? root : root + sep),
 		);
@@ -183,10 +177,12 @@ export class ResourceService {
 		const path = await this.#toPath(params.uri);
 		try {
 			const buffer = await readFile(path);
-			// Honour an explicit request; otherwise pick from the extension and
-			// fall back to base64, which round-trips anything.
-			const encoding = params.encoding ?? (isProbablyText(path) ? ContentEncoding.Utf8 : ContentEncoding.Base64);
-			const contentType = TEXT_EXTENSIONS.get(extensionOf(path));
+			// Never claim UTF-8 when decoding would replace invalid bytes. Unknown
+			// extensions still remain editable when their contents are valid text.
+			const text = isUtf8Text(buffer);
+			const encoding =
+				params.encoding === ContentEncoding.Base64 || !text ? ContentEncoding.Base64 : ContentEncoding.Utf8;
+			const contentType = contentTypeOf(path, text);
 			return {
 				data: buffer.toString(encoding === ContentEncoding.Utf8 ? "utf8" : "base64"),
 				encoding,
@@ -199,53 +195,117 @@ export class ResourceService {
 
 	async write(params: ResourceWriteParams): Promise<Record<string, never>> {
 		const path = await this.#toPath(params.uri);
-		const data = Buffer.from(params.data, params.encoding === ContentEncoding.Base64 ? "base64" : "utf8");
-
-		if (params.createOnly) {
-			try {
-				await access(path, constants.F_OK);
-				throw new ProtocolError(AhpErrorCodes.AlreadyExists, `Already exists: ${params.uri}`);
-			} catch (error) {
-				if (error instanceof ProtocolError) {
-					throw error;
-				}
-				if (errorCodeOf(error) !== "ENOENT") {
-					throw translate(error, params.uri);
-				}
-			}
+		if (params.encoding !== ContentEncoding.Base64 && params.encoding !== ContentEncoding.Utf8) {
+			throw ProtocolError.invalidParams(`Unsupported content encoding: ${params.encoding}`);
 		}
-
+		const data = Buffer.from(params.data, params.encoding === ContentEncoding.Base64 ? "base64" : "utf8");
 		const mode = params.mode ?? ResourceWriteMode.Truncate;
-		if (mode !== ResourceWriteMode.Truncate && mode !== ResourceWriteMode.Append) {
-			// `insert` needs read-modify-write with offset semantics this host
-			// does not implement; rejecting is better than writing the wrong bytes.
+		if (mode !== ResourceWriteMode.Truncate && mode !== ResourceWriteMode.Append && mode !== ResourceWriteMode.Insert) {
 			throw ProtocolError.invalidParams(`Unsupported write mode: ${mode}`);
 		}
-		if (params.position !== undefined && params.position !== 0) {
-			throw ProtocolError.invalidParams("Positional writes are not supported");
+		const position = params.position ?? 0;
+		if (!Number.isSafeInteger(position) || position < 0) {
+			throw ProtocolError.invalidParams("Write position must be a non-negative integer");
+		}
+		if (params.ifMatch !== undefined && typeof params.ifMatch !== "string") {
+			throw ProtocolError.invalidParams("ifMatch must be a string");
 		}
 
 		try {
-			await mkdir(dirname(path), { recursive: true });
-			await writeFile(path, data, { flag: mode === ResourceWriteMode.Append ? "a" : "w" });
+			await this.#queueWrite(path, () => this.#writeLocked(path, params, data, mode, position));
 			return {};
 		} catch (error) {
 			throw translate(error, params.uri);
 		}
 	}
 
+	async #queueWrite(path: string, operation: () => Promise<void>): Promise<void> {
+		const previous = this.#writeTails.get(path) ?? Promise.resolve();
+		const current = previous.catch(() => undefined).then(operation);
+		this.#writeTails.set(path, current);
+		try {
+			await current;
+		} finally {
+			if (this.#writeTails.get(path) === current) this.#writeTails.delete(path);
+		}
+	}
+
+	async #writeLocked(
+		path: string,
+		params: ResourceWriteParams,
+		data: Buffer,
+		mode: ResourceWriteMode,
+		position: number,
+	): Promise<void> {
+		if (params.createOnly && params.ifMatch === undefined) {
+			await writeFile(path, data, { flag: "wx" });
+			return;
+		}
+
+		if (params.ifMatch !== undefined) {
+			let currentEtag: string | undefined;
+			try {
+				currentEtag = etagOf(await stat(path));
+			} catch (error) {
+				if (errorCodeOf(error) !== "ENOENT") throw error;
+			}
+			if (params.createOnly && currentEtag !== undefined) {
+				throw new ProtocolError(AhpErrorCodes.AlreadyExists, `Already exists: ${params.uri}`);
+			}
+			if (params.ifMatch !== currentEtag) {
+				throw new ProtocolError(AhpErrorCodes.Conflict, `ifMatch precondition failed: ${params.uri}`);
+			}
+		}
+
+		if (position === 0 && mode !== ResourceWriteMode.Insert) {
+			// Keep ordinary appends on O_APPEND; truncate remains a direct overwrite.
+			await writeFile(path, data, { flag: mode === ResourceWriteMode.Append ? "a" : "w" });
+			return;
+		}
+
+		let existing: Buffer;
+		try {
+			existing = await readFile(path);
+		} catch (error) {
+			if (errorCodeOf(error) !== "ENOENT") throw error;
+			existing = Buffer.alloc(0);
+		}
+		const offset =
+			mode === ResourceWriteMode.Append ? Math.max(0, existing.length - position) : Math.min(position, existing.length);
+		const updated =
+			mode === ResourceWriteMode.Truncate
+				? Buffer.concat([existing.subarray(0, offset), data])
+				: Buffer.concat([existing.subarray(0, offset), data, existing.subarray(offset)]);
+		await writeFile(path, updated, { flag: "w" });
+	}
+
 	async list(uri: string): Promise<ResourceListResult> {
 		const path = await this.#toPath(uri);
 		try {
 			const found = await readdir(path, { withFileTypes: true });
-			const entries: DirectoryEntry[] = found.map((entry) => ({
-				name: entry.name,
-				type: entry.isDirectory() ? "directory" : "file",
-			}));
+			const entries: DirectoryEntry[] = await Promise.all(
+				found.map(async (entry) => ({
+					name: entry.name,
+					type: (await this.#isDirectoryEntry(path, entry)) ? "directory" : "file",
+				})),
+			);
 			entries.sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === "directory" ? -1 : 1));
 			return { entries };
 		} catch (error) {
 			throw translate(error, uri);
+		}
+	}
+
+	async #isDirectoryEntry(parent: string, entry: Dirent): Promise<boolean> {
+		if (!entry.isSymbolicLink()) return entry.isDirectory();
+		const path = join(parent, entry.name);
+		try {
+			if (this.#roots.length > 0) await this.#assertInsideRoot(path, pathToFileURL(path).toString());
+			return (await stat(path)).isDirectory();
+		} catch {
+			// DirectoryEntry has no symlink kind; an unresolved or forbidden link is
+			// safest as a non-navigable file entry.
+			return false;
 		}
 	}
 
@@ -260,7 +320,7 @@ export class ResourceService {
 				: stats.isSymbolicLink()
 					? ResourceType.Symlink
 					: ResourceType.File;
-			const contentType = TEXT_EXTENSIONS.get(extensionOf(path));
+			const contentType = type === ResourceType.File ? contentTypeOf(path) : undefined;
 			return {
 				uri: pathToFileURL(realPath).toString(),
 				type,
@@ -268,9 +328,8 @@ export class ResourceService {
 				mtime: stats.mtime.toISOString(),
 				ctime: stats.ctime.toISOString(),
 				...(contentType ? { contentType } : {}),
-				// Cheap change-detection token: enough for optimistic concurrency,
-				// and stable as long as the file is untouched.
-				etag: `${stats.mtimeMs}-${stats.size}`,
+				// Opaque change token shared with resourceWrite's ifMatch check.
+				etag: etagOf(stats),
 			};
 		} catch (error) {
 			throw translate(error, params.uri);
