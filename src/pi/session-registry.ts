@@ -18,6 +18,7 @@ import { SessionManager } from "@earendil-works/pi-coding-agent";
 import {
 	ActionType,
 	type ChatState,
+	type Message,
 	MessageKind,
 	type ModelSelection,
 	PendingMessageKind,
@@ -70,6 +71,10 @@ export interface LiveSession {
 
 /** Creates the agent backend for a session. Absent in storage-only mode. */
 export type BackendFactory = (session: LiveSession) => Promise<PiBackend> | PiBackend;
+
+function userMessageRejectionReason(message: Message, originReason: string): string | undefined {
+	return messageRejectionReason(message) ?? (message.origin.kind === MessageKind.User ? undefined : originReason);
+}
 
 function unsupportedClientActionReason(action: StateAction): string | undefined {
 	switch (action.type) {
@@ -245,6 +250,7 @@ export class SessionRegistry {
 		}
 		const adopted: LiveSession = { ...session, turnAnchors: session.turnAnchors ?? new Map() };
 		this.#track(adopted);
+		this.#bumpActiveSessions();
 		return adopted;
 	}
 
@@ -320,6 +326,12 @@ export class SessionRegistry {
 		}
 		try {
 			const backend = await this.#options.createBackend(session);
+			// Disposal may win while an asynchronous backend is starting. Never
+			// attach a late backend to a session that no longer exists.
+			if (this.#sessions.get(session.uri) !== session) {
+				backend.dispose?.();
+				return;
+			}
 			session.driver = new ChatDriver({
 				host: this.#host,
 				sessionChannel: session.uri,
@@ -342,6 +354,7 @@ export class SessionRegistry {
 			// draft's selection is how a host answers that question.
 			session.driver.publishDefaultSelection();
 		} catch (error) {
+			if (this.#sessions.get(session.uri) !== session) return;
 			const message = error instanceof Error ? error.message : String(error);
 			this.#host.dispatchServerAction(session.uri, {
 				type: ActionType.SessionCreationFailed,
@@ -377,37 +390,57 @@ export class SessionRegistry {
 
 		const chat = this.#host.store.get(channel) as ChatState | undefined;
 		switch (action.type) {
-			case ActionType.ChatTurnStarted:
-				if (action.message.origin.kind !== MessageKind.User) {
-					return "A client can only start a turn with a user message";
+			case ActionType.SessionTitleChanged:
+				return typeof action.title === "string" ? undefined : "A session title must be a string";
+			case ActionType.ChatTurnStarted: {
+				if (typeof action.turnId !== "string" || typeof action.startedAt !== "string") {
+					return "A turn requires string turnId and startedAt fields";
 				}
+				const invalid = userMessageRejectionReason(
+					action.message,
+					"A client can only start a turn with a user message",
+				);
+				if (invalid) return invalid;
 				if (action.queuedMessageId !== undefined) {
 					return "Only the host can start a queued message";
 				}
-				return messageRejectionReason(action.message) ?? (chat?.activeTurn ? "A turn is already active" : undefined);
+				return chat?.activeTurn ? "A turn is already active" : undefined;
+			}
 			case ActionType.ChatTurnCancelled:
-				return chat?.activeTurn?.id === action.turnId ? undefined : "No matching active turn to cancel";
-			case ActionType.ChatPendingMessageSet:
-				if (action.message.origin.kind !== MessageKind.User) {
-					return "A client can only queue a user message";
+				if (typeof action.turnId !== "string" || typeof action.duration !== "number") {
+					return "Turn cancellation requires a turnId and duration";
 				}
-				return messageRejectionReason(action.message);
+				return chat?.activeTurn?.id === action.turnId ? undefined : "No matching active turn to cancel";
+			case ActionType.ChatPendingMessageSet: {
+				if (
+					typeof action.id !== "string" ||
+					(action.kind !== PendingMessageKind.Steering && action.kind !== PendingMessageKind.Queued)
+				) {
+					return "A pending message requires an id and supported kind";
+				}
+				return userMessageRejectionReason(action.message, "A client can only queue a user message");
+			}
 			case ActionType.ChatPendingMessageRemoved:
+				if (typeof action.id !== "string") return "A pending message removal requires an id";
 				if (action.kind === PendingMessageKind.Steering) {
 					return "A steering message cannot be withdrawn after pi has queued it";
 				}
+				if (action.kind !== PendingMessageKind.Queued) return "Unsupported pending message kind";
 				return chat?.queuedMessages?.some((message) => message.id === action.id)
 					? undefined
 					: "No matching queued message to remove";
-			case ActionType.ChatDraftChanged:
-				if (!action.draft) {
-					return undefined;
-				}
-				if (action.draft.origin.kind !== MessageKind.User) {
-					return "A client can only draft a user message";
-				}
-				return messageRejectionReason(action.draft);
+			case ActionType.ChatQueuedMessagesReordered:
+				return Array.isArray(action.order) && action.order.every((id) => typeof id === "string")
+					? undefined
+					: "Queued message order must be an array of ids";
+			case ActionType.ChatDraftChanged: {
+				if (action.draft === undefined) return undefined;
+				return userMessageRejectionReason(action.draft, "A client can only draft a user message");
+			}
 			case ActionType.ChatTruncated: {
+				if (action.turnId !== undefined && typeof action.turnId !== "string") {
+					return "A truncation turnId must be a string";
+				}
 				// Accepting an impossible truncation would shorten the client's view
 				// while pi kept using context the user believes is gone.
 				const session = this.#byChat.get(channel);
@@ -443,13 +476,6 @@ export class SessionRegistry {
 		}
 		if (action.type === ActionType.ChatTruncated) {
 			await this.#truncate(session, action.turnId);
-			return;
-		}
-		if (action.type === ActionType.SessionTitleChanged) {
-			// A rename addressed to the chat renames that chat, not the session.
-			// With one chat per session the two are usually the same edit, but the
-			// client decides which it meant by choosing the channel.
-			this.#renameChat(session, action.title);
 			return;
 		}
 		if (!session.driver) {

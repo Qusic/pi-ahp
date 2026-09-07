@@ -10,6 +10,7 @@
 
 import {
 	type ActionEnvelope,
+	type CommandMap,
 	type CompletionsParams,
 	type CompletionsResult,
 	type CreateResourceWatchParams,
@@ -59,10 +60,85 @@ import {
 	successResponse,
 } from "../protocol/jsonrpc.ts";
 import { negotiateProtocolVersion } from "../protocol/version.ts";
-import { channelKind, ROOT_CHANNEL } from "./channels.ts";
+import { actionBelongsToChannel, type ChannelKind, channelKind, ROOT_CHANNEL } from "./channels.ts";
 import { ClientConnection, type Transport } from "./connection.ts";
 import { Sequencer } from "./sequencer.ts";
 import { StateStore } from "./state-store.ts";
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isStringArray(value: unknown): value is string[] {
+	return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+
+/** Minimum envelope shape; capability handlers validate accepted payloads. */
+function isActionLike(value: unknown): value is StateAction {
+	return isRecord(value) && typeof value.type === "string";
+}
+
+function isImplementation(value: unknown): value is NonNullable<InitializeParams["clientInfo"]> {
+	return (
+		isRecord(value) &&
+		typeof value.name === "string" &&
+		(value.version === undefined || typeof value.version === "string") &&
+		(value.title === undefined || typeof value.title === "string")
+	);
+}
+
+/** Commands whose routing channel is always the singleton root channel. */
+const ROOT_COMMANDS = new Set<keyof CommandMap>([
+	"initialize",
+	"ping",
+	"reconnect",
+	"listSessions",
+	"resourceRead",
+	"resourceWrite",
+	"resourceList",
+	"resourceCopy",
+	"resourceDelete",
+	"resourceMove",
+	"resourceResolve",
+	"resourceMkdir",
+	"resourceRequest",
+	"createResourceWatch",
+	"authenticate",
+	"resolveSessionConfig",
+	"sessionConfigCompletions",
+	"listAutomationTriggerDefinitions",
+]);
+
+function validateInitialize(params: InitializeParams | undefined): string {
+	if (typeof params?.clientId !== "string" || params.clientId.length === 0) {
+		throw ProtocolError.invalidParams("initialize requires a clientId");
+	}
+	if (params.initialSubscriptions !== undefined && !isStringArray(params.initialSubscriptions)) {
+		throw ProtocolError.invalidParams("initialSubscriptions must be an array of URIs");
+	}
+	if (params.clientInfo !== undefined && !isImplementation(params.clientInfo)) {
+		throw ProtocolError.invalidParams("clientInfo must be an implementation descriptor");
+	}
+	if (params.locale !== undefined && typeof params.locale !== "string") {
+		throw ProtocolError.invalidParams("locale must be a string");
+	}
+	if (params.capabilities !== undefined && !isRecord(params.capabilities)) {
+		throw ProtocolError.invalidParams("capabilities must be an object");
+	}
+	return negotiateProtocolVersion(params.protocolVersions);
+}
+
+function validateReconnect(params: ReconnectParams | undefined): asserts params is ReconnectParams {
+	if (typeof params?.clientId !== "string" || params.clientId.length === 0) {
+		throw ProtocolError.invalidParams("reconnect requires a clientId");
+	}
+	if (!Number.isSafeInteger(params.lastSeenServerSeq) || params.lastSeenServerSeq < 0) {
+		throw ProtocolError.invalidParams("reconnect requires a non-negative integer lastSeenServerSeq");
+	}
+	if (!isStringArray(params.subscriptions)) {
+		throw ProtocolError.invalidParams("reconnect requires a subscriptions array of URIs");
+	}
+}
 
 /**
  * The optional halves of the protocol a host chooses to serve.
@@ -293,12 +369,26 @@ export class AhpHost {
 	}
 
 	async #dispatchRequest(connection: ClientConnection, request: JsonRpcRequest): Promise<unknown> {
-		if (request.method === "reconnect") {
+		if (ROOT_COMMANDS.has(request.method as keyof CommandMap) && readChannel(request.params) !== ROOT_CHANNEL) {
+			throw ProtocolError.invalidParams(`${request.method} requires channel ${ROOT_CHANNEL}`);
+		}
+		const handshake = request.method === "initialize" || request.method === "reconnect";
+		if (handshake && connection.clientId) {
+			throw new ProtocolError(JsonRpcErrorCodes.InvalidRequest, "Connection is already initialized");
+		}
+		if (!handshake && request.method !== "ping" && !connection.clientId) {
+			throw new ProtocolError(JsonRpcErrorCodes.InvalidRequest, "initialize or reconnect must be the first request");
+		}
+
+		let protocolVersion = "";
+		if (request.method === "initialize") {
+			const params = request.params as InitializeParams | undefined;
+			protocolVersion = validateInitialize(params);
+			connection.workarounds.identify(params?.clientInfo);
+		} else if (request.method === "reconnect") {
 			const params = request.params as ReconnectParams | undefined;
-			if (typeof params?.clientId === "string") {
-				connection.workarounds.identify(this.#clientInfoById.get(params.clientId));
-				connection.workarounds.identifyReconnect(params.subscriptions);
-			}
+			validateReconnect(params);
+			connection.workarounds.identify(this.#clientInfoById.get(params.clientId));
 		}
 		connection.workarounds.applyToIncoming(request);
 		switch (request.method) {
@@ -307,7 +397,7 @@ export class AhpHost {
 			case "ping":
 				return null;
 			case "initialize":
-				return await this.#initialize(connection, request.params as InitializeParams);
+				return this.#initialize(connection, request.params as InitializeParams, protocolVersion);
 			case "reconnect":
 				return this.#reconnect(connection, request.params as ReconnectParams);
 			case "subscribe":
@@ -334,6 +424,7 @@ export class AhpHost {
 				if (!channel) {
 					throw ProtocolError.invalidParams("disposeSession requires a channel");
 				}
+				this.#assertCompatibleChannel(channel, "session", "disposeSession");
 				await this.#capabilities.sessions.dispose(channel);
 				return null;
 			}
@@ -352,6 +443,7 @@ export class AhpHost {
 				if (!channel) {
 					throw ProtocolError.invalidParams("disposeTerminal requires a channel");
 				}
+				this.#assertCompatibleChannel(channel, "terminal", "disposeTerminal");
 				await this.#capabilities.terminals.dispose(channel);
 				return null;
 			}
@@ -392,6 +484,7 @@ export class AhpHost {
 				if (!this.#capabilities.turnPaging) {
 					return {} satisfies FetchTurnsResult;
 				}
+				this.#assertChatChannel(request.params, "fetchTurns");
 				return this.#capabilities.turnPaging.fetchTurns(request.params as FetchTurnsParams);
 			}
 			case "completions": {
@@ -400,6 +493,7 @@ export class AhpHost {
 				if (!this.#capabilities.completions) {
 					return { items: [] } satisfies CompletionsResult;
 				}
+				this.#assertChatChannel(request.params, "completions");
 				return this.#capabilities.completions.complete(request.params as CompletionsParams);
 			}
 			case "createResourceWatch": {
@@ -419,6 +513,21 @@ export class AhpHost {
 		}
 	}
 
+	#assertCompatibleChannel(channel: URI, expected: ChannelKind, method: string): void {
+		const actual = this.#store.kindOf(channel);
+		if (actual !== undefined && actual !== expected) {
+			throw ProtocolError.invalidParams(`${method} cannot target a ${actual} channel`);
+		}
+	}
+
+	#assertChatChannel(params: unknown, method: string): void {
+		const channel = readChannel(params);
+		if (!channel) throw ProtocolError.invalidParams(`${method} requires a channel`);
+		if ((this.#store.kindOf(channel) ?? channelKind(channel)) !== "chat") {
+			throw ProtocolError.invalidParams(`${method} requires a chat channel`);
+		}
+	}
+
 	#requireResources(): ResourceHandler {
 		if (!this.#capabilities.resources) {
 			throw ProtocolError.methodNotFound("resource*");
@@ -427,6 +536,10 @@ export class AhpHost {
 	}
 
 	#handleNotification(connection: ClientConnection, message: JsonRpcNotification): void {
+		if (!connection.clientId) {
+			this.#log(`Ignoring ${message.method} before initialize or reconnect`);
+			return;
+		}
 		connection.workarounds.applyToIncoming(message);
 		switch (message.method) {
 			case "unsubscribe": {
@@ -447,17 +560,16 @@ export class AhpHost {
 
 	// ── Handshake ───────────────────────────────────────────────────────────
 
-	async #initialize(connection: ClientConnection, params: InitializeParams): Promise<InitializeResult> {
-		if (typeof params?.clientId !== "string" || params.clientId.length === 0) {
-			throw ProtocolError.invalidParams("initialize requires a clientId");
-		}
-		const protocolVersion = negotiateProtocolVersion(params.protocolVersions);
-
+	async #initialize(
+		connection: ClientConnection,
+		params: InitializeParams,
+		protocolVersion: string,
+	): Promise<InitializeResult> {
 		this.#bindClient(connection, params.clientId);
 
-		const clientInfo = params.clientInfo ?? this.#clientInfoById.get(params.clientId);
-		this.#clientInfoById.set(params.clientId, clientInfo);
-		connection.workarounds.identify(clientInfo);
+		const identifiedClient = params.clientInfo ?? this.#clientInfoById.get(params.clientId);
+		this.#clientInfoById.set(params.clientId, identifiedClient);
+		connection.workarounds.identify(identifiedClient);
 
 		const snapshots: Snapshot[] = [];
 		for (const uri of params.initialSubscriptions ?? []) {
@@ -485,9 +597,6 @@ export class AhpHost {
 	}
 
 	async #reconnect(connection: ClientConnection, params: ReconnectParams): Promise<ReconnectResult> {
-		if (typeof params?.clientId !== "string" || params.clientId.length === 0) {
-			throw ProtocolError.invalidParams("reconnect requires a clientId");
-		}
 		const knownClient = this.#clientInfoById.has(params.clientId);
 		if (!knownClient) {
 			this.#clientInfoById.set(params.clientId, undefined);
@@ -575,8 +684,8 @@ export class AhpHost {
 
 	#dispatchClientAction(connection: ClientConnection, params: DispatchActionParams): void {
 		const channel = params?.channel;
-		const action = params?.action;
-		if (typeof channel !== "string" || !action) {
+		const action = params?.action as unknown;
+		if (typeof channel !== "string" || typeof params?.clientSeq !== "number" || !isActionLike(action)) {
 			this.#log("Ignoring malformed dispatchAction");
 			return;
 		}
@@ -589,6 +698,11 @@ export class AhpHost {
 		const origin = { clientId: connection.clientId, clientSeq: params.clientSeq };
 		if (!isClientDispatchable(action as never)) {
 			this.#rejectAction(channel, action, origin, `Action is not client-dispatchable: ${action.type}`);
+			return;
+		}
+		const kind = this.#store.kindOf(channel);
+		if (kind && !actionBelongsToChannel(action.type, kind)) {
+			this.#rejectAction(channel, action, origin, `${action.type} does not belong on a ${kind} channel`);
 			return;
 		}
 		for (const validator of this.#actionValidators) {

@@ -21,6 +21,7 @@ import { basename, join, relative, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 import {
 	type CompletionItem,
+	CompletionItemKind,
 	type CompletionsParams,
 	type CompletionsResult,
 	MessageAttachmentKind,
@@ -109,6 +110,7 @@ export class CompletionService {
 	 * typing something odd.
 	 */
 	async complete(params: CompletionsParams): Promise<CompletionsResult> {
+		if (params.kind !== CompletionItemKind.UserMessage) return { items: [] };
 		const workingDirectory = this.#options.workingDirectoryFor(params.channel);
 		if (!workingDirectory) {
 			return { items: [] };

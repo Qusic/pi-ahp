@@ -20,6 +20,11 @@ export const RESOURCE_WATCH_SCHEME = "ahp-resource-watch:";
 
 export type ChannelKind = "root" | "session" | "chat" | "terminal" | "changeset" | "resourceWatch";
 
+/** Whether an action namespace belongs to the reducer behind a channel. */
+export function actionBelongsToChannel(type: unknown, kind: ChannelKind): boolean {
+	return typeof type === "string" && type.startsWith(`${kind}/`);
+}
+
 function isRootChannel(uri: URI): boolean {
 	return uri === ROOT_CHANNEL;
 }

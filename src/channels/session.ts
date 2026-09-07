@@ -18,6 +18,7 @@ import {
 	type SessionSummary,
 	type URI,
 } from "@microsoft/agent-host-protocol";
+import { pathToFileUri } from "../core/uri.ts";
 
 export function initialSessionState(provider: string, title: string, workingDirectory: string): SessionState {
 	return {
@@ -25,7 +26,7 @@ export function initialSessionState(provider: string, title: string, workingDire
 		title,
 		status: SessionStatus.Idle,
 		lifecycle: SessionLifecycle.Creating,
-		workingDirectories: [`file://${workingDirectory}`],
+		workingDirectories: [pathToFileUri(workingDirectory)],
 		activeClients: [],
 		chats: [],
 	};

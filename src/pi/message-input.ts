@@ -9,6 +9,19 @@ import {
 
 type PreparedMessage = { readonly text: string } | { readonly rejectionReason: string };
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null;
+}
+
+function isNonNegativeInteger(value: unknown): value is number {
+	return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
+}
+
+function isTextRange(value: unknown): value is TextRange {
+	if (!isRecord(value) || !isRecord(value.start) || !isRecord(value.end)) return false;
+	return [value.start.line, value.start.character, value.end.line, value.end.character].every(isNonNegativeInteger);
+}
+
 function decodeBase64(data: unknown): Buffer | undefined {
 	if (typeof data !== "string" || !/^[A-Za-z0-9+/]*={0,2}$/u.test(data) || data.length % 4 === 1) {
 		return undefined;
@@ -27,6 +40,9 @@ function rangeText(range: TextRange): string {
 }
 
 function embeddedText(attachment: MessageEmbeddedResourceAttachment): PreparedMessage {
+	if (typeof attachment.contentType !== "string") {
+		return { rejectionReason: `Embedded resource ${attachment.label} requires a content type` };
+	}
 	// MIME is advisory; successful UTF-8 decoding is the only distinction this
 	// text-only adapter needs.
 	const bytes = decodeBase64(attachment.data);
@@ -40,18 +56,18 @@ function embeddedText(attachment: MessageEmbeddedResourceAttachment): PreparedMe
 	} catch {
 		return { rejectionReason: `Embedded resource ${attachment.label} is not valid UTF-8` };
 	}
-	const range = attachment.selection?.range;
-	if (!range) {
+	const selected = attachment.selection?.range;
+	if (!selected) {
 		return { text: decoded };
 	}
-	return { text: `[selection ${rangeText(range)}]\n${decoded}` };
+	return { text: `[selection ${rangeText(selected)}]\n${decoded}` };
 }
 
 function resourceText(attachment: MessageResourceAttachment): PreparedMessage {
 	if (typeof attachment.uri !== "string") {
 		return { rejectionReason: "A resource attachment requires a URI" };
 	}
-	const range = attachment.selection?.range;
+	const selected = attachment.selection?.range;
 	let reference = attachment.uri;
 	if (/^file:/iu.test(reference)) {
 		try {
@@ -60,16 +76,44 @@ function resourceText(attachment: MessageResourceAttachment): PreparedMessage {
 			// Preserve a remote or malformed file URI rather than guessing a path.
 		}
 	}
-	return { text: `${reference}${range ? `:${rangeText(range)}` : ""}` };
+	return { text: `${reference}${selected ? `:${rangeText(selected)}` : ""}` };
 }
 
-function prepareMessage(message: Message): PreparedMessage {
-	if (message.agent) {
+function prepareMessage(value: unknown): PreparedMessage {
+	if (
+		!isRecord(value) ||
+		typeof value.text !== "string" ||
+		!isRecord(value.origin) ||
+		typeof value.origin.kind !== "string"
+	) {
+		return { rejectionReason: "A message requires text and an origin" };
+	}
+	if (value.attachments !== undefined && !Array.isArray(value.attachments)) {
+		return { rejectionReason: "Message attachments must be an array" };
+	}
+	if (value.model !== undefined && (!isRecord(value.model) || typeof value.model.id !== "string")) {
+		return { rejectionReason: "A message model requires an id" };
+	}
+	if (value.agent !== undefined) {
 		return { rejectionReason: "This host does not support custom agents" };
 	}
+	const message = value as unknown as Message;
 
 	const representations: string[] = [];
 	for (const attachment of message.attachments ?? []) {
+		if (!isRecord(attachment) || typeof attachment.type !== "string" || typeof attachment.label !== "string") {
+			return { rejectionReason: "Every message attachment requires a type and label" };
+		}
+		if (attachment.range !== undefined && !isTextRange(attachment.range)) {
+			return { rejectionReason: `Attachment ${attachment.label} has an invalid text range` };
+		}
+		if (
+			"selection" in attachment &&
+			attachment.selection !== undefined &&
+			(!isRecord(attachment.selection) || !isTextRange(attachment.selection.range))
+		) {
+			return { rejectionReason: `Attachment ${attachment.label} has an invalid text selection` };
+		}
 		switch (attachment.type) {
 			case MessageAttachmentKind.Resource: {
 				const resource = resourceText(attachment);
@@ -103,7 +147,7 @@ function prepareMessage(message: Message): PreparedMessage {
 	return { text: [message.text, ...representations].filter(Boolean).join("\n\n") };
 }
 
-export function messageRejectionReason(message: Message): string | undefined {
+export function messageRejectionReason(message: unknown): string | undefined {
 	const prepared = prepareMessage(message);
 	return "rejectionReason" in prepared ? prepared.rejectionReason : undefined;
 }

@@ -47,7 +47,9 @@ describe("model mapping", () => {
 		assert.equal(property.type, "string");
 		assert.equal(property.default, "medium");
 		assert.equal(info.provider, PI_PROVIDER);
-		assert.equal(info.supportsVision, true);
+		// Do not advertise the underlying model's vision support until this host
+		// can pass AHP image attachments through to pi.
+		assert.equal(info.supportsVision, undefined);
 		assert.equal(info.maxContextWindow, 200_000);
 	});
 
@@ -64,6 +66,8 @@ describe("model mapping", () => {
 		// No capabilities declared: one chat, one working directory. Their
 		// absence is what tells a client not to attempt those calls.
 		assert.equal(agent.capabilities, undefined);
+		assert.equal(agent.protectedResources, undefined);
+		assert.equal(agent.customizations, undefined);
 		assert.equal(checkSchema("state", "AgentInfo", agent), undefined);
 	});
 });

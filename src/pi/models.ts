@@ -69,7 +69,6 @@ export function toSessionModelInfo(model: Model<never>): SessionModelInfo {
 		name: model.name,
 		maxContextWindow: model.contextWindow,
 		maxOutputTokens: model.maxTokens,
-		supportsVision: model.input.includes("image"),
 		...(configSchema ? { configSchema } : {}),
 		// `_meta` is the protocol's documented place for provider-specific
 		// extras; clients may surface pricing but must not depend on it.
@@ -91,6 +90,8 @@ export function toSessionModelInfo(model: Model<never>): SessionModelInfo {
  * No `capabilities`: this host serves one chat per session and one working
  * directory, so neither `multipleChats` nor `multipleWorkingDirectories` is
  * declared. Their absence is what tells a client not to attempt those calls.
+ * Models likewise omit `supportsVision` until the AHP attachment adapter can
+ * actually deliver image bytes to pi; the underlying model alone is not enough.
  */
 export function buildAgentInfo(models: readonly Model<never>[]): AgentInfo {
 	return {

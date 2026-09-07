@@ -328,29 +328,39 @@ describe("resource watch", () => {
 	it("limits non-recursive watches to direct children", async () => {
 		const nested = join(fixture.workspace, "nested");
 		mkdirSync(nested);
-		const shallow = await fixture.client.createResourceWatch({ uri: uri(fixture.workspace) });
-		const deep = await fixture.client.createResourceWatch({ uri: uri(fixture.workspace), recursive: true });
-		const { subscription: shallowEvents } = await fixture.client.subscribe(shallow.channel);
-		const { subscription: deepEvents } = await fixture.client.subscribe(deep.channel);
+		const { channel } = await fixture.client.createResourceWatch({ uri: uri(fixture.workspace) });
+		const { subscription } = await fixture.client.subscribe(channel);
 
 		const nestedTarget = join(nested, "deep.txt");
 		writeFileSync(nestedTarget, "deep");
-		await expectChange(deepEvents, nestedTarget, ResourceChangeType.Added);
 		await settle(EVENT_SETTLE_MS);
 
 		const directTarget = join(fixture.workspace, "direct.txt");
-		writeFileSync(directTarget, "direct");
-		const shallowChanges = await collectChanges(shallowEvents, (items) =>
+		const collecting = collectChanges(subscription, (items) =>
 			items.some((change) => change.uri === uri(directTarget)),
 		);
+		writeFileSync(directTarget, "direct");
+		const changes = await collecting;
 		assert.equal(
-			shallowChanges.some((change) => change.uri === uri(nestedTarget)),
+			changes.some((change) => change.uri === uri(nestedTarget)),
 			false,
 		);
 		assert.deepEqual(
-			shallowChanges.find((change) => change.uri === uri(directTarget)),
+			changes.find((change) => change.uri === uri(directTarget)),
 			{ uri: uri(directTarget), type: ResourceChangeType.Added },
 		);
+	});
+
+	it("reports grandchildren for recursive watches", async () => {
+		const nested = join(fixture.workspace, "nested");
+		mkdirSync(nested);
+		const { channel } = await fixture.client.createResourceWatch({ uri: uri(fixture.workspace), recursive: true });
+		const { subscription } = await fixture.client.subscribe(channel);
+		const nestedTarget = join(nested, "deep.txt");
+
+		const observing = expectChange(subscription, nestedTarget, ResourceChangeType.Added);
+		writeFileSync(nestedTarget, "deep");
+		await observing;
 	});
 
 	it("honours exclude globs", async () => {

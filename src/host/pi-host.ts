@@ -19,7 +19,7 @@ import { ResourceWatchService } from "../pi/resource-watch.ts";
 import { PiSessionCatalogue } from "../pi/session-catalogue.ts";
 import { SessionConfigService } from "../pi/session-config.ts";
 import { SessionHydrator } from "../pi/session-hydrator.ts";
-import { type BackendFactory, type CreateSessionRequest, SessionRegistry } from "../pi/session-registry.ts";
+import { type BackendFactory, SessionRegistry } from "../pi/session-registry.ts";
 import { TerminalService } from "./terminal-service.ts";
 
 export interface PiHostOptions extends HostOptions {
@@ -158,10 +158,9 @@ export async function createPiHost(options: PiHostOptions = {}): Promise<PiHost>
 		},
 		sessions: {
 			create(params: CreateSessionParams): void {
-				// `CreateSessionParams` carries fields this milestone ignores
-				// (config, activeClient, progressToken); narrowing here keeps the registry
-				// honest about what it actually supports.
-				sessions.create(params as CreateSessionRequest);
+				// The registry's narrower structural type documents the optional fields
+				// this milestone ignores: config, activeClient, and progressToken.
+				sessions.create(params);
 			},
 			dispose(channel: URI): Promise<void> {
 				return sessions.dispose(channel);

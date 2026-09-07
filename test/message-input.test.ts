@@ -120,6 +120,31 @@ describe("pi message input", () => {
 		}
 	});
 
+	it("rejects malformed message and selection shapes without throwing", () => {
+		const malformed: Array<[unknown, RegExp]> = [
+			[null, /requires text and an origin/],
+			[{ text: 42, origin: { kind: MessageKind.User } }, /requires text and an origin/],
+			[{ text: "x", origin: { kind: MessageKind.User }, attachments: {} }, /must be an array/],
+			[message([null as never]), /requires a type and label/],
+			[
+				message([
+					{
+						type: MessageAttachmentKind.Resource,
+						label: "bad range",
+						uri: "file:///bad",
+						selection: { range: { start: { line: -1, character: 0 }, end: { line: 0, character: 0 } } },
+					},
+				]),
+				/invalid text selection/,
+			],
+			[message([embedded("", { contentType: undefined as never })]), /requires a content type/],
+		];
+
+		for (const [input, reason] of malformed) {
+			assert.match(messageRejectionReason(input) ?? "", reason);
+		}
+	});
+
 	it("rejects annotations and chat attachments", () => {
 		const attachments: MessageAttachment[] = [
 			{ type: MessageAttachmentKind.Annotations, label: "diagnostics", resource: "ahp-annotations:/fixture" },

@@ -12,14 +12,18 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before, describe, it } from "node:test";
 import {
+	type ActionEnvelope,
 	ActionType,
 	type ChatState,
+	JsonRpcErrorCodes,
 	SessionLifecycle,
 	type SessionState,
 	SUPPORTED_PROTOCOL_VERSIONS,
 } from "@microsoft/agent-host-protocol";
 import { type AhpClient, RpcError, type Subscription } from "@microsoft/agent-host-protocol/client";
 import { chatUri, ROOT_CHANNEL, sessionUri } from "../src/core/channels.ts";
+import { pathToFileUri } from "../src/core/uri.ts";
+import type { PiBackend } from "../src/pi/chat-driver.ts";
 import { PI_PROVIDER } from "../src/pi/provider.ts";
 import { type Harness, nextClientId, startHarness } from "./harness.ts";
 import { checkSchema } from "./support/schema.ts";
@@ -144,13 +148,14 @@ describe("session lifecycle", () => {
 
 	it("honours a client-supplied working directory", async () => {
 		const client = await initialized();
-		const other = mkdtempSync(join(tmpdir(), "pi-ahp-cwd-"));
+		const other = mkdtempSync(join(tmpdir(), "pi ahp cwd-"));
 		try {
 			const uri = sessionUri(randomUUID());
-			await client.request("createSession", { channel: uri, workingDirectories: [`file://${other}`] } as never);
+			const workingDirectory = pathToFileUri(other);
+			await client.request("createSession", { channel: uri, workingDirectories: [workingDirectory] } as never);
 
 			const state = harness.host.store.get(uri) as SessionState;
-			assert.deepEqual(state.workingDirectories, [`file://${other}`]);
+			assert.deepEqual(state.workingDirectories, [workingDirectory]);
 		} finally {
 			rmSync(other, { recursive: true, force: true });
 		}
@@ -181,6 +186,51 @@ describe("session lifecycle", () => {
 		assert.equal(harness.sessions?.get(uri), undefined);
 	});
 
+	it("disposes a backend that finishes starting after its session was removed", async () => {
+		let finishStart!: (backend: PiBackend) => void;
+		const starting = new Promise<PiBackend>((resolve) => {
+			finishStart = resolve;
+		});
+		let backendDisposals = 0;
+		const isolated = await startHarness({
+			sessions: true,
+			workingDirectory: workspace,
+			createBackend: () => starting,
+		});
+		try {
+			const client = await isolated.connect();
+			await client.initialize({ clientId: nextClientId(), protocolVersions: SUPPORTED_PROTOCOL_VERSIONS });
+			const uri = sessionUri(randomUUID());
+			await client.request("createSession", { channel: uri } as never);
+			await client.request("disposeSession", { channel: uri } as never);
+
+			finishStart({
+				subscribe: () => () => undefined,
+				prompt: async () => undefined,
+				steer: async () => undefined,
+				abort: async () => undefined,
+				dispose: () => {
+					backendDisposals += 1;
+				},
+			});
+			await new Promise<void>((resolve) => setImmediate(resolve));
+
+			assert.equal(backendDisposals, 1);
+			assert.equal(isolated.host.store.has(uri), false);
+		} finally {
+			await isolated.dispose();
+		}
+	});
+
+	it("does not let session disposal target another channel kind", async () => {
+		const client = await initialized();
+		await assert.rejects(
+			client.request("disposeSession", { channel: ROOT_CHANNEL } as never),
+			(error: unknown) => error instanceof RpcError && error.code === JsonRpcErrorCodes.InvalidParams,
+		);
+		assert.equal(harness.host.store.has(ROOT_CHANNEL), true);
+	});
+
 	it("rejects disposing a session that does not exist", async () => {
 		const client = await initialized();
 		const error = await client.request("disposeSession", { channel: sessionUri("nope") } as never).then(
@@ -206,10 +256,36 @@ describe("session lifecycle", () => {
 		assert.equal((harness.host.store.get(uri) as SessionState).title, "Refactor auth");
 	});
 
+	it("applies VS Code's chat-addressed rename to the owning session", async () => {
+		const client = await harness.connect();
+		await client.request("initialize", {
+			channel: ROOT_CHANNEL,
+			clientId: nextClientId(),
+			protocolVersions: SUPPORTED_PROTOCOL_VERSIONS,
+			clientInfo: { name: "vscode-editor-window" },
+		} as never);
+		const id = randomUUID();
+		const clientSession = `pi:/${id}`;
+		const clientChat = `ahp-chat://default/${Buffer.from(clientSession).toString("base64url")}`;
+		await client.request("createSession", { channel: clientSession } as never);
+		await client.subscribe(clientSession);
+		const events = client.attachSubscription(clientSession);
+
+		client.dispatch(clientChat, { type: ActionType.SessionTitleChanged, title: "Renamed from VS Code" });
+		const event = await nextEvent(events, (candidate) => candidate.type === "action");
+		const envelope = event.params as ActionEnvelope;
+
+		assert.equal(envelope.channel, clientSession);
+		assert.deepEqual(envelope.action, { type: ActionType.SessionTitleChanged, title: "Renamed from VS Code" });
+		assert.equal(envelope.rejectionReason, undefined);
+		assert.equal((harness.host.store.get(sessionUri(id)) as SessionState).title, "Renamed from VS Code");
+	});
+
 	it("declines VS Code's active client without blocking session creation", async () => {
 		const clientId = nextClientId();
 		const client = await harness.connect();
 		await client.request("initialize", {
+			channel: ROOT_CHANNEL,
 			clientId,
 			protocolVersions: SUPPORTED_PROTOCOL_VERSIONS,
 			clientInfo: { name: "vscode-editor-window" },

@@ -153,6 +153,34 @@ describe("pi client-action policy", () => {
 		assert.deepEqual(actual, expected);
 	});
 
+	it("rejects actions addressed to the wrong channel kind", async () => {
+		const { session, chat } = await createChannels();
+		for (const testCase of [
+			{
+				channel: session,
+				action: { type: ActionType.ChatDraftChanged, draft: userMessage("wrong channel") },
+				reason: /does not belong on a session channel/,
+			},
+			{
+				channel: chat,
+				action: { type: ActionType.SessionTitleChanged, title: "wrong channel" },
+				reason: /does not belong on a chat channel/,
+			},
+			{
+				channel: chat,
+				action: { type: ActionType.TerminalCleared },
+				reason: /does not belong on a chat channel/,
+			},
+			{
+				channel: session,
+				action: { type: ActionType.RootConfigChanged, config: {} },
+				reason: /does not belong on a session channel/,
+			},
+		] satisfies RejectionCase[]) {
+			await expectRejected(testCase.channel, testCase.action, testCase.reason);
+		}
+	});
+
 	it("rejects capabilities pi does not implement", async () => {
 		const { session, chat } = await createChannels();
 		const cases: RejectionCase[] = [
@@ -207,6 +235,35 @@ describe("pi client-action policy", () => {
 			]),
 		];
 
+		for (const testCase of cases) {
+			await expectRejected(testCase.channel, testCase.action, testCase.reason);
+		}
+	});
+
+	it("rejects malformed supported actions without mutating state", async () => {
+		const { session, chat } = await createChannels();
+		const cases: RejectionCase[] = [
+			{
+				channel: session,
+				action: { type: ActionType.SessionTitleChanged, title: 42 } as never,
+				reason: /title must be a string/,
+			},
+			{
+				channel: chat,
+				action: {
+					type: ActionType.ChatTurnStarted,
+					turnId: "malformed",
+					startedAt: new Date().toISOString(),
+					message: { text: 42, origin: { kind: MessageKind.User } },
+				} as never,
+				reason: /requires text and an origin/,
+			},
+			{
+				channel: chat,
+				action: { type: ActionType.ChatQueuedMessagesReordered, order: [42] } as never,
+				reason: /order must be an array of ids/,
+			},
+		];
 		for (const testCase of cases) {
 			await expectRejected(testCase.channel, testCase.action, testCase.reason);
 		}

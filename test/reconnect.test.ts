@@ -134,7 +134,9 @@ describe("reconnect", () => {
 			bumpActiveSessions(harness, i);
 		}
 
-		const result = (await client.reconnect({
+		await client.shutdown();
+		const resumed = await harness.connect();
+		const result = (await resumed.reconnect({
 			clientId: `${CLIENT_ID}-gap`,
 			lastSeenServerSeq: staleSeq,
 			subscriptions: [ROOT_CHANNEL],
@@ -155,7 +157,9 @@ describe("reconnect", () => {
 		});
 
 		const disposed = sessionUri("already-gone");
-		const result = (await client.reconnect({
+		await client.shutdown();
+		const resumed = await harness.connect();
+		const result = (await resumed.reconnect({
 			clientId: `${CLIENT_ID}-missing`,
 			lastSeenServerSeq: init.serverSeq,
 			subscriptions: [ROOT_CHANNEL, disposed],
@@ -173,7 +177,9 @@ describe("reconnect", () => {
 			initialSubscriptions: [ROOT_CHANNEL],
 		});
 
-		const result = (await client.reconnect({
+		await client.shutdown();
+		const resumed = await harness.connect();
+		const result = (await resumed.reconnect({
 			clientId: `${CLIENT_ID}-current`,
 			lastSeenServerSeq: harness.host.serverSeq,
 			subscriptions: [ROOT_CHANNEL],
@@ -207,6 +213,7 @@ describe("reconnect", () => {
 
 		const first = await harness.connect();
 		await first.request("initialize", {
+			channel: ROOT_CHANNEL,
 			clientId,
 			protocolVersions: SUPPORTED_PROTOCOL_VERSIONS,
 			clientInfo: { name: "vscode-editor-window" },
@@ -218,6 +225,36 @@ describe("reconnect", () => {
 		assert.equal((await replacement.subscribe(clientUri)).result.snapshot?.resource, clientUri);
 	});
 
+	it("infers the provider URI dialect without clientInfo", async () => {
+		const clientId = `${CLIENT_ID}-provider-alias`;
+		const id = "provider-alias-reconnect";
+		const canonical = sessionUri(id);
+		const alias = `pi:/${id}`;
+		harness.host.store.create(canonical, initialSessionState("pi", "Reconnect", "/tmp"), "session");
+
+		const first = await harness.connect();
+		await first.initialize({ clientId, protocolVersions: SUPPORTED_PROTOCOL_VERSIONS });
+		assert.equal((await first.subscribe(alias)).result.snapshot?.resource, alias);
+		const staleSeq = harness.host.serverSeq;
+		await first.shutdown();
+		for (let i = 0; i < 6; i++) bumpActiveSessions(harness, i);
+
+		const resumed = await harness.connect();
+		const result = (await resumed.reconnect({
+			clientId,
+			lastSeenServerSeq: staleSeq,
+			subscriptions: [alias],
+		})) as ReconnectSnapshotResult;
+
+		assert.equal(result.type, ReconnectResultType.Snapshot);
+		assert.deepEqual(
+			result.snapshots.map((snapshot) => snapshot.resource),
+			[alias],
+		);
+		assert.equal(harness.host.store.has(canonical), true);
+		assert.equal(harness.host.store.has(alias), false);
+	});
+
 	it("retains VS Code's URI dialect across connections", async () => {
 		const clientId = `${CLIENT_ID}-vscode`;
 		const id = "vscode-reconnect";
@@ -227,6 +264,7 @@ describe("reconnect", () => {
 
 		const first = await harness.connect();
 		await first.request("initialize", {
+			channel: ROOT_CHANNEL,
 			clientId,
 			protocolVersions: SUPPORTED_PROTOCOL_VERSIONS,
 			clientInfo: { name: "vscode-editor-window" },

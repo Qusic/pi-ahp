@@ -21,6 +21,7 @@ import {
 import { chatSummaryOf } from "../channels/chat.ts";
 import { chatIdFromUri, chatUri, isChatChannel, sessionIdFromUri, sessionUri } from "../core/channels.ts";
 import type { AhpHost, ChannelHydrator } from "../core/host.ts";
+import { pathToFileUri } from "../core/uri.ts";
 import { rebuildTurnsFromSession } from "./history.ts";
 import { THINKING_CONFIG_KEY } from "./models.ts";
 import { PI_PROVIDER } from "./provider.ts";
@@ -141,7 +142,7 @@ export class SessionHydrator implements ChannelHydrator {
 			// The transcript is genuinely available, so the session is ready. It
 			// simply has no agent attached until someone starts a turn.
 			lifecycle: SessionLifecycle.Ready,
-			...(workingDirectory ? { workingDirectories: [`file://${workingDirectory}`] } : {}),
+			...(workingDirectory ? { workingDirectories: [pathToFileUri(workingDirectory)] } : {}),
 			activeClients: [],
 			chats: [chatSummaryOf(chatState)],
 			defaultChat: chat,

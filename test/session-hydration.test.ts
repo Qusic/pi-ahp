@@ -21,6 +21,7 @@ import {
 	type ChatState,
 	MessageKind,
 	ResponsePartKind,
+	type RootState,
 	SessionLifecycle,
 	type SessionState,
 	SessionStatus,
@@ -31,9 +32,10 @@ import {
 import { AhpClient, RpcError } from "@microsoft/agent-host-protocol/client";
 import { WebSocketTransport } from "@microsoft/agent-host-protocol/ws";
 import { installRootChannel } from "../src/channels/root.ts";
-import { chatUri, sessionIdFromUri, sessionUri } from "../src/core/channels.ts";
+import { chatUri, ROOT_CHANNEL, sessionIdFromUri, sessionUri } from "../src/core/channels.ts";
 import { ClientWorkarounds } from "../src/core/client-workarounds.ts";
 import { AhpHost } from "../src/core/host.ts";
+import { pathToFileUri } from "../src/core/uri.ts";
 import type { PiBackend } from "../src/pi/chat-driver.ts";
 import { PI_PROVIDER } from "../src/pi/provider.ts";
 import { PiSessionCatalogue } from "../src/pi/session-catalogue.ts";
@@ -100,6 +102,7 @@ interface Fixture {
 	server: RunningServer;
 	sessionId: string;
 	root: string;
+	workspace: string;
 	deletedFiles: string[];
 	backend: RecordingBackend;
 	close(): Promise<void>;
@@ -131,7 +134,7 @@ class RecordingBackend implements PiBackend {
 
 async function startFixture(): Promise<Fixture> {
 	const root = mkdtempSync(join(tmpdir(), "pi-ahp-hydrate-"));
-	const workspace = mkdtempSync(join(tmpdir(), "pi-ahp-hydrate-cwd-"));
+	const workspace = mkdtempSync(join(tmpdir(), "pi ahp hydrate cwd-"));
 	const sessionId = randomUUID();
 	writeSession(root, sessionId, workspace);
 
@@ -182,6 +185,7 @@ async function startFixture(): Promise<Fixture> {
 		// Raw, because the client facade does not expose `clientInfo`, which is
 		// what the host reads to decide whether the workarounds apply.
 		await other.request("initialize", {
+			channel: ROOT_CHANNEL,
 			clientId: "vscode-client",
 			protocolVersions: SUPPORTED_PROTOCOL_VERSIONS,
 			clientInfo: { name: "vscode-editor-window", title: "VS Code" },
@@ -196,6 +200,7 @@ async function startFixture(): Promise<Fixture> {
 		server,
 		sessionId,
 		root,
+		workspace,
 		deletedFiles,
 		backend,
 		async close() {
@@ -205,6 +210,28 @@ async function startFixture(): Promise<Fixture> {
 			rmSync(workspace, { recursive: true, force: true });
 		},
 	};
+}
+
+async function initialSnapshotResources(
+	server: RunningServer,
+	clientId: string,
+	initialSubscriptions: string[],
+	clientInfo?: { name: string },
+): Promise<string[]> {
+	const client = new AhpClient(await WebSocketTransport.connect(`ws://127.0.0.1:${server.port}`));
+	client.connect();
+	try {
+		const result = await client.request("initialize", {
+			channel: ROOT_CHANNEL,
+			clientId,
+			protocolVersions: SUPPORTED_PROTOCOL_VERSIONS,
+			initialSubscriptions,
+			...(clientInfo ? { clientInfo } : {}),
+		} as never);
+		return result.snapshots.map((snapshot) => snapshot.resource);
+	} finally {
+		await client.shutdown();
+	}
 }
 
 describe("opening a session from the catalogue", () => {
@@ -218,7 +245,7 @@ describe("opening a session from the catalogue", () => {
 		await fixture.close();
 	});
 
-	it("subscribes to a session no live host created", async () => {
+	it("hydrates a catalogued session and counts it as active", async () => {
 		// The regression this exists for: `listSessions` advertised it, so
 		// `subscribe` answering NotFound makes the catalogue useless.
 		const { result } = await fixture.client.subscribe(sessionUri(fixture.sessionId));
@@ -227,7 +254,9 @@ describe("opening a session from the catalogue", () => {
 		assert.equal(state.lifecycle, SessionLifecycle.Ready);
 		assert.equal(state.chats.length, 1);
 		assert.equal(state.defaultChat, chatUri(fixture.sessionId));
+		assert.deepEqual(state.workingDirectories, [pathToFileUri(fixture.workspace)]);
 		assert.equal(checkSchema("state", "SessionState", state), undefined);
+		assert.equal((fixture.host.store.get(ROOT_CHANNEL) as RootState).activeSessions, 1);
 	});
 
 	it("answers VS Code at the URIs it computes for itself", async () => {
@@ -249,6 +278,24 @@ describe("opening a session from the catalogue", () => {
 		assert.ok(state.turns.length > 0, "the transcript must come back, not an empty chat");
 		assert.equal(checkSchema("state", "ChatState", state), undefined);
 	});
+
+	for (const [name, clientInfo, usesDerivedChat] of [
+		["VS Code", { name: "vscode-editor-window" }, true],
+		["unnamed provider-alias client", undefined, false],
+	] as const) {
+		it(`applies the ${name} dialect to initialize-time subscriptions`, async () => {
+			const providerSession = `pi:/${fixture.sessionId}`;
+			const chat = usesDerivedChat
+				? `ahp-chat://default/${Buffer.from(providerSession).toString("base64url")}`
+				: chatUri(fixture.sessionId);
+			const subscriptions = [providerSession, chat];
+
+			assert.deepEqual(
+				await initialSnapshotResources(fixture.server, `initial-subscriptions-${name}`, subscriptions, clientInfo),
+				subscriptions,
+			);
+		});
+	}
 
 	it("rebuilds the transcript onto the chat channel", async () => {
 		const { result } = await fixture.client.subscribe(chatUri(fixture.sessionId));
@@ -372,6 +419,65 @@ describe("session URI classification", () => {
 		}
 	});
 
+	it("retargets VS Code's chat-addressed rename to the owning session", () => {
+		const id = "rename-me";
+		const workarounds = new ClientWorkarounds();
+		workarounds.identify({ name: "vscode-editor-window" });
+		const message = {
+			jsonrpc: "2.0" as const,
+			method: "dispatchAction",
+			params: {
+				channel: `ahp-chat://default/${Buffer.from(`pi:/${id}`).toString("base64url")}`,
+				clientSeq: 1,
+				action: { type: ActionType.SessionTitleChanged, title: "Renamed" },
+			},
+		};
+
+		workarounds.applyToIncoming(message);
+
+		assert.equal(message.params.channel, sessionUri(id));
+	});
+
+	it("rewrites URI-bearing action and catalogue fields for VS Code", () => {
+		const id = "nested-fields";
+		const session = sessionUri(id);
+		const chat = chatUri(id);
+		const providerSession = `pi:/${id}`;
+		const derivedChat = `ahp-chat://default/${Buffer.from(providerSession).toString("base64url")}`;
+		const workarounds = new ClientWorkarounds();
+		workarounds.identify({ name: "vscode-editor-window" });
+
+		const removed = workarounds.applyToMessage({
+			jsonrpc: "2.0",
+			method: "root/sessionRemoved",
+			params: { channel: ROOT_CHANNEL, session },
+		});
+		assert.deepEqual(removed, {
+			jsonrpc: "2.0",
+			method: "root/sessionRemoved",
+			params: { channel: ROOT_CHANNEL, session: providerSession },
+		});
+
+		const updated = workarounds.applyToMessage({
+			jsonrpc: "2.0",
+			method: "action",
+			params: {
+				channel: session,
+				action: { type: ActionType.SessionChatUpdated, chat, changes: { resource: chat } },
+				serverSeq: 1,
+			},
+		});
+		assert.deepEqual(updated, {
+			jsonrpc: "2.0",
+			method: "action",
+			params: {
+				channel: providerSession,
+				action: { type: ActionType.SessionChatUpdated, chat: derivedChat, changes: { resource: derivedChat } },
+				serverSeq: 1,
+			},
+		});
+	});
+
 	it("leaves VS Code's client-chosen terminal URI outside session translation", () => {
 		const channel = "agenthost-terminal:/terminal-1";
 		const workarounds = new ClientWorkarounds();
@@ -411,15 +517,19 @@ describe("session URI classification", () => {
 				RpcError,
 			);
 
-			const uri = `pi:/${randomUUID().toUpperCase()}`;
+			const id = randomUUID().toUpperCase();
+			const uri = `pi:/${id}`;
 			await fixture.client.request("createSession", { channel: uri } as never);
 
 			const { result } = await fixture.client.subscribe(uri);
 			assert.ok(result.snapshot, "the session must exist at the URI the client chose");
 			assert.equal(result.snapshot.resource, uri);
+			assert.equal((result.snapshot.state as SessionState).defaultChat, chatUri(id));
+			assert.equal(fixture.host.store.has(sessionUri(id)), true, "core state stays canonical");
+			assert.equal(fixture.host.store.has(uri), false);
 
 			await fixture.client.request("disposeSession", { channel: uri } as never);
-			assert.equal(fixture.host.store.has(uri), false);
+			assert.equal(fixture.host.store.has(sessionUri(id)), false);
 		} finally {
 			await fixture.close();
 		}

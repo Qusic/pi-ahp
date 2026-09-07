@@ -351,6 +351,25 @@ describe("terminal service", () => {
 		assert.deepEqual(fixture.spawner.calls, []);
 	});
 
+	it("reserves the provider session scheme from terminal creation", async () => {
+		await assert.rejects(
+			owner.request("createTerminal", {
+				channel: "pi:/reserved-for-sessions",
+				claim: { kind: TerminalClaimKind.Client, clientId: ownerId },
+			} as never),
+			(error: unknown) => error instanceof RpcError && error.code === JsonRpcErrorCodes.InvalidParams,
+		);
+		assert.deepEqual(fixture.spawner.calls, []);
+	});
+
+	it("does not let terminal disposal target another channel kind", async () => {
+		await assert.rejects(
+			owner.request("disposeTerminal", { channel: ROOT_CHANNEL } as never),
+			(error: unknown) => error instanceof RpcError && error.code === JsonRpcErrorCodes.InvalidParams,
+		);
+		assert.equal(fixture.host.store.has(ROOT_CHANNEL), true);
+	});
+
 	it("records natural exit and disposes exited or running terminals", async () => {
 		const first = await createTerminal({ name: "First" });
 		first.pty.emitExit(7);

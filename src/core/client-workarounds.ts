@@ -3,15 +3,15 @@
  * this host's. Each entry says what the client does and what would let it go.
  */
 
-import type { URI } from "@microsoft/agent-host-protocol";
+import { ActionType, type URI } from "@microsoft/agent-host-protocol";
 import type { JsonRpcMessage, JsonRpcNotification, JsonRpcRequest } from "../protocol/jsonrpc.ts";
 import { chatIdFromUri, chatUri, sessionIdFromUri, sessionUri } from "./channels.ts";
 
 /**
- * Where a URI this host minted can appear on the wire: an action envelope's
- * `channel`, a snapshot's or summary's `resource`, and `SessionState.defaultChat`.
+ * Field names that carry session or chat URIs in state, actions, and catalogue
+ * notifications. The rewrite itself ignores every other URI scheme.
  */
-const REWRITABLE_FIELDS = new Set(["channel", "resource", "defaultChat"]);
+const REWRITABLE_FIELDS = new Set(["channel", "resource", "defaultChat", "session", "chat"]);
 
 /** VS Code's derived chat URI: `ahp-chat://<anything>/<base64url(sessionUri)>`. */
 const DERIVED_CHAT_URI = /^ahp-chat:\/\/[^/]+\/([^/?#]+)$/;
@@ -26,9 +26,37 @@ const VSCODE_CLIENT_NAMES = new Set(["vscode-editor-window", "vscode-agents-wind
  * the reason for it in three signatures.
  */
 const PROVIDER_SESSION_SCHEME = "pi";
+type SessionDialect = "canonical" | "provider" | "vscode";
+
+/** Methods where a direct `pi:/...` target can only mean a session. */
+const PROVIDER_SESSION_METHODS = new Set([
+	"createSession",
+	"disposeSession",
+	"subscribe",
+	"unsubscribe",
+	"dispatchAction",
+	"completions",
+]);
 
 function providerSessionId(uri: URI): string | undefined {
 	return sessionIdFromUri(uri, [PROVIDER_SESSION_SCHEME]);
+}
+
+function isProviderSession(uri: URI): boolean {
+	return uri.toLowerCase().startsWith(`${PROVIDER_SESSION_SCHEME}:/`) && providerSessionId(uri) !== undefined;
+}
+
+interface IncomingParams {
+	action?: unknown;
+	channel?: unknown;
+	initialSubscriptions?: unknown;
+	subscriptions?: unknown;
+}
+
+function typeOfAction(value: unknown): string | undefined {
+	return typeof value === "object" && value !== null && "type" in value && typeof value.type === "string"
+		? value.type
+		: undefined;
 }
 
 /**
@@ -55,64 +83,86 @@ function providerSessionId(uri: URI): string | undefined {
  * onto every other client, so the translation is per connection and only for
  * the clients that need it.
  *
- * Normally the client is identified at `initialize`, before the session list
- * and snapshots go out. After a host restart, `reconnect` omits that identity;
- * its derived-chat subscription is the fallback fingerprint. Both directions
- * stay symmetric so replies use channels the client is listening to.
+ * Normally VS Code is identified at `initialize`, before the session list and
+ * snapshots go out. A raw `pi:/...` target separately identifies only the
+ * provider-style session scheme, which covers the iOS client without forcing
+ * VS Code's derived-chat format on it. Observing a derived chat enables that
+ * second translation. After a host restart, reconnect subscriptions provide the
+ * same fingerprints. Replies use each connection's dialect while core services
+ * see canonical URIs.
  *
  * Goes when VS Code addresses what it was given.
  */
 export class ClientWorkarounds {
-	/** The scheme this client expects sessions under, when not the standard one. */
-	#sessionScheme: string | undefined;
+	#dialect: SessionDialect = "canonical";
 
-	/** Reads the handshake; see the note on timing above. */
+	/** Reads implementation identity without erasing a dialect inferred from URIs. */
 	identify(clientInfo: { name?: string } | undefined): void {
-		this.#sessionScheme = VSCODE_CLIENT_NAMES.has(clientInfo?.name ?? "") ? PROVIDER_SESSION_SCHEME : undefined;
-	}
-
-	/** Recovers the dialect after a host restart, when reconnect omits clientInfo. */
-	identifyReconnect(subscriptions: readonly unknown[] | undefined): void {
-		if (this.#sessionScheme) {
-			return;
-		}
-		for (const uri of subscriptions ?? []) {
-			if (typeof uri !== "string") {
-				continue;
-			}
-			const session = sessionFromDerivedChat(uri);
-			if (session?.startsWith(`${PROVIDER_SESSION_SCHEME}:/`)) {
-				this.#sessionScheme = PROVIDER_SESSION_SCHEME;
-				return;
-			}
-		}
+		if (VSCODE_CLIENT_NAMES.has(clientInfo?.name ?? "")) this.#dialect = "vscode";
 	}
 
 	/** Rewrites this connection's parsed request or notification in place. */
 	applyToIncoming(message: JsonRpcRequest | JsonRpcNotification): void {
-		const params = message.params as { channel?: unknown; subscriptions?: unknown } | undefined;
-		if (!params) {
-			return;
-		}
-		const rewrite = (uri: URI) => inbound(uri, this.#sessionScheme);
+		const params = message.params as IncomingParams | undefined;
+		if (!params) return;
+		this.#observeDialect(message.method, params);
+
+		const rewrite = (uri: URI) => inbound(uri, this.#dialect);
 		if (typeof params.channel === "string") {
 			let channel = rewrite(params.channel);
-			if (message.method === "completions" && this.#sessionScheme) {
+			if (message.method === "completions" && this.#dialect !== "canonical") {
+				// Both VS Code and the iOS client currently target completions at the
+				// provider-style session URI.
 				const sessionId = providerSessionId(channel);
 				channel = sessionId ? chatUri(sessionId) : channel;
 			}
+			// VS Code addresses its session rename to the selected chat. AHP defines
+			// `session/titleChanged` only on the owning session.
+			if (
+				message.method === "dispatchAction" &&
+				this.#dialect === "vscode" &&
+				typeOfAction(params.action) === ActionType.SessionTitleChanged
+			) {
+				const chatId = chatIdFromUri(channel);
+				channel = chatId ? sessionUri(chatId) : channel;
+			}
 			params.channel = channel;
 		}
-		// `reconnect` names its channels here rather than in `channel`.
-		if (Array.isArray(params.subscriptions)) {
-			params.subscriptions = params.subscriptions.map((uri) => (typeof uri === "string" ? rewrite(uri) : uri));
+		// Handshake requests name their subscribed channels in arrays rather than
+		// the top-level routing `channel`.
+		for (const field of ["initialSubscriptions", "subscriptions"] as const) {
+			const subscriptions = params[field];
+			if (Array.isArray(subscriptions)) {
+				params[field] = subscriptions.map((uri) => (typeof uri === "string" ? rewrite(uri) : uri));
+			}
 		}
 	}
 
 	/** Returns the message to send, rewritten if this client needs it. */
 	applyToMessage(message: JsonRpcMessage): JsonRpcMessage {
-		const scheme = this.#sessionScheme;
-		return scheme ? (rewriteFields(message, (uri) => outbound(uri, scheme)) as JsonRpcMessage) : message;
+		const dialect = this.#dialect;
+		return dialect === "canonical"
+			? message
+			: (rewriteFields(message, (uri) => outbound(uri, dialect)) as JsonRpcMessage);
+	}
+
+	#observeDialect(method: string, params: IncomingParams): void {
+		const direct = typeof params.channel === "string" ? params.channel : undefined;
+		const listed = [
+			...(Array.isArray(params.initialSubscriptions) ? params.initialSubscriptions : []),
+			...(Array.isArray(params.subscriptions) ? params.subscriptions : []),
+		];
+		const observed = direct ? [direct, ...listed] : listed;
+		if (observed.some((uri) => typeof uri === "string" && sessionFromDerivedChat(uri) !== undefined)) {
+			this.#dialect = "vscode";
+		} else if (
+			this.#dialect === "canonical" &&
+			(PROVIDER_SESSION_METHODS.has(method) ? observed : listed).some(
+				(uri) => typeof uri === "string" && isProviderSession(uri),
+			)
+		) {
+			this.#dialect = "provider";
+		}
 	}
 }
 
@@ -126,30 +176,28 @@ export class ClientWorkarounds {
 function sessionFromDerivedChat(uri: URI): URI | undefined {
 	const [, encoded = ""] = DERIVED_CHAT_URI.exec(uri) ?? [];
 	const session = encoded ? Buffer.from(encoded, "base64url").toString("utf8") : "";
-	return providerSessionId(session) ? session : undefined;
+	return isProviderSession(session) ? session : undefined;
 }
 
-function inbound(uri: URI, scheme: string | undefined): URI {
+function inbound(uri: URI, dialect: SessionDialect): URI {
 	const derivedSession = sessionFromDerivedChat(uri);
 	const derivedSessionId = derivedSession ? providerSessionId(derivedSession) : undefined;
-	if (derivedSessionId) {
-		return chatUri(derivedSessionId);
-	}
-	if (!scheme || !uri.startsWith(`${scheme}:/`)) {
-		return uri;
-	}
+	if (derivedSessionId) return chatUri(derivedSessionId);
+	if (dialect === "canonical" || !isProviderSession(uri)) return uri;
 	const sessionId = providerSessionId(uri);
 	return sessionId ? sessionUri(sessionId) : uri;
 }
 
-/** Translates a URI this host minted into the one this client will compute. */
-function outbound(uri: URI, scheme: string): URI {
+/** Translates a URI this host minted into the dialect this client expects. */
+function outbound(uri: URI, dialect: Exclude<SessionDialect, "canonical">): URI {
 	const chatId = chatIdFromUri(uri);
 	if (chatId) {
-		return `ahp-chat://default/${Buffer.from(`${scheme}:/${chatId}`).toString("base64url")}`;
+		return dialect === "vscode"
+			? `ahp-chat://default/${Buffer.from(`${PROVIDER_SESSION_SCHEME}:/${chatId}`).toString("base64url")}`
+			: uri;
 	}
 	const sessionId = providerSessionId(uri);
-	return sessionId ? `${scheme}:/${sessionId}` : uri;
+	return sessionId ? `${PROVIDER_SESSION_SCHEME}:/${sessionId}` : uri;
 }
 
 /** Applies `rewrite` to every rewritable field, however deeply nested. */

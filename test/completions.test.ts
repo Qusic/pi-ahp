@@ -16,10 +16,11 @@ import { after, before, describe, it } from "node:test";
 import {
 	CompletionItemKind,
 	type CompletionsResult,
+	JsonRpcErrorCodes,
 	MessageAttachmentKind,
 	SUPPORTED_PROTOCOL_VERSIONS,
 } from "@microsoft/agent-host-protocol";
-import { AhpClient } from "@microsoft/agent-host-protocol/client";
+import { AhpClient, RpcError } from "@microsoft/agent-host-protocol/client";
 import { WebSocketTransport } from "@microsoft/agent-host-protocol/ws";
 import { installRootChannel } from "../src/channels/root.ts";
 import { AhpHost } from "../src/core/host.ts";
@@ -158,6 +159,16 @@ describe("completions", () => {
 		assert.deepEqual(items, []);
 	});
 
+	it("returns nothing for a completion kind it does not implement", async () => {
+		const result = await service.complete({
+			kind: "futureKind" as CompletionItemKind,
+			channel: CHAT,
+			text: "@not",
+			offset: 4,
+		});
+		assert.deepEqual(result.items, []);
+	});
+
 	it("returns nothing when the cursor is not in a mention", async () => {
 		assert.deepEqual((await complete("plain text")).items, []);
 	});
@@ -248,26 +259,36 @@ describe("completions over the wire", () => {
 		assert.equal(checkSchema("commands", "CompletionsResult", result), undefined);
 	});
 
-	it("maps only VS Code's session target onto the default chat", async () => {
+	it("rejects non-chat completion targets", async () => {
+		const params = { kind: CompletionItemKind.UserMessage, text: "@not", offset: 4 };
+		for (const channel of [undefined, "ahp-session:/completions"]) {
+			await assert.rejects(
+				client.request("completions", { ...params, ...(channel ? { channel } : {}) } as never),
+				(error: unknown) => error instanceof RpcError && error.code === JsonRpcErrorCodes.InvalidParams,
+			);
+		}
+	});
+
+	it("maps provider-alias completion targets onto the default chat", async () => {
 		const vscode = new AhpClient(await WebSocketTransport.connect(`ws://127.0.0.1:${server.port}`));
 		vscode.connect();
 		await vscode.request("initialize", {
+			channel: "ahp-root://",
 			clientId: "vscode-completions-client",
 			clientInfo: { name: "vscode-editor-window" },
 			protocolVersions: SUPPORTED_PROTOCOL_VERSIONS,
 		} as never);
 		try {
 			const params = { kind: CompletionItemKind.UserMessage, text: "@not", offset: 4 };
-			const [vscodeResult, standardSession] = await Promise.all([
+			for (const result of await Promise.all([
 				vscode.request("completions", { ...params, channel: "pi:/completions" } as never),
-				client.request("completions", { ...params, channel: "ahp-session:/completions" } as never),
-			]);
-
-			assert.deepEqual(
-				vscodeResult.items.map((item) => item.insertText),
-				["@notes.md"],
-			);
-			assert.deepEqual(standardSession.items, []);
+				client.request("completions", { ...params, channel: "pi:/completions" } as never),
+			])) {
+				assert.deepEqual(
+					result.items.map((item) => item.insertText),
+					["@notes.md"],
+				);
+			}
 		} finally {
 			await vscode.shutdown();
 		}

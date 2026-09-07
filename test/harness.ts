@@ -82,7 +82,7 @@ export async function startHarness(
 				adopt: (session) => void registry.adopt(session),
 			}),
 			sessions: {
-				create: (params) => registry.create(params as never),
+				create: (params) => registry.create(params),
 				dispose: (channel) => registry.dispose(channel),
 			},
 		});

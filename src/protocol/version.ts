@@ -23,8 +23,8 @@ const HOST_SUPPORTED_VERSIONS: readonly string[] = [PROTOCOL_VERSION];
  *   decide whether to downgrade.
  */
 export function negotiateProtocolVersion(offered: readonly string[] | undefined): string {
-	if (!Array.isArray(offered) || offered.length === 0) {
-		throw ProtocolError.invalidParams("initialize requires a non-empty protocolVersions array");
+	if (!Array.isArray(offered) || offered.length === 0 || offered.some((version) => typeof version !== "string")) {
+		throw ProtocolError.invalidParams("initialize requires a non-empty protocolVersions array of strings");
 	}
 	for (const candidate of offered) {
 		if (HOST_SUPPORTED_VERSIONS.includes(candidate)) {

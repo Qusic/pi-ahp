@@ -14,11 +14,11 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before, describe, it } from "node:test";
-import { type ChatState, SUPPORTED_PROTOCOL_VERSIONS } from "@microsoft/agent-host-protocol";
+import { type ChatState, JsonRpcErrorCodes, SUPPORTED_PROTOCOL_VERSIONS } from "@microsoft/agent-host-protocol";
 import { AhpClient, RpcError } from "@microsoft/agent-host-protocol/client";
 import { WebSocketTransport } from "@microsoft/agent-host-protocol/ws";
 import { installRootChannel } from "../src/channels/root.ts";
-import { chatUri } from "../src/core/channels.ts";
+import { chatUri, sessionUri } from "../src/core/channels.ts";
 import { AhpHost } from "../src/core/host.ts";
 import { PiSessionCatalogue } from "../src/pi/session-catalogue.ts";
 import { SessionHydrator } from "../src/pi/session-hydrator.ts";
@@ -178,6 +178,13 @@ describe("fetchTurns", () => {
 	it("clears the cursor once the beginning is reached", () => {
 		// Without this the client would keep asking for pages that do not exist.
 		assert.equal(state(fixture).turnsNextCursor, undefined);
+	});
+
+	it("rejects a session channel for this chat-scoped command", async () => {
+		await assert.rejects(
+			fixture.client.request("fetchTurns", { channel: sessionUri(fixture.sessionId) } as never),
+			(error: unknown) => error instanceof RpcError && error.code === JsonRpcErrorCodes.InvalidParams,
+		);
 	});
 
 	it("rejects a cursor it did not issue", async () => {

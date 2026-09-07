@@ -3,6 +3,7 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { pathToFileUri } from "../core/uri.ts";
 import { type RunningServer, serveWebSocket } from "../transport/websocket.ts";
 import { createPiHost } from "./pi-host.ts";
 
@@ -37,7 +38,7 @@ export async function startHost(options: ServeOptions): Promise<RunningServer> {
 		watches,
 	} = await createPiHost({
 		serverInfo: { name: NAME, version: VERSION },
-		defaultDirectory: `file://${options.workingDirectory}`,
+		defaultDirectory: pathToFileUri(options.workingDirectory),
 		workingDirectory: options.workingDirectory,
 		...(options.log ? { log: options.log } : {}),
 	});

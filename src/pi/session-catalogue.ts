@@ -19,6 +19,7 @@ import { join } from "node:path";
 import { getAgentDir, SessionManager } from "@earendil-works/pi-coding-agent";
 import { type ListSessionsResult, SessionStatus, type SessionSummary, type URI } from "@microsoft/agent-host-protocol";
 import { sessionUri } from "../core/channels.ts";
+import { pathToFileUri } from "../core/uri.ts";
 import { ProtocolError } from "../protocol/errors.ts";
 import { PI_PROVIDER } from "./provider.ts";
 
@@ -214,7 +215,7 @@ function readSessionSummary(file: SessionFile): SessionSummary | undefined {
 		status: SessionStatus.Idle | SessionStatus.IsRead,
 		createdAt: createdAt ?? new Date(file.mtimeMs).toISOString(),
 		modifiedAt: new Date(file.mtimeMs).toISOString(),
-		...(cwd ? { workingDirectories: [`file://${cwd}`] } : {}),
+		...(cwd ? { workingDirectories: [pathToFileUri(cwd)] } : {}),
 		_meta: { piSessionFile: file.path },
 	};
 }

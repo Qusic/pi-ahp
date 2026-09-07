@@ -13,9 +13,10 @@ import {
 } from "@microsoft/agent-host-protocol";
 import { spawn as spawnPty } from "node-pty";
 import { terminalInfo } from "../channels/terminal.ts";
-import { channelKind, ROOT_CHANNEL } from "../core/channels.ts";
+import { channelKind, ROOT_CHANNEL, sessionIdFromUri } from "../core/channels.ts";
 import type { AhpHost, TerminalHandler } from "../core/host.ts";
 import { fileUriToPath, pathToFileUri } from "../core/uri.ts";
+import { PI_PROVIDER } from "../pi/provider.ts";
 import { ProtocolError } from "../protocol/errors.ts";
 
 interface Disposable {
@@ -107,6 +108,9 @@ export class TerminalService implements TerminalHandler {
 		const inferredKind = channelKind(channel);
 		if (inferredKind !== undefined && inferredKind !== "terminal") {
 			throw ProtocolError.invalidParams(`Channel belongs to ${inferredKind}, not terminal: ${channel}`);
+		}
+		if (sessionIdFromUri(channel, [PI_PROVIDER])) {
+			throw ProtocolError.invalidParams(`Channel uses the ${PI_PROVIDER} session scheme: ${channel}`);
 		}
 		this.#assertAvailable(channel);
 		if (params.claim?.kind !== TerminalClaimKind.Client) {

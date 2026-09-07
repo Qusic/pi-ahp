@@ -13,6 +13,7 @@ import { join } from "node:path";
 import { after, before, describe, it } from "node:test";
 import { type ListSessionsResult, SUPPORTED_PROTOCOL_VERSIONS } from "@microsoft/agent-host-protocol";
 import { sessionUri } from "../src/core/channels.ts";
+import { pathToFileUri } from "../src/core/uri.ts";
 import { PiSessionCatalogue } from "../src/pi/session-catalogue.ts";
 import { type Harness, nextClientId, startHarness } from "./harness.ts";
 import { checkSchema } from "./support/schema.ts";
@@ -78,7 +79,7 @@ describe("session catalogue", () => {
 			const id = randomUUID();
 			ids.push(id);
 			writeFakeSession(root, id, {
-				cwd: i % 2 === 0 ? "/tmp/project-a" : "/tmp/project-b",
+				cwd: i % 2 === 0 ? "/tmp/project a" : "/tmp/project-b",
 				firstUserMessage: `Message number ${i}`,
 				mtimeSeconds: 1_700_000_000 + i,
 			});
@@ -98,6 +99,7 @@ describe("session catalogue", () => {
 			result.items.map((item) => item.resource),
 			[...ids].reverse().map(sessionUri),
 		);
+		assert.deepEqual(result.items[0]?.workingDirectories, [pathToFileUri("/tmp/project a")]);
 	});
 
 	it("paginates with an opaque cursor and stops at the end", async () => {
