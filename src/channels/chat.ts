@@ -15,6 +15,7 @@ import {
 	type ChatSummary,
 	MessageKind,
 	type ModelSelection,
+	type SessionState,
 	SessionStatus,
 	type URI,
 } from "@microsoft/agent-host-protocol";
@@ -44,8 +45,10 @@ export function chatSummaryOf(state: ChatState): ChatSummary {
 		title: state.title,
 		status: state.status,
 		modifiedAt: state.modifiedAt,
-		...(state.activity ? { activity: state.activity } : {}),
-		...(state.origin ? { origin: state.origin } : {}),
+		...(state.activity !== undefined ? { activity: state.activity } : {}),
+		...(state.origin !== undefined ? { origin: state.origin } : {}),
+		...(state.interactivity !== undefined ? { interactivity: state.interactivity } : {}),
+		...(state.workingDirectories !== undefined ? { workingDirectories: state.workingDirectories } : {}),
 	};
 }
 
@@ -72,21 +75,60 @@ export function installDefaultChat(
 	return uri;
 }
 
-/**
- * Mirrors a chat's summary fields back onto the owning session's catalog.
- *
- * `ChatState` denormalises every `ChatSummary` field, so the two representations
- * drift unless the producer republishes on every change. Clients that only watch
- * the session (a session list, a mobile app) see nothing otherwise.
- */
-export function syncChatSummary(host: AhpHost, sessionChannel: URI, chatChannel: URI): void {
-	const state = host.store.get(chatChannel) as ChatState | undefined;
-	if (!state) {
-		return;
+function equalUris(left: readonly URI[] | undefined, right: readonly URI[] | undefined): boolean {
+	if (!left || !right) {
+		return left === right;
 	}
-	host.dispatchServerAction(sessionChannel, {
-		type: ActionType.SessionChatUpdated,
-		chat: chatChannel,
-		changes: chatSummaryOf(state),
-	});
+	return left.length === right.length && left.every((uri, index) => uri === right[index]);
+}
+
+function equalSummary(left: ChatSummary, right: ChatSummary): boolean {
+	return (
+		left.resource === right.resource &&
+		left.title === right.title &&
+		left.status === right.status &&
+		left.activity === right.activity &&
+		left.modifiedAt === right.modifiedAt &&
+		(left.origin === right.origin || JSON.stringify(left.origin) === JSON.stringify(right.origin)) &&
+		left.interactivity === right.interactivity &&
+		equalUris(left.workingDirectories, right.workingDirectories)
+	);
+}
+
+/**
+ * Mirrors a chat's denormalized summary fields into its owning session.
+ *
+ * Partial updates cannot express removal of an optional JSON field: an
+ * `undefined` value disappears on the wire and means "unchanged". Use the
+ * action's full-summary upsert form when one of those fields is cleared.
+ */
+export function syncChatSummary(host: AhpHost, sessionChannel: URI, chatChannel: URI): boolean {
+	const chat = host.store.get(chatChannel) as ChatState | undefined;
+	const session = host.store.get(sessionChannel) as SessionState | undefined;
+	const previous = session?.chats.find((summary) => summary.resource === chatChannel);
+	if (!chat || !previous) {
+		return false;
+	}
+
+	const current = chatSummaryOf(chat);
+	if (equalSummary(previous, current)) {
+		return false;
+	}
+
+	const clearsOptional =
+		(previous.activity !== undefined && current.activity === undefined) ||
+		(previous.origin !== undefined && current.origin === undefined) ||
+		(previous.interactivity !== undefined && current.interactivity === undefined) ||
+		(previous.workingDirectories !== undefined && current.workingDirectories === undefined);
+	if (clearsOptional) {
+		host.dispatchServerAction(sessionChannel, { type: ActionType.SessionChatAdded, summary: current });
+	} else {
+		const { resource: _resource, ...changes } = current;
+		host.dispatchServerAction(sessionChannel, {
+			type: ActionType.SessionChatUpdated,
+			chat: chatChannel,
+			changes,
+		});
+	}
+	return true;
 }

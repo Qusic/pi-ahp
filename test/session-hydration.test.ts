@@ -10,7 +10,7 @@ import { must } from "./harness.ts";
 
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before, describe, it } from "node:test";
@@ -141,7 +141,6 @@ async function startFixture(): Promise<Fixture> {
 	const host = new AhpHost();
 	installRootChannel(host, []);
 	const catalogue = new PiSessionCatalogue(root);
-	host.serve({ catalogue });
 	host.serve({
 		hydrator: new SessionHydrator({
 			host,
@@ -168,6 +167,9 @@ async function startFixture(): Promise<Fixture> {
 		findSessionFile: (id) => catalogue.findSessionFile(id),
 	});
 	host.serve({
+		catalogue: {
+			list: (limit, cursor) => catalogue.list(limit, cursor, () => sessions.catalogueOverrides()),
+		},
 		sessions: {
 			create: (params) => sessions.create(params as never),
 			dispose: (channel) => sessions.dispose(channel),
@@ -354,6 +356,24 @@ describe("opening a session from the catalogue", () => {
 	});
 });
 
+it("preserves catalogue modifiedAt when a disk session becomes a live overlay", async () => {
+	const fixture = await startFixture();
+	try {
+		const file = must(await new PiSessionCatalogue(fixture.root).findSessionFile(fixture.sessionId));
+		const timestamp = new Date("2025-06-01T12:00:00.000Z");
+		utimesSync(file, timestamp, timestamp);
+		const before = await fixture.client.request("listSessions", { channel: ROOT_CHANNEL } as never);
+		assert.equal(before.items[0]?.modifiedAt, timestamp.toISOString());
+		const { result } = await fixture.client.subscribe(chatUri(fixture.sessionId));
+		assert.equal((must(result.snapshot).state as ChatState).modifiedAt, timestamp.toISOString());
+		const after = await fixture.client.request("listSessions", { channel: ROOT_CHANNEL } as never);
+		assert.equal(after.items.length, 1);
+		assert.equal(after.items[0]?.modifiedAt, timestamp.toISOString());
+	} finally {
+		await fixture.close();
+	}
+});
+
 describe("read and unread", () => {
 	let fixture: Fixture;
 
@@ -394,12 +414,17 @@ describe("read and unread", () => {
 			startedAt: new Date().toISOString(),
 			message: { text: "hi", origin: { kind: "user" } },
 		} as never);
-		await new Promise((resolve) => {
-			const handle = setTimeout(resolve, 100);
-			handle.unref?.();
-		});
+		await fixture.client.ping();
 
 		assert.equal((fixture.host.store.get(chat) as ChatState).status & SessionStatus.IsRead, 0);
+		// Session flags stay session-owned: we do not implement a read/unread lifecycle.
+		const session = fixture.host.store.get(sessionUri(fixture.sessionId)) as SessionState;
+		assert.notEqual(session.status & SessionStatus.IsRead, 0);
+		const list = await fixture.client.request("listSessions", { channel: ROOT_CHANNEL } as never);
+		assert.notEqual(
+			must(list.items.find((item) => item.resource === sessionUri(fixture.sessionId))).status & SessionStatus.IsRead,
+			0,
+		);
 	});
 });
 

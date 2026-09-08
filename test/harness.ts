@@ -74,7 +74,9 @@ export async function startHarness(
 		});
 		sessions = registry;
 		host.serve({
-			catalogue,
+			catalogue: {
+				list: (limit, cursor) => catalogue.list(limit, cursor, () => registry.catalogueOverrides()),
+			},
 			hydrator: new SessionHydrator({
 				host,
 				catalogue,

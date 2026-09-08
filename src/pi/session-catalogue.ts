@@ -37,6 +37,24 @@ interface SessionFile {
 	readonly mtimeMs: number;
 }
 
+/** In-memory summary for a session that may not have reached disk yet. */
+export interface LiveSessionCatalogueEntry {
+	readonly file?: string;
+	readonly summary: SessionSummary;
+}
+
+/** Read lazily so a turn ending during disk discovery wins before the response is built. */
+export type LiveSessionCatalogueSource = () => readonly LiveSessionCatalogueEntry[];
+
+interface CatalogueEntry extends SessionFile {
+	/** Real file to parse; absent for a live session with no backing path. */
+	readonly file?: string;
+	/** Whether the file existed in this catalogue scan and is safe to cache. */
+	readonly onDisk?: boolean;
+	/** Present when live state is more authoritative than the file. */
+	readonly summary?: SessionSummary;
+}
+
 function sessionsRoot(): string {
 	return join(getAgentDir(), "sessions");
 }
@@ -209,9 +227,9 @@ function readSessionSummary(file: SessionFile): SessionSummary | undefined {
 		// Read/unread is not modelled: pi has no such concept, so tracking it
 		// would mean this host inventing durable state of its own — and without
 		// archiving to go with it, a catalogue where everything is permanently
-		// unread is worse than one that is quiet. A live session that starts a
-		// turn still becomes unread, because the reducer clears the bit on
-		// `chat/turnStarted`.
+		// unread is worse than one that is quiet. The chat reducer may still clear
+		// its chat-local bit on `chat/turnStarted`; the session catalogue remains
+		// read because this host does not implement mutable session read state.
 		status: SessionStatus.Idle | SessionStatus.IsRead,
 		createdAt: createdAt ?? new Date(file.mtimeMs).toISOString(),
 		modifiedAt: new Date(file.mtimeMs).toISOString(),
@@ -262,20 +280,45 @@ export class PiSessionCatalogue {
 		return undefined;
 	}
 
-	async list(limit: number | undefined, cursor: string | undefined): Promise<ListSessionsResult> {
+	async list(
+		limit: number | undefined,
+		cursor: string | undefined,
+		live: LiveSessionCatalogueSource = () => [],
+	): Promise<ListSessionsResult> {
 		const pageSize = Math.min(Math.max(1, limit ?? DEFAULT_PAGE_SIZE), MAX_PAGE_SIZE);
-		const files = await listSessionFiles(this.#root);
+		const entries = new Map<string, CatalogueEntry>();
+		for (const file of await listSessionFiles(this.#root)) {
+			entries.set(file.path, { ...file, file: file.path, onDisk: true });
+		}
+		// Read live state after asynchronous disk discovery. From here through
+		// response construction there is no await, so a turn transition cannot
+		// make the returned page older than a notification sent before it.
+		for (const item of live()) {
+			const parsed = Date.parse(item.summary.modifiedAt);
+			const path = item.file ?? `live:${item.summary.resource}`;
+			const existing = entries.get(path);
+			entries.set(path, {
+				path,
+				mtimeMs: Number.isFinite(parsed) ? parsed : 0,
+				...(item.file ? { file: item.file } : {}),
+				...(existing?.onDisk ? { onDisk: true } : {}),
+				summary: item.summary,
+			});
+		}
+		const ordered = [...entries.values()].sort(
+			(a, b) => b.mtimeMs - a.mtimeMs || (a.path < b.path ? -1 : a.path > b.path ? 1 : 0),
+		);
 
 		let start = 0;
 		if (cursor !== undefined) {
 			const after = decodeCursor(cursor);
-			const index = files.findIndex((file) => file.path === after.path);
+			const index = ordered.findIndex((entry) => entry.path === after.path);
 			if (index < 0) {
 				// The entry the cursor named is gone (deleted between pages).
 				// Fall back to the position it would have occupied rather than
 				// failing the whole call.
-				start = files.findIndex(
-					(file) => file.mtimeMs < after.mtimeMs || (file.mtimeMs === after.mtimeMs && file.path > after.path),
+				start = ordered.findIndex(
+					(entry) => entry.mtimeMs < after.mtimeMs || (entry.mtimeMs === after.mtimeMs && entry.path > after.path),
 				);
 				if (start < 0) {
 					return { items: [] };
@@ -285,18 +328,21 @@ export class PiSessionCatalogue {
 			}
 		}
 
-		const page = files.slice(start, start + pageSize);
+		const page = ordered.slice(start, start + pageSize);
 		const items: SessionSummary[] = [];
-		for (const file of page) {
-			const summary = readSessionSummary(file);
+		for (const entry of page) {
+			const summary =
+				entry.summary ?? (entry.file ? readSessionSummary({ path: entry.file, mtimeMs: entry.mtimeMs }) : undefined);
 			if (summary) {
-				this.#index.set(summary.resource, file.path);
+				if (entry.file && entry.onDisk) {
+					this.#index.set(summary.resource, entry.file);
+				}
 				items.push(summary);
 			}
 		}
 
 		const last = page[page.length - 1];
-		const hasMore = start + page.length < files.length;
+		const hasMore = start + page.length < ordered.length;
 		return {
 			items,
 			...(hasMore && last ? { nextCursor: encodeCursor(last) } : {}),

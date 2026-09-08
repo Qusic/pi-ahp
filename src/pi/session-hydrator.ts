@@ -8,6 +8,7 @@
  * `subscribe` answers `NotFound` for a session the catalogue just advertised.
  */
 
+import { stat } from "node:fs/promises";
 import { SessionManager } from "@earendil-works/pi-coding-agent";
 import {
 	type ChatState,
@@ -102,7 +103,13 @@ export class SessionHydrator implements ChannelHydrator {
 		// protocol's signal that more history can be paged in.
 		const turnsNextCursor = initialTurnsCursor(manager, sessionId, turns);
 		const lastTurn = turns[turns.length - 1];
-		const modifiedAt = lastTurn?.startedAt ?? new Date().toISOString();
+		let modifiedAt = lastTurn?.startedAt ?? new Date().toISOString();
+		try {
+			modifiedAt = (await stat(file)).mtime.toISOString();
+		} catch {
+			// The file may disappear after it was located; the reconstructed
+			// transcript timestamp remains a valid fallback for this snapshot.
+		}
 		const workingDirectory = manager.getCwd();
 		const title = manager.getSessionName()?.trim() || firstUserText(turns) || "Untitled session";
 

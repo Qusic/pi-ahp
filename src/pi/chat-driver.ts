@@ -29,7 +29,6 @@ import {
 	type StateAction,
 	type URI,
 } from "@microsoft/agent-host-protocol";
-import { syncChatSummary } from "../channels/chat.ts";
 import type { AhpHost } from "../core/host.ts";
 import { TurnMapper } from "./event-mapper.ts";
 import { messageTextForPi } from "./message-input.ts";
@@ -68,7 +67,6 @@ export interface PiBackend {
 
 export interface ChatDriverOptions {
 	readonly host: AhpHost;
-	readonly sessionChannel: URI;
 	readonly chatChannel: URI;
 	readonly backend: PiBackend;
 	readonly workingDirectory?: string;
@@ -79,7 +77,6 @@ export interface ChatDriverOptions {
 
 export class ChatDriver {
 	readonly #host: AhpHost;
-	readonly #sessionChannel: URI;
 	readonly #chatChannel: URI;
 	readonly #backend: PiBackend;
 	/** Used to render tool paths relative to the workspace in activity strings. */
@@ -97,7 +94,6 @@ export class ChatDriver {
 
 	constructor(options: ChatDriverOptions) {
 		this.#host = options.host;
-		this.#sessionChannel = options.sessionChannel;
 		this.#chatChannel = options.chatChannel;
 		this.#backend = options.backend;
 		this.#workingDirectory = options.workingDirectory;
@@ -192,7 +188,6 @@ export class ChatDriver {
 		this.#mapper = new TurnMapper(turnId, Date.now(), {
 			...(this.#workingDirectory ? { workingDirectory: this.#workingDirectory } : {}),
 		});
-		this.#syncSummary();
 
 		// The client's choice has to land before the prompt, or the turn runs on
 		// whatever the previous one used.
@@ -232,13 +227,11 @@ export class ChatDriver {
 
 		for (const action of mapper.handle(event)) {
 			this.#host.dispatchServerAction(this.#chatChannel, action);
-			this.#mirrorActivity(action);
 		}
 
 		if (mapper.finished) {
 			this.#recordTurnAnchor?.(mapper.turnId);
 			this.#mapper = undefined;
-			this.#syncSummary();
 			this.#consumeNextQueuedMessage();
 		}
 	}
@@ -286,13 +279,11 @@ export class ChatDriver {
 		}
 		for (const action of mapper.finish(outcome, message)) {
 			this.#host.dispatchServerAction(this.#chatChannel, action);
-			this.#mirrorActivity(action);
 		}
 		this.#mapper = undefined;
 		// A turn that ends without consuming its steering message must not leave
 		// it pending for the next one.
 		this.#clearPendingSteering();
-		this.#syncSummary();
 		this.#consumeNextQueuedMessage();
 	}
 
@@ -322,7 +313,6 @@ export class ChatDriver {
 			message: next.message,
 			queuedMessageId: next.id,
 		});
-		this.#syncSummary();
 
 		const selection = next.message.model;
 		const ready =
@@ -363,29 +353,5 @@ export class ChatDriver {
 				model: selection,
 			},
 		});
-	}
-
-	/**
-	 * Mirrors a chat's activity onto its session.
-	 *
-	 * `SessionSummary.activity` is an aggregate: it reflects the chat that
-	 * contributes the session's status bits. With one chat per session that is
-	 * always this one, so the two move together — and a client watching only
-	 * the session (a list, a mobile app) still sees what the agent is doing.
-	 */
-	#mirrorActivity(action: StateAction): void {
-		if (action.type !== ActionType.ChatActivityChanged) {
-			return;
-		}
-		this.#host.dispatchServerAction(this.#sessionChannel, {
-			type: ActionType.SessionActivityChanged,
-			activity: action.activity,
-		});
-		this.#syncSummary();
-	}
-
-	/** Republishes the chat's summary onto the session catalog. */
-	#syncSummary(): void {
-		syncChatSummary(this.#host, this.#sessionChannel, this.#chatChannel);
 	}
 }

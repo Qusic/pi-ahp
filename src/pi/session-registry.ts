@@ -24,12 +24,13 @@ import {
 	PendingMessageKind,
 	ResponsePartKind,
 	type SessionState,
+	type SessionSummary,
 	type StateAction,
 	type URI,
 } from "@microsoft/agent-host-protocol";
 import { installDefaultChat, syncChatSummary } from "../channels/chat.ts";
 import { notifySessionAdded, notifySessionRemoved, notifySessionSummaryChanged } from "../channels/root.ts";
-import { initialSessionState, sessionSummaryOf } from "../channels/session.ts";
+import { aggregateSessionChats, initialSessionState, sessionSummaryOf } from "../channels/session.ts";
 import { chatUri, ROOT_CHANNEL, sessionIdFromUri } from "../core/channels.ts";
 import type { AhpHost } from "../core/host.ts";
 import { fileUriToPath } from "../core/uri.ts";
@@ -37,6 +38,7 @@ import { ProtocolError } from "../protocol/errors.ts";
 import { ChatDriver, type PiBackend } from "./chat-driver.ts";
 import { messageRejectionReason } from "./message-input.ts";
 import { PI_PROVIDER } from "./provider.ts";
+import type { LiveSessionCatalogueEntry } from "./session-catalogue.ts";
 import { dispatchOlderTurns, truncationAnchor } from "./session-history.ts";
 
 /** Everything the host tracks for a live session. */
@@ -143,6 +145,10 @@ export class SessionRegistry {
 	readonly #host: AhpHost;
 	readonly #sessions = new Map<URI, LiveSession>();
 	readonly #byChat = new Map<URI, LiveSession>();
+	/** Last root-catalog value used as a diff baseline; never authoritative state. */
+	readonly #summaryBaselines = new Map<URI, SessionSummary>();
+	/** Prevents projection-generated session actions from recursively republishing. */
+	readonly #projectingSessions = new Set<URI>();
 
 	constructor(options: SessionRegistryOptions) {
 		this.#options = options;
@@ -150,6 +156,18 @@ export class SessionRegistry {
 
 		// Client actions are routed to whichever channel owns them; the host
 		// core stays agnostic of chats and backends.
+		this.#host.onActionCommitted((channel) => {
+			const owner = this.#byChat.get(channel);
+			if (owner) {
+				this.#syncChatProjection(owner);
+				return;
+			}
+			const session = this.#sessions.get(channel);
+			if (session && !this.#projectingSessions.has(channel)) {
+				this.#publishSummary(session);
+			}
+		});
+
 		this.#host.onClientAction((channel, action) => {
 			void this.#routeClientAction(channel, action);
 		});
@@ -169,6 +187,17 @@ export class SessionRegistry {
 
 	has(uri: URI): boolean {
 		return this.#sessions.has(uri);
+	}
+
+	/** Live summaries that override or supplement pi's on-disk catalogue. */
+	catalogueOverrides(): LiveSessionCatalogueEntry[] {
+		return [...this.#sessions.values()].map((session) => {
+			const file = session.sessionManager.getSessionFile();
+			return {
+				summary: this.#summaryOf(session),
+				...(file ? { file } : {}),
+			};
+		});
 	}
 
 	// ── Lifecycle ───────────────────────────────────────────────────────────
@@ -199,6 +228,7 @@ export class SessionRegistry {
 			: (this.#options.defaultWorkingDirectory ?? process.cwd());
 
 		const title = "New Session";
+		const createdAt = new Date().toISOString();
 		// A provider-alias URI still needs the session reducer.
 		this.#host.store.create(uri, initialSessionState(PI_PROVIDER, title, workingDirectory), "session");
 
@@ -213,17 +243,14 @@ export class SessionRegistry {
 			workingDirectory,
 			sessionManager,
 			chatChannel,
-			createdAt: new Date().toISOString(),
+			createdAt,
 			turnAnchors: new Map(),
 		};
 		this.#track(session);
 
-		notifySessionAdded(
-			this.#host,
-			sessionSummaryOf(uri, session.createdAt, this.#host.store.get(uri) as SessionState, {
-				piSessionId: sessionId,
-			}),
-		);
+		const summary = this.#summaryOf(session);
+		notifySessionAdded(this.#host, summary);
+		this.#summaryBaselines.set(uri, summary);
 		this.#bumpActiveSessions();
 
 		// Readiness is genuinely asynchronous once a backend is involved: the
@@ -250,6 +277,7 @@ export class SessionRegistry {
 		}
 		const adopted: LiveSession = { ...session, turnAnchors: session.turnAnchors ?? new Map() };
 		this.#track(adopted);
+		this.#summaryBaselines.set(adopted.uri, this.#summaryOf(adopted));
 		this.#bumpActiveSessions();
 		return adopted;
 	}
@@ -296,6 +324,7 @@ export class SessionRegistry {
 		}
 
 		this.#host.store.delete(uri);
+		this.#summaryBaselines.delete(uri);
 		if (file) {
 			this.#options.deleteFile?.(file);
 		}
@@ -334,7 +363,6 @@ export class SessionRegistry {
 			}
 			session.driver = new ChatDriver({
 				host: this.#host,
-				sessionChannel: session.uri,
 				chatChannel: session.chatChannel,
 				backend,
 				workingDirectory: session.workingDirectory,
@@ -499,13 +527,9 @@ export class SessionRegistry {
 			this.#options.log?.(`could not persist title for ${session.uri}: ${String(error)}`);
 		}
 
-		// The chat mirrors the session's title, and the catalogue entry every
-		// other client renders comes from the summary.
+		// The chat mirrors the session's title. Updating its modification time
+		// lets the ordinary chat-to-session projection update the root catalogue.
 		this.#renameChat(session, action.title);
-		notifySessionSummaryChanged(this.#host, session.uri, {
-			title: action.title,
-			modifiedAt: new Date().toISOString(),
-		});
 	}
 
 	#renameChat(session: LiveSession, title: string): void {
@@ -513,10 +537,10 @@ export class SessionRegistry {
 		if (!chat || chat.title === title) {
 			return;
 		}
-		// `ChatState` denormalises its summary fields, so the catalog entry has
-		// to be republished alongside the state itself.
-		this.#host.store.create(session.chatChannel, { ...chat, title }, "chat");
-		syncChatSummary(this.#host, session.uri, session.chatChannel);
+		// There is no chat title action in AHP 0.9. Replace the authoritative
+		// chat state, then run the same projection used after ordinary actions.
+		this.#host.store.create(session.chatChannel, { ...chat, title, modifiedAt: new Date().toISOString() }, "chat");
+		this.#syncChatProjection(session);
 	}
 
 	// ── History ─────────────────────────────────────────────────────────────
@@ -550,6 +574,66 @@ export class SessionRegistry {
 	}
 
 	// ── Internals ───────────────────────────────────────────────────────────
+
+	#summaryOf(session: LiveSession): SessionSummary {
+		const state = this.#host.store.get(session.uri) as SessionState | undefined;
+		if (!state) {
+			throw new Error(`Session state is missing: ${session.uri}`);
+		}
+		return sessionSummaryOf(session.uri, session.createdAt, state, {
+			...state._meta,
+			piSessionId: session.sessionId,
+		});
+	}
+
+	/** Publishes only changed root-catalog fields. */
+	#publishSummary(session: LiveSession): void {
+		const current = this.#summaryOf(session);
+		const previous = this.#summaryBaselines.get(session.uri);
+		const changes: Partial<SessionSummary> = {};
+		if (!previous || current.title !== previous.title) changes.title = current.title;
+		if (!previous || current.status !== previous.status) changes.status = current.status;
+		if (!previous || current.modifiedAt !== previous.modifiedAt) changes.modifiedAt = current.modifiedAt;
+		this.#summaryBaselines.set(session.uri, current);
+		if (Object.keys(changes).length > 0) {
+			notifySessionSummaryChanged(this.#host, session.uri, changes);
+		}
+	}
+
+	/**
+	 * Projects a reduced chat summary onto its parent session and root catalog.
+	 *
+	 * The official 0.9 reducer cannot update top-level `SessionState.status`, so
+	 * this deliberately leaves that field alone. Clients still receive the live
+	 * status in `SessionState.chats[]`, `ChatState`, and the root summary.
+	 */
+	#syncChatProjection(session: LiveSession): void {
+		this.#projectingSessions.add(session.uri);
+		let changed = false;
+		try {
+			changed = syncChatSummary(this.#host, session.uri, session.chatChannel);
+			if (!changed) {
+				return;
+			}
+
+			const state = this.#host.store.get(session.uri) as SessionState | undefined;
+			if (!state) {
+				return;
+			}
+			const aggregate = aggregateSessionChats(state);
+			if (state.activity !== aggregate.activity) {
+				this.#host.dispatchServerAction(session.uri, {
+					type: ActionType.SessionActivityChanged,
+					activity: aggregate.activity,
+				});
+			}
+		} finally {
+			this.#projectingSessions.delete(session.uri);
+		}
+		if (changed && this.#sessions.get(session.uri) === session) {
+			this.#publishSummary(session);
+		}
+	}
 
 	#track(session: LiveSession): void {
 		this.#sessions.set(session.uri, session);

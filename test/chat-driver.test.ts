@@ -280,6 +280,10 @@ describe("chat driver", () => {
 		} as never);
 
 		await waitFor(() => backend.aborts === abortsBefore + 1);
+		const chat = fixture.host.store.get(fixture.chatChannel) as ChatState;
+		const session = fixture.host.store.get(fixture.sessionChannel) as SessionState;
+		assert.equal(chat.turns.at(-1)?.state, TurnState.Cancelled);
+		assert.equal(session.chats[0]?.status, chat.status);
 	});
 });
 
@@ -327,8 +331,9 @@ describe("chat driver — backend failure", () => {
 
 		try {
 			const id = randomUUID();
+			const session = sessionUri(id);
 			const chat = chatUri(id);
-			await client.request("createSession", { channel: sessionUri(id) } as never);
+			await client.request("createSession", { channel: session } as never);
 			await client.subscribe(chat);
 
 			// Dispatched through the wire so the reducer creates the active turn
@@ -347,6 +352,8 @@ describe("chat driver — backend failure", () => {
 			assert.equal(state.activeTurn, undefined);
 			assert.equal(state.turns[0]?.state, TurnState.Error);
 			assert.match(turnError(state.turns[0])?.message ?? "", /model unavailable/);
+			assert.equal((host.store.get(session) as SessionState).chats[0]?.status, state.status);
+			assert.equal(sessions.catalogueOverrides()[0]?.summary.status, state.status);
 		} finally {
 			await client.shutdown();
 			await server.close();

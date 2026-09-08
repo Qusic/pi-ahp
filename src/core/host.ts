@@ -218,6 +218,9 @@ export interface TerminalHandler {
 /** Post-commit hook for actions a client dispatched. */
 export type ClientActionListener = (channel: URI, action: StateAction) => void;
 
+/** Observes every accepted action after it has been reduced and broadcast. */
+export type CommittedActionListener = (channel: URI, action: StateAction) => void;
+
 /**
  * Pre-commit check for actions a client dispatched.
  *
@@ -294,6 +297,7 @@ export class AhpHost {
 	readonly #clientInfoById = new Map<string, InitializeParams["clientInfo"]>();
 	#capabilities: HostCapabilities = {};
 	readonly #actionListeners = new Set<ClientActionListener>();
+	readonly #committedActionListeners = new Set<CommittedActionListener>();
 	readonly #actionValidators = new Set<ClientActionValidator>();
 	readonly #subscriberListeners = new Set<SubscriberCountListener>();
 
@@ -739,6 +743,7 @@ export class AhpHost {
 		};
 		this.#sequencer.retain(envelope);
 		this.#broadcast(channel, notification("action", envelope));
+		this.#emitCommittedAction(channel, action);
 	}
 
 	/** Echoes a rejected action so the write-ahead client can roll it back. */
@@ -819,6 +824,18 @@ export class AhpHost {
 	}
 
 	/**
+	 * Observes every accepted action after its envelope has been broadcast.
+	 *
+	 * Cross-channel projections use this boundary so a derived session action is
+	 * always sequenced after the chat action that caused it. Rejected actions do
+	 * not reach observers.
+	 */
+	onActionCommitted(listener: CommittedActionListener): () => void {
+		this.#committedActionListeners.add(listener);
+		return () => this.#committedActionListeners.delete(listener);
+	}
+
+	/**
 	 * Registers a pre-commit check.
 	 *
 	 * Needed whenever accepting an action would leave the host unable to carry
@@ -838,6 +855,16 @@ export class AhpHost {
 				// A failing side effect must not corrupt the action stream that
 				// other clients have already observed.
 				this.#log(`Side effect for ${action.type} threw: ${String(error)}`);
+			}
+		}
+	}
+
+	#emitCommittedAction(channel: URI, action: StateAction): void {
+		for (const listener of this.#committedActionListeners) {
+			try {
+				listener(channel, action);
+			} catch (error) {
+				this.#log(`Post-commit observer for ${action.type} threw: ${String(error)}`);
 			}
 		}
 	}

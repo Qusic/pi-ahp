@@ -11,7 +11,12 @@ import { mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before, describe, it } from "node:test";
-import { type ListSessionsResult, SUPPORTED_PROTOCOL_VERSIONS } from "@microsoft/agent-host-protocol";
+import {
+	type ListSessionsResult,
+	SessionStatus,
+	type SessionSummary,
+	SUPPORTED_PROTOCOL_VERSIONS,
+} from "@microsoft/agent-host-protocol";
 import { sessionUri } from "../src/core/channels.ts";
 import { pathToFileUri } from "../src/core/uri.ts";
 import { PiSessionCatalogue } from "../src/pi/session-catalogue.ts";
@@ -157,6 +162,103 @@ describe("session catalogue", () => {
 	it("returns an empty catalogue when nothing exists yet", async () => {
 		const empty = new PiSessionCatalogue(join(root, "does-not-exist"));
 		assert.deepEqual(await empty.list(undefined, undefined), { items: [] });
+	});
+});
+
+describe("live session catalogue overlays", () => {
+	it("reads live status after disk discovery rather than freezing request-start state", async (t) => {
+		const root = mkdtempSync(join(tmpdir(), "pi-ahp-summary-race-"));
+		t.after(() => rmSync(root, { recursive: true, force: true }));
+		let current: SessionSummary = {
+			resource: sessionUri(randomUUID()),
+			provider: "pi",
+			title: "Live",
+			status: SessionStatus.InProgress,
+			createdAt: new Date(0).toISOString(),
+			modifiedAt: new Date(1000).toISOString(),
+		};
+		let reads = 0;
+		const pending = new PiSessionCatalogue(root).list(1, undefined, () => {
+			reads++;
+			return [{ summary: current }];
+		});
+		assert.equal(reads, 0, "live state must not be captured before the scan");
+		current = { ...current, status: SessionStatus.Idle, modifiedAt: new Date(2000).toISOString() };
+		assert.deepEqual(await pending, { items: [current] });
+		assert.equal(reads, 1);
+	});
+
+	it("keeps a live entry stable as its file appears, without caching a nonexistent file", async (t) => {
+		const root = mkdtempSync(join(tmpdir(), "pi-ahp-summary-materialize-"));
+		t.after(() => rmSync(root, { recursive: true, force: true }));
+		const id = randomUUID();
+		const options = { cwd: "/tmp/live", firstUserMessage: "disk", mtimeSeconds: 100 };
+		const file = writeFakeSession(root, id, options);
+		rmSync(file);
+		const live: SessionSummary = {
+			resource: sessionUri(id),
+			provider: "pi",
+			title: "Live",
+			status: SessionStatus.InProgress,
+			createdAt: new Date(0).toISOString(),
+			modifiedAt: new Date(200000).toISOString(),
+		};
+		const catalogue = new PiSessionCatalogue(root);
+		const source = () => [{ file, summary: live }];
+		assert.deepEqual(await catalogue.list(1, undefined, source), { items: [live] });
+		assert.equal(catalogue.fileFor(live.resource), undefined);
+		writeFakeSession(root, id, options);
+		assert.deepEqual(await catalogue.list(1, undefined, source), { items: [live] });
+		assert.equal(catalogue.fileFor(live.resource), file);
+	});
+
+	it("orders and paginates live summaries without duplicating their files", async () => {
+		const root = mkdtempSync(join(tmpdir(), "pi-ahp-live-catalogue-"));
+		try {
+			const replacedId = randomUUID();
+			const olderId = randomUUID();
+			const liveOnlyId = randomUUID();
+			const replacedFile = writeFakeSession(root, replacedId, {
+				cwd: "/tmp/replaced",
+				firstUserMessage: "stale disk title",
+				mtimeSeconds: 100,
+			});
+			writeFakeSession(root, olderId, {
+				cwd: "/tmp/older",
+				firstUserMessage: "older",
+				mtimeSeconds: 200,
+			});
+			const summary = (id: string, title: string, modifiedSeconds: number): SessionSummary => ({
+				resource: sessionUri(id),
+				provider: "pi",
+				title,
+				status: SessionStatus.InProgress,
+				createdAt: new Date(0).toISOString(),
+				modifiedAt: new Date(modifiedSeconds * 1000).toISOString(),
+			});
+			const live = [
+				{ file: replacedFile, summary: summary(replacedId, "live replacement", 400) },
+				{ summary: summary(liveOnlyId, "not on disk", 300) },
+			];
+			const catalogue = new PiSessionCatalogue(root);
+
+			const first = await catalogue.list(2, undefined, () => live);
+			assert.equal(first.items.length, 2);
+			assert.ok(first.nextCursor);
+			const second = await catalogue.list(2, first.nextCursor, () => live);
+			const items = [...first.items, ...second.items];
+
+			assert.deepEqual(
+				items.map((item) => item.resource),
+				[sessionUri(replacedId), sessionUri(liveOnlyId), sessionUri(olderId)],
+			);
+			assert.equal(items[0]?.title, "live replacement");
+			assert.equal(items[0]?.status, SessionStatus.InProgress);
+			assert.equal(new Set(items.map((item) => item.resource)).size, 3);
+			assert.equal(second.nextCursor, undefined);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
 	});
 });
 

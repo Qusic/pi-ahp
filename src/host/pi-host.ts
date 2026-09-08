@@ -137,7 +137,9 @@ export async function createPiHost(options: PiHostOptions = {}): Promise<PiHost>
 	});
 
 	host.serve({
-		catalogue,
+		catalogue: {
+			list: (limit, cursor) => catalogue.list(limit, cursor, () => sessions.catalogueOverrides()),
+		},
 		resources,
 		resourceWatches: watches,
 		terminals,
