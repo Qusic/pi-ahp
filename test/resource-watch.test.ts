@@ -1,10 +1,4 @@
-/**
- * Filesystem watches: typed changes, recursive scope, filtering, path policy,
- * and subscription-owned native watcher lifetime.
- *
- * @see https://microsoft.github.io/agent-host-protocol/specification/resource-watch-channel
- */
-
+/** Real filesystem / WebSocket integration. Pure filtering and batching rules have separate tests. */
 import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -12,32 +6,22 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { pathToFileURL } from "node:url";
 import {
-	ActionType,
-	type ResourceChange,
 	ResourceChangeType,
 	type ResourceWatchState,
 	SUPPORTED_PROTOCOL_VERSIONS,
 } from "@microsoft/agent-host-protocol";
-import { AhpClient, RpcError, type Subscription } from "@microsoft/agent-host-protocol/client";
+import { AhpClient, RpcError } from "@microsoft/agent-host-protocol/client";
 import { WebSocketTransport } from "@microsoft/agent-host-protocol/ws";
+import { FSWatcher } from "chokidar";
 import { installRootChannel } from "../src/channels/root.ts";
 import { AhpHost } from "../src/core/host.ts";
 import { ResourcePathPolicy } from "../src/pi/resource-paths.ts";
 import { ResourceWatchService } from "../src/pi/resource-watch.ts";
 import { type RunningServer, serveWebSocket } from "../src/transport/websocket.ts";
 import { checkSchema } from "./support/schema.ts";
+import { WatchEvents } from "./support/watch-events.ts";
 
 const uri = (path: string): string => pathToFileURL(path).toString();
-const EVENT_SETTLE_MS = 150;
-
-interface Fixture {
-	host: AhpHost;
-	watches: ResourceWatchService;
-	client: AhpClient;
-	server: RunningServer;
-	workspace: string;
-	close(): Promise<void>;
-}
 
 async function connectClient(server: RunningServer, clientId = "watch-client"): Promise<AhpClient> {
 	const client = new AhpClient(await WebSocketTransport.connect(`ws://127.0.0.1:${server.port}`));
@@ -46,125 +30,78 @@ async function connectClient(server: RunningServer, clientId = "watch-client"): 
 	return client;
 }
 
-async function startFixture(options: { graceMs?: number; restrictToWorkspace?: boolean } = {}): Promise<Fixture> {
+async function startFixture(options: { graceMs?: number; restrictToWorkspace?: boolean } = {}) {
 	const workspace = mkdtempSync(join(tmpdir(), "pi-ahp-watch-"));
 	const host = new AhpHost();
 	installRootChannel(host, []);
 	const watches = new ResourceWatchService(host, {
 		pathPolicy: new ResourcePathPolicy(options.restrictToWorkspace ? [workspace] : []),
-		// Short windows keep the lifetime tests honest without making them slow.
-		graceMs: options.graceMs ?? 200,
+		// Ordinary integration cases use production grace, not lifetime-test timing.
+		...(options.graceMs === undefined ? {} : { graceMs: options.graceMs }),
 		debounceMs: 20,
 	});
 	host.serve({ resourceWatches: watches });
-
 	const server = await serveWebSocket(host, { host: "127.0.0.1", port: 0 });
 	const client = await connectClient(server);
-
+	const collectors: WatchEvents[] = [];
 	return {
 		host,
 		watches,
 		client,
 		server,
 		workspace,
+		async observe(channel: string) {
+			const { result, subscription } = await client.subscribe(channel);
+			assert.ok(result.snapshot, "watch must still exist when subscription is accepted");
+			const events = new WatchEvents(subscription, () => ({
+				channel,
+				exists: host.store.has(channel),
+				activeCount: watches.activeCount,
+			}));
+			collectors.push(events);
+			return events;
+		},
 		async close() {
-			await watches.dispose();
-			await client.shutdown();
-			await server.close();
-			rmSync(workspace, { recursive: true, force: true });
+			try {
+				await Promise.all(collectors.map((events) => events.close()));
+			} finally {
+				await watches.dispose();
+				await client.shutdown();
+				await server.close();
+				rmSync(workspace, { recursive: true, force: true });
+			}
 		},
 	};
 }
 
-/** Collects the next batch of changes, failing fast on a stall. */
-async function nextChanges(subscription: Subscription, timeoutMs = 4_000): Promise<ResourceChange[]> {
-	let handle: ReturnType<typeof setTimeout>;
-	const timer = new Promise<never>((_, reject) => {
-		handle = setTimeout(() => reject(new Error("no change arrived")), timeoutMs);
-		handle.unref?.();
-	});
-	const next = (async () => {
-		while (true) {
-			const event = await subscription.next();
-			if (event.done) {
-				throw new Error("subscription ended early");
-			}
-			if (event.value.type === "action") {
-				const { action } = event.value.params;
-				assert.equal(action.type, ActionType.ResourceWatchChanged);
-				return action.changes.items;
-			}
-		}
-	})();
-	return Promise.race([next, timer]).finally(() => clearTimeout(handle));
-}
-
-async function nextMatchingChange(
-	subscription: Subscription,
-	matches: (change: ResourceChange) => boolean,
-	timeoutMs = 4_000,
-): Promise<ResourceChange> {
-	const deadline = Date.now() + timeoutMs;
-	while (true) {
-		const change = (await nextChanges(subscription, Math.max(1, deadline - Date.now()))).find(matches);
-		if (change) {
-			return change;
-		}
-		if (Date.now() >= deadline) {
-			throw new Error("no matching change arrived");
-		}
-	}
-}
-
-async function expectChange(
-	subscription: Subscription,
-	path: string,
-	type: ResourceChangeType,
-): Promise<ResourceChange> {
+async function expectChange(events: WatchEvents, path: string, type: ResourceChangeType, since = 0) {
 	const expected = { uri: uri(path), type };
-	const change = await nextMatchingChange(subscription, (item) => item.uri === expected.uri);
+	const changes = await events.waitFor(
+		`${type}: ${expected.uri}`,
+		(items) => items.some((item) => item.uri === expected.uri),
+		since,
+	);
+	const change = changes.find((item) => item.uri === expected.uri);
 	assert.deepEqual(change, expected);
 	return change;
 }
 
-async function collectChanges(
-	subscription: Subscription,
-	complete: (changes: readonly ResourceChange[]) => boolean,
-	timeoutMs = 4_000,
-): Promise<ResourceChange[]> {
-	const changes: ResourceChange[] = [];
-	const deadline = Date.now() + timeoutMs;
-	while (!complete(changes)) {
-		changes.push(...(await nextChanges(subscription, Math.max(1, deadline - Date.now()))));
-	}
-	return changes;
-}
-
-async function expectRpcError(promise: Promise<unknown>, code: number): Promise<RpcError> {
-	const error = await promise.then(
-		() => undefined,
-		(reason: unknown) => reason,
-	);
-	assert.ok(error instanceof RpcError);
-	assert.equal(error.code, code);
-	return error;
+async function expectRpcError(promise: Promise<unknown>, code: number): Promise<void> {
+	await assert.rejects(promise, (error: unknown) => error instanceof RpcError && error.code === code);
 }
 
 async function settle(ms: number): Promise<void> {
-	await new Promise((resolve) => {
-		const handle = setTimeout(resolve, ms);
-		handle.unref?.();
+	await new Promise<void>((resolve) => {
+		const timer = setTimeout(resolve, ms);
+		timer.unref();
 	});
 }
 
 describe("resource watch", () => {
-	let fixture: Fixture;
-
-	// Keep native watcher callbacks from one case out of the next case's directory.
+	let fixture: Awaited<ReturnType<typeof startFixture>>;
 	beforeEach(async () => {
 		fixture = await startFixture();
 	});
-
 	afterEach(async () => {
 		await fixture.close();
 	});
@@ -176,7 +113,6 @@ describe("resource watch", () => {
 			excludes: { items: ["**/.git/**"] },
 			includes: { items: ["**/*.ts"] },
 		});
-
 		assert.match(result.channel, /^ahp-resource-watch:\//);
 		const { result: subscribed } = await fixture.client.subscribe(result.channel);
 		assert.ok(subscribed.snapshot);
@@ -192,51 +128,46 @@ describe("resource watch", () => {
 
 	it("classifies newly created paths as added", async () => {
 		const { channel } = await fixture.client.createResourceWatch({ uri: uri(fixture.workspace) });
-		const { subscription } = await fixture.client.subscribe(channel);
-
+		const events = await fixture.observe(channel);
 		const target = join(fixture.workspace, "created.txt");
 		writeFileSync(target, "hi");
-		const created = await expectChange(subscription, target, ResourceChangeType.Added);
-
-		assert.equal(checkSchema("state", "ResourceChange", created), undefined);
+		assert.equal(
+			checkSchema("state", "ResourceChange", await expectChange(events, target, ResourceChangeType.Added)),
+			undefined,
+		);
 	});
 
 	it("classifies changes to existing paths as updated", async () => {
 		const target = join(fixture.workspace, "existing.txt");
 		writeFileSync(target, "before");
 		const { channel } = await fixture.client.createResourceWatch({ uri: uri(fixture.workspace) });
-		const { subscription } = await fixture.client.subscribe(channel);
-
+		const events = await fixture.observe(channel);
 		writeFileSync(target, "after");
-		await expectChange(subscription, target, ResourceChangeType.Updated);
+		await expectChange(events, target, ResourceChangeType.Updated);
 	});
 
 	it("watches a single file at its actual URI", async () => {
 		const target = join(fixture.workspace, "watched.txt");
 		writeFileSync(target, "before");
 		const { channel } = await fixture.client.createResourceWatch({ uri: uri(target) });
-		const { subscription } = await fixture.client.subscribe(channel);
-
-		const sibling = join(fixture.workspace, "sibling.txt");
-		writeFileSync(sibling, "unrelated");
-		await settle(EVENT_SETTLE_MS);
+		const events = await fixture.observe(channel);
+		writeFileSync(join(fixture.workspace, "sibling.txt"), "unrelated");
 		writeFileSync(target, "after");
-		const changes = await collectChanges(subscription, (items) => items.some((change) => change.uri === uri(target)));
-
-		assert.deepEqual(changes, [{ uri: uri(target), type: ResourceChangeType.Updated }]);
+		await expectChange(events, target, ResourceChangeType.Updated);
+		// Check delivered traffic; exhaustive sibling exclusion is a pure policy test.
+		assert.ok(events.changes.every((change) => change.uri === uri(target)));
 	});
 
 	it("reports deletion and recreation of the watched file", async () => {
 		const target = join(fixture.workspace, "recreated.txt");
 		writeFileSync(target, "before");
 		const { channel } = await fixture.client.createResourceWatch({ uri: uri(target) });
-		const { subscription } = await fixture.client.subscribe(channel);
-
+		const events = await fixture.observe(channel);
 		rmSync(target);
-		await expectChange(subscription, target, ResourceChangeType.Deleted);
-
+		await expectChange(events, target, ResourceChangeType.Deleted);
+		const since = events.mark();
 		writeFileSync(target, "after");
-		await expectChange(subscription, target, ResourceChangeType.Added);
+		await expectChange(events, target, ResourceChangeType.Added, since);
 	});
 
 	it("keeps a single-file watch attached across an atomic replacement", async () => {
@@ -244,179 +175,101 @@ describe("resource watch", () => {
 		const replacement = join(fixture.workspace, ".atomic.txt.tmp");
 		writeFileSync(target, "before");
 		const { channel } = await fixture.client.createResourceWatch({ uri: uri(target) });
-		const { subscription } = await fixture.client.subscribe(channel);
-
+		const events = await fixture.observe(channel);
 		writeFileSync(replacement, "replacement");
 		renameSync(replacement, target);
-		await expectChange(subscription, target, ResourceChangeType.Updated);
-
-		// Chokidar intentionally suppresses duplicate native change notifications
-		// for a short interval; wait past that window before proving it reattached.
-		await settle(EVENT_SETTLE_MS);
+		await expectChange(events, target, ResourceChangeType.Updated);
+		// Chokidar suppresses duplicate change callbacks for 50ms. This second
+		// save deliberately happens outside that documented implementation window.
+		await settle(150);
+		const since = events.mark();
 		writeFileSync(target, "after");
-		await expectChange(subscription, target, ResourceChangeType.Updated);
+		await expectChange(events, target, ResourceChangeType.Updated, since);
 	});
 
 	it("keeps a directory watch attached across deletion and recreation", async () => {
 		const target = join(fixture.workspace, "folder");
 		mkdirSync(target);
 		const { channel } = await fixture.client.createResourceWatch({ uri: uri(target) });
-		const { subscription } = await fixture.client.subscribe(channel);
-
+		const events = await fixture.observe(channel);
 		rmSync(target, { recursive: true });
-		await expectChange(subscription, target, ResourceChangeType.Deleted);
-
+		await expectChange(events, target, ResourceChangeType.Deleted);
+		const since = events.mark();
 		mkdirSync(target);
-		await expectChange(subscription, target, ResourceChangeType.Added);
-
+		await expectChange(events, target, ResourceChangeType.Added, since);
 		const child = join(target, "child.txt");
 		writeFileSync(child, "content");
-		await expectChange(subscription, child, ResourceChangeType.Added);
+		await expectChange(events, child, ResourceChangeType.Added, since);
 	});
 
-	it("reports both sides of a rename", async () => {
+	it("reports both sides of a rename without assuming batch boundaries", async () => {
 		const source = join(fixture.workspace, "before.txt");
 		const destination = join(fixture.workspace, "after.txt");
 		writeFileSync(source, "content");
 		const { channel } = await fixture.client.createResourceWatch({ uri: uri(fixture.workspace) });
-		const { subscription } = await fixture.client.subscribe(channel);
-
+		const events = await fixture.observe(channel);
 		renameSync(source, destination);
-		const changes = await collectChanges(subscription, (items) => {
-			const added = items.some((change) => change.uri === uri(destination) && change.type === ResourceChangeType.Added);
-			const deleted = items.some((change) => change.uri === uri(source) && change.type === ResourceChangeType.Deleted);
-			return added && deleted;
-		});
-
-		assert.deepEqual(
-			changes
-				.filter((change) => change.uri === uri(source) || change.uri === uri(destination))
-				.sort((left, right) => left.uri.localeCompare(right.uri)),
-			[
-				{ uri: uri(destination), type: ResourceChangeType.Added },
-				{ uri: uri(source), type: ResourceChangeType.Deleted },
-			].sort((left, right) => left.uri.localeCompare(right.uri)),
-		);
+		await Promise.all([
+			expectChange(events, source, ResourceChangeType.Deleted),
+			expectChange(events, destination, ResourceChangeType.Added),
+		]);
 	});
 
 	it("does not lose paths from a burst", async () => {
 		const { channel } = await fixture.client.createResourceWatch({ uri: uri(fixture.workspace) });
-		const { subscription } = await fixture.client.subscribe(channel);
-		const expected = Array.from({ length: 5 }, (_, index) => `burst-${index}.txt`);
-
-		for (const name of expected) {
-			writeFileSync(join(fixture.workspace, name), "x");
-		}
-		const seen = new Set<string>();
-		const expectedUris = expected.map((name) => uri(join(fixture.workspace, name)));
-		const deadline = Date.now() + 4_000;
-		while (seen.size < expectedUris.length) {
-			if (Date.now() >= deadline) {
-				assert.fail(`missing burst paths: ${expectedUris.filter((path) => !seen.has(path)).join(", ")}`);
-			}
-			for (const change of await nextChanges(subscription, Math.max(1, deadline - Date.now()))) {
-				if (expectedUris.includes(change.uri)) {
-					assert.equal(change.type, ResourceChangeType.Added);
-					seen.add(change.uri);
-				}
-			}
-		}
-
-		assert.deepEqual([...seen].sort(), expectedUris.sort());
+		const events = await fixture.observe(channel);
+		const paths = Array.from({ length: 5 }, (_, i) => join(fixture.workspace, `burst-${i}.txt`));
+		for (const path of paths) writeFileSync(path, "x");
+		await Promise.all(paths.map((path) => expectChange(events, path, ResourceChangeType.Added)));
 	});
 
-	it("limits non-recursive watches to direct children", async () => {
-		const nested = join(fixture.workspace, "nested");
-		mkdirSync(nested);
-		const { channel } = await fixture.client.createResourceWatch({ uri: uri(fixture.workspace) });
-		const { subscription } = await fixture.client.subscribe(channel);
-
-		const nestedTarget = join(nested, "deep.txt");
-		writeFileSync(nestedTarget, "deep");
-		await settle(EVENT_SETTLE_MS);
-
-		const directTarget = join(fixture.workspace, "direct.txt");
-		const collecting = collectChanges(subscription, (items) =>
-			items.some((change) => change.uri === uri(directTarget)),
-		);
-		writeFileSync(directTarget, "direct");
-		const changes = await collecting;
-		assert.equal(
-			changes.some((change) => change.uri === uri(nestedTarget)),
-			false,
-		);
-		assert.deepEqual(
-			changes.find((change) => change.uri === uri(directTarget)),
-			{ uri: uri(directTarget), type: ResourceChangeType.Added },
-		);
-	});
-
-	it("reports grandchildren for recursive watches", async () => {
-		const nested = join(fixture.workspace, "nested");
-		mkdirSync(nested);
-		const { channel } = await fixture.client.createResourceWatch({ uri: uri(fixture.workspace), recursive: true });
-		const { subscription } = await fixture.client.subscribe(channel);
-		const nestedTarget = join(nested, "deep.txt");
-
-		const observing = expectChange(subscription, nestedTarget, ResourceChangeType.Added);
-		writeFileSync(nestedTarget, "deep");
-		await observing;
-	});
-
-	it("honours exclude globs", async () => {
-		const { channel } = await fixture.client.createResourceWatch({
-			uri: uri(fixture.workspace),
-			recursive: true,
-			excludes: { items: ["**/node_modules/**"] },
+	for (const recursive of [false, true]) {
+		it(`reports ${recursive ? "grandchildren" : "direct children"} with recursive=${recursive}`, async () => {
+			const nested = join(fixture.workspace, "nested");
+			mkdirSync(nested);
+			const { channel } = await fixture.client.createResourceWatch({ uri: uri(fixture.workspace), recursive });
+			const events = await fixture.observe(channel);
+			const direct = join(fixture.workspace, "direct.txt");
+			const deep = join(nested, "deep.txt");
+			writeFileSync(deep, "deep");
+			writeFileSync(direct, "direct");
+			await expectChange(events, recursive ? deep : direct, ResourceChangeType.Added);
+			if (!recursive) assert.ok(events.changes.every((change) => change.uri !== uri(deep)));
 		});
-		const { subscription } = await fixture.client.subscribe(channel);
+	}
 
-		const ignored = join(fixture.workspace, "node_modules", "ignored.txt");
-		const noticed = join(fixture.workspace, "noticed.txt");
-		mkdirSync(join(fixture.workspace, "node_modules"), { recursive: true });
-		writeFileSync(ignored, "x");
-		await settle(EVENT_SETTLE_MS);
-		writeFileSync(noticed, "x");
-
-		const changes = await collectChanges(subscription, (items) => items.some((change) => change.uri === uri(noticed)));
-		// The directory entry itself may be reported; nothing inside it may.
-		assert.equal(
-			changes.some((change) => change.uri === uri(ignored)),
-			false,
-		);
-		assert.deepEqual(
-			changes.find((change) => change.uri === uri(noticed)),
-			{ uri: uri(noticed), type: ResourceChangeType.Added },
-		);
-	});
-
-	it("honours include globs", async () => {
-		const { channel } = await fixture.client.createResourceWatch({
-			uri: uri(fixture.workspace),
-			recursive: true,
-			includes: { items: ["**/*.md"] },
+	for (const filter of ["includes", "excludes"] as const) {
+		it(`wires ${filter} into native watch delivery`, async () => {
+			const { channel } = await fixture.client.createResourceWatch({
+				uri: uri(fixture.workspace),
+				recursive: true,
+				...(filter === "includes"
+					? { includes: { items: ["**/*.md"] } }
+					: { excludes: { items: ["**/node_modules/**"] } }),
+			});
+			const events = await fixture.observe(channel);
+			const ignoredDir = join(fixture.workspace, "node_modules");
+			mkdirSync(ignoredDir);
+			writeFileSync(join(ignoredDir, "ignored.txt"), "x");
+			const target = join(fixture.workspace, "kept.md");
+			writeFileSync(target, "x");
+			await expectChange(events, target, ResourceChangeType.Added);
+			assert.ok(
+				events.changes.every((change) =>
+					filter === "includes" ? change.uri.endsWith(".md") : !change.uri.includes("/node_modules/"),
+				),
+			);
 		});
-		const { subscription } = await fixture.client.subscribe(channel);
-
-		const skipped = join(fixture.workspace, "skipped.txt");
-		const kept = join(fixture.workspace, "kept.md");
-		writeFileSync(skipped, "x");
-		await settle(EVENT_SETTLE_MS);
-		writeFileSync(kept, "x");
-
-		const changes = await collectChanges(subscription, (items) => items.some((change) => change.uri === uri(kept)));
-		assert.deepEqual(changes, [{ uri: uri(kept), type: ResourceChangeType.Added }]);
-	});
+	}
 
 	it("rejects watching something that does not exist", async () => {
-		await expectRpcError(fixture.client.createResourceWatch({ uri: uri(join(fixture.workspace, "absent")) }), -32008);
+		await expectRpcError(fixture.client.createResourceWatch({ uri: uri(join(fixture.workspace, "missing")) }), -32008);
 		assert.equal(fixture.watches.activeCount, 0);
 	});
 
 	it("rejects a recursive watch on a file", async () => {
 		const target = join(fixture.workspace, "file.txt");
-		writeFileSync(target, "content");
-
+		writeFileSync(target, "x");
 		await expectRpcError(fixture.client.createResourceWatch({ uri: uri(target), recursive: true }), -32602);
 		assert.equal(fixture.watches.activeCount, 0);
 	});
@@ -445,10 +298,9 @@ describe("resource watch — roots", () => {
 			writeFileSync(child, "before");
 			symlinkSync(target, link, "dir");
 			const { channel } = await fixture.client.createResourceWatch({ uri: uri(link), recursive: true });
-			const { subscription } = await fixture.client.subscribe(channel);
-
+			const events = await fixture.observe(channel);
 			writeFileSync(child, "after");
-			await expectChange(subscription, join(link, "watched.txt"), ResourceChangeType.Updated);
+			await expectChange(events, join(link, "watched.txt"), ResourceChangeType.Updated);
 		} finally {
 			await fixture.close();
 		}
@@ -460,14 +312,11 @@ describe("resource watch — roots", () => {
 		try {
 			const inside = await fixture.client.createResourceWatch({ uri: uri(fixture.workspace) });
 			assert.match(inside.channel, /^ahp-resource-watch:\//);
-
 			await expectRpcError(fixture.client.createResourceWatch({ uri: uri(outside) }), -32009);
-
-			const escapedLink = join(fixture.workspace, "escape");
-			symlinkSync(outside, escapedLink, "dir");
-			await expectRpcError(fixture.client.createResourceWatch({ uri: uri(escapedLink) }), -32009);
-
-			assert.equal(fixture.watches.activeCount, 1, "rejected requests must not allocate watchers");
+			const link = join(fixture.workspace, "escape");
+			symlinkSync(outside, link, "dir");
+			await expectRpcError(fixture.client.createResourceWatch({ uri: uri(link) }), -32009);
+			assert.equal(fixture.watches.activeCount, 1);
 		} finally {
 			await fixture.close();
 			rmSync(outside, { recursive: true, force: true });
@@ -475,106 +324,217 @@ describe("resource watch — roots", () => {
 	});
 });
 
-describe("resource watch — lifetime", () => {
-	it("releases a watch once its last subscriber goes away", async () => {
-		const fixture = await startFixture({ graceMs: 120 });
-		try {
-			const { channel } = await fixture.client.createResourceWatch({ uri: uri(fixture.workspace) });
-			await fixture.client.subscribe(channel);
-			assert.equal(fixture.watches.activeCount, 1);
-
-			await fixture.client.unsubscribe(channel);
-			await settle(300);
-
-			// There is no `disposeResourceWatch`: interest is the only signal.
-			assert.equal(fixture.watches.activeCount, 0);
-			assert.equal(fixture.host.store.has(channel), false);
-		} finally {
-			await fixture.close();
-		}
-	});
-
-	it("waits for the last subscriber before scheduling release", async () => {
+describe("resource watch — lifetime", { timeout: 10_000 }, () => {
+	it("waits for the last subscriber before scheduling release", async (t) => {
 		const fixture = await startFixture({ graceMs: 120 });
 		const other = await connectClient(fixture.server, "other-watch-client");
 		try {
 			const { channel } = await fixture.client.createResourceWatch({ uri: uri(fixture.workspace) });
 			await fixture.client.subscribe(channel);
 			await other.subscribe(channel);
-
+			// Native setup has completed. Only the host's grace timer is driven by ticks.
+			t.mock.timers.enable({ apis: ["setTimeout"] });
 			await fixture.client.unsubscribe(channel);
-			await settle(300);
+			await fixture.client.ping();
+			t.mock.timers.tick(120);
 			assert.equal(fixture.watches.activeCount, 1);
-
 			await other.unsubscribe(channel);
-			await settle(300);
+			await other.ping();
+			t.mock.timers.tick(119);
+			assert.equal(fixture.watches.activeCount, 1);
+			t.mock.timers.tick(1);
 			assert.equal(fixture.watches.activeCount, 0);
 			assert.equal(fixture.host.store.has(channel), false);
 		} finally {
+			t.mock.timers.reset();
 			await other.shutdown();
 			await fixture.close();
 		}
 	});
 
-	it("cancels deferred release when the channel is resubscribed", async () => {
-		const fixture = await startFixture({ graceMs: 1_000 });
-		try {
-			const { channel } = await fixture.client.createResourceWatch({ uri: uri(fixture.workspace) });
-			await fixture.client.subscribe(channel);
-			await fixture.client.unsubscribe(channel);
+	for (const method of ["subscribe", "initialize", "reconnect"] as const) {
+		it(`cancels grace on ${method} and grants a full window after the next unsubscribe`, async (t) => {
+			const fixture = await startFixture({ graceMs: 120 });
+			let replacement: AhpClient | undefined;
+			try {
+				const { channel } = await fixture.client.createResourceWatch({ uri: uri(fixture.workspace) });
+				await fixture.client.subscribe(channel);
+				const counts: number[] = [];
+				const unhook = fixture.host.onSubscriberCountChanged((changed, count) => {
+					if (changed === channel) counts.push(count);
+				});
+				t.after(unhook);
+				t.mock.timers.enable({ apis: ["setTimeout"] });
+				await fixture.client.unsubscribe(channel);
+				await fixture.client.ping();
+				t.mock.timers.tick(60);
+				let owner = fixture.client;
+				if (method === "subscribe") await owner.subscribe(channel);
+				else {
+					replacement = new AhpClient(await WebSocketTransport.connect(`ws://127.0.0.1:${fixture.server.port}`));
+					replacement.connect();
+					owner = replacement;
+					if (method === "initialize")
+						await owner.initialize({
+							clientId: "replacement",
+							protocolVersions: SUPPORTED_PROTOCOL_VERSIONS,
+							initialSubscriptions: [channel],
+						});
+					else
+						await owner.reconnect({
+							clientId: "replacement",
+							lastSeenServerSeq: fixture.host.serverSeq,
+							subscriptions: [channel],
+						});
+				}
+				assert.deepEqual(counts, [0, 1]);
+				t.mock.timers.tick(120);
+				assert.equal(fixture.watches.activeCount, 1);
+				await owner.unsubscribe(channel);
+				await owner.ping();
+				t.mock.timers.tick(119);
+				assert.equal(fixture.watches.activeCount, 1);
+				t.mock.timers.tick(1);
+				assert.equal(fixture.watches.activeCount, 0);
+				assert.deepEqual(counts, [0, 1, 0]);
+			} finally {
+				t.mock.timers.reset();
+				await replacement?.shutdown();
+				await fixture.close();
+			}
+		});
+	}
 
-			// Still alive mid-window — dropping it instantly would punish any
-			// client whose socket blipped.
-			await settle(200);
-			assert.equal(fixture.watches.activeCount, 1);
-
-			await fixture.client.subscribe(channel);
-			await settle(1_200);
-			assert.equal(fixture.watches.activeCount, 1, "resubscribing must cancel the release");
-		} finally {
-			await fixture.close();
-		}
-	});
-
-	it("releases a watch when the client disconnects without unsubscribing", async () => {
+	it("releases a watch when the client disconnects without unsubscribing", async (t) => {
 		const fixture = await startFixture({ graceMs: 120 });
 		try {
 			const { channel } = await fixture.client.createResourceWatch({ uri: uri(fixture.workspace) });
 			await fixture.client.subscribe(channel);
-
+			t.mock.timers.enable({ apis: ["setTimeout"] });
+			const disconnected = Promise.withResolvers<void>();
+			const unhook = fixture.host.onSubscriberCountChanged((changed, count) => {
+				if (changed === channel && count === 0) disconnected.resolve();
+			});
+			t.after(unhook);
 			await fixture.client.shutdown();
-			await settle(400);
-
+			await disconnected.promise;
+			t.mock.timers.tick(119);
+			assert.equal(fixture.watches.activeCount, 1);
+			t.mock.timers.tick(1);
 			assert.equal(fixture.watches.activeCount, 0);
+			assert.equal(fixture.host.store.has(channel), false);
 		} finally {
+			t.mock.timers.reset();
 			await fixture.close();
 		}
 	});
 
-	it("releases a watch nobody ever subscribed to", async () => {
+	it("releases a watch nobody ever subscribed to", async (t) => {
 		const fixture = await startFixture({ graceMs: 120 });
 		try {
-			await fixture.client.createResourceWatch({ uri: uri(fixture.workspace) });
-			// Opened and abandoned: without an initial grace timer this would
-			// leak an OS watcher for the life of the process.
-			await settle(400);
+			t.mock.timers.enable({ apis: ["setTimeout"] });
+			const { channel } = await fixture.client.createResourceWatch({ uri: uri(fixture.workspace) });
+			t.mock.timers.tick(119);
+			assert.equal(fixture.watches.activeCount, 1);
+			t.mock.timers.tick(1);
 			assert.equal(fixture.watches.activeCount, 0);
+			assert.equal(fixture.host.store.has(channel), false);
 		} finally {
+			t.mock.timers.reset();
 			await fixture.close();
 		}
 	});
 
-	it("disposes every watch and can be shut down twice", async () => {
+	it("disposes every watch and returns the same shutdown promise", async () => {
 		const fixture = await startFixture();
 		try {
 			const { channel } = await fixture.client.createResourceWatch({ uri: uri(fixture.workspace) });
 			await fixture.client.subscribe(channel);
-
-			await fixture.watches.dispose();
-			await fixture.watches.dispose();
-
+			const closing = fixture.watches.dispose();
+			assert.equal(fixture.watches.dispose(), closing);
+			await closing;
 			assert.equal(fixture.watches.activeCount, 0);
 			assert.equal(fixture.host.store.has(channel), false);
+		} finally {
+			await fixture.close();
+		}
+	});
+
+	it("waits for a blocked creation to settle before completing shutdown", async (t) => {
+		const workspace = mkdtempSync(join(tmpdir(), "pi-ahp-watch-shutdown-"));
+		const policy = new ResourcePathPolicy();
+		const entered = Promise.withResolvers<void>();
+		const gate = Promise.withResolvers<void>();
+		const pathFor = policy.pathFor.bind(policy);
+		t.mock.method(policy, "pathFor", async (value: unknown) => {
+			const path = await pathFor(value);
+			entered.resolve();
+			await gate.promise;
+			return path;
+		});
+		const service = new ResourceWatchService(new AhpHost(), { pathPolicy: policy });
+		try {
+			const creating = service.create({ channel: "ahp-root://", uri: uri(workspace) });
+			const rejected = assert.rejects(creating, /disposed/);
+			await entered.promise;
+			let finished = false;
+			const closing = service.dispose();
+			void closing.then(() => {
+				finished = true;
+			});
+			await new Promise<void>((resolve) => setImmediate(resolve));
+			assert.equal(finished, false, "shutdown must drain the admitted create operation");
+			gate.resolve();
+			await closing;
+			await rejected;
+			assert.equal(service.activeCount, 0);
+		} finally {
+			gate.resolve();
+			await service.dispose();
+			rmSync(workspace, { recursive: true, force: true });
+		}
+	});
+
+	it("closes a native watcher if shutdown wins at its ready boundary", async (t) => {
+		const workspace = mkdtempSync(join(tmpdir(), "pi-ahp-watch-ready-"));
+		const service = new ResourceWatchService(new AhpHost());
+		let shutdown: Promise<void> | undefined;
+		let closed = 0;
+		const emit = FSWatcher.prototype.emit;
+		const close = FSWatcher.prototype.close;
+		// Observe the real ready event; no synthetic watcher or backend factory.
+		t.mock.method(FSWatcher.prototype, "emit", function (this: FSWatcher, event: string | symbol, ...args: unknown[]) {
+			if (event === "ready") shutdown = service.dispose();
+			return Reflect.apply(emit, this, [event, ...args]);
+		});
+		t.mock.method(FSWatcher.prototype, "close", async function (this: FSWatcher) {
+			await close.call(this);
+			closed++;
+		});
+		try {
+			await assert.rejects(service.create({ channel: "ahp-root://", uri: uri(workspace) }), /disposed/);
+			assert.ok(shutdown, "the real watcher must have reached ready");
+			await shutdown;
+			assert.equal(closed, 1);
+			assert.equal(service.activeCount, 0);
+		} finally {
+			await service.dispose();
+			rmSync(workspace, { recursive: true, force: true });
+		}
+	});
+
+	it("drains in-flight creations and rejects new ones after shutdown", async () => {
+		const fixture = await startFixture();
+		try {
+			const params = { channel: "ahp-root://", uri: uri(fixture.workspace) } as const;
+			const creating = fixture.watches.create(params);
+			const rejected = assert.rejects(creating, /disposed/);
+			const closing = fixture.watches.dispose();
+			assert.equal(fixture.watches.dispose(), closing);
+			await closing;
+			await rejected;
+			assert.equal(fixture.watches.activeCount, 0);
+			await assert.rejects(fixture.watches.create(params), /disposed/);
 		} finally {
 			await fixture.close();
 		}

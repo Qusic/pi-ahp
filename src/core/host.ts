@@ -615,7 +615,7 @@ export class AhpHost {
 				await this.#capabilities.hydrator?.hydrate(uri).catch(() => false);
 			}
 			if (uri === ROOT_CHANNEL || this.#store.has(uri)) {
-				connection.subscribe(uri);
+				this.#addSubscription(connection, uri);
 			} else {
 				missing.push(uri);
 			}
@@ -680,8 +680,14 @@ export class AhpHost {
 			this.#log(`Ignoring subscription to unknown channel: ${channel}`);
 			return undefined;
 		}
-		connection.subscribe(channel);
+		this.#addSubscription(connection, channel);
 		return this.#store.snapshot(channel, this.#sequencer.current);
+	}
+
+	#addSubscription(connection: ClientConnection, channel: URI): void {
+		if (connection.isSubscribed(channel)) return;
+		connection.subscribe(channel);
+		this.#notifySubscriberCount(channel);
 	}
 
 	// ── Actions ─────────────────────────────────────────────────────────────

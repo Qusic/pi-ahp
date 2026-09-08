@@ -13,7 +13,7 @@
 
 import { randomUUID } from "node:crypto";
 import { realpath, stat } from "node:fs/promises";
-import { dirname, isAbsolute, join, matchesGlob, relative, resolve, sep } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import {
 	ActionType,
@@ -31,6 +31,7 @@ import { RESOURCE_WATCH_SCHEME } from "../core/channels.ts";
 import type { AhpHost } from "../core/host.ts";
 import { ProtocolError } from "../protocol/errors.ts";
 import { ResourcePathPolicy } from "./resource-paths.ts";
+import { isExcluded, matchesPatterns, mergeChange, relativeWatchPath } from "./resource-watch-policy.ts";
 
 export interface ResourceWatchOptions {
 	/** Shared access policy for the request/response and watch resource surfaces. */
@@ -94,43 +95,6 @@ function readPatterns(value: unknown, name: string): string[] {
 	return [...items];
 }
 
-/** Returns a POSIX-style path below root, or undefined for an escaped path. */
-function relativeWatchPath(root: string, path: string): string | undefined {
-	const result = relative(root, resolve(path));
-	if (isAbsolute(result) || result === ".." || result.startsWith(`..${sep}`)) {
-		return undefined;
-	}
-	return result.split(sep).join("/");
-}
-
-function isExcluded(path: string, excludes: readonly string[]): boolean {
-	return path.length > 0 && excludes.some((pattern) => matchesGlob(path, pattern));
-}
-
-function matchesPatterns(path: string, includes: readonly string[], excludes: readonly string[]): boolean {
-	// The watched resource itself is always in scope. Patterns describe paths
-	// relative to it and primarily exist to prune directory descendants.
-	if (path.length === 0) return true;
-	return (
-		!isExcluded(path, excludes) && (includes.length === 0 || includes.some((pattern) => matchesGlob(path, pattern)))
-	);
-}
-
-/** Coalesces one path's transitions without losing its state at batch boundaries. */
-function mergeChange(
-	previous: ResourceChangeType | undefined,
-	next: ResourceChangeType,
-): ResourceChangeType | undefined {
-	if (previous === undefined) return next;
-	if (previous === ResourceChangeType.Added) {
-		return next === ResourceChangeType.Deleted ? undefined : ResourceChangeType.Added;
-	}
-	if (previous === ResourceChangeType.Deleted) {
-		return next === ResourceChangeType.Deleted ? ResourceChangeType.Deleted : ResourceChangeType.Updated;
-	}
-	return next === ResourceChangeType.Deleted ? ResourceChangeType.Deleted : ResourceChangeType.Updated;
-}
-
 function waitUntilReady(watcher: FSWatcher): Promise<void> {
 	return new Promise((resolveReady, rejectReady) => {
 		const cleanup = (): void => {
@@ -156,7 +120,10 @@ export class ResourceWatchService {
 	readonly #paths: ResourcePathPolicy;
 	readonly #watches = new Map<URI, ActiveWatch>();
 	readonly #unhook: () => void;
+	/** Native setup/close operations that shutdown must drain, not protocol state. */
+	readonly #pending = new Set<Promise<unknown>>();
 	#disposed = false;
+	#disposal: Promise<void> | undefined;
 
 	constructor(host: AhpHost, options: ResourceWatchOptions = {}) {
 		this.#host = host;
@@ -168,18 +135,30 @@ export class ResourceWatchService {
 	}
 
 	/** Releases every native watcher. Safe to call more than once. */
-	async dispose(): Promise<void> {
-		if (this.#disposed) return;
+	dispose(): Promise<void> {
+		if (this.#disposal) return this.#disposal;
 		this.#disposed = true;
 		this.#unhook();
-		await Promise.all([...this.#watches.keys()].map((channel) => this.#release(channel)));
+		const releases = [...this.#watches.keys()].map((channel) => this.#release(channel));
+		this.#disposal = Promise.allSettled([...this.#pending, ...releases]).then(() => {});
+		return this.#disposal;
 	}
 
 	get activeCount(): number {
 		return this.#watches.size;
 	}
 
-	async create(params: CreateResourceWatchParams): Promise<CreateResourceWatchResult> {
+	create(params: CreateResourceWatchParams): Promise<CreateResourceWatchResult> {
+		return this.#track(this.#create(params));
+	}
+
+	#track<T>(operation: Promise<T>): Promise<T> {
+		const pending = operation.finally(() => this.#pending.delete(pending));
+		this.#pending.add(pending);
+		return pending;
+	}
+
+	async #create(params: CreateResourceWatchParams): Promise<CreateResourceWatchResult> {
 		if (this.#disposed) {
 			throw new Error("ResourceWatchService is disposed");
 		}
@@ -211,6 +190,8 @@ export class ResourceWatchService {
 			throw watchError(error, uri);
 		}
 
+		if (this.#disposed) throw new Error("ResourceWatchService is disposed");
+
 		// Starting from the parent keeps the watch alive when an editor replaces a
 		// file—or the watched directory itself—by rename. The ignored predicate
 		// prevents siblings from entering chokidar's watched tree.
@@ -229,7 +210,10 @@ export class ResourceWatchService {
 			},
 		});
 		try {
+			// Let startup settle before closing: closing a not-yet-ready watcher
+			// does not settle its ready waiter. Shutdown drains this creation task.
 			await waitUntilReady(watcher);
+			if (this.#disposed) throw new Error("ResourceWatchService is disposed");
 		} catch (error) {
 			await watcher.close();
 			throw watchError(error, uri);
@@ -357,7 +341,7 @@ export class ResourceWatchService {
 		active.pending.clear();
 		this.#host.store.delete(channel);
 		try {
-			await active.watcher.close();
+			await this.#track(active.watcher.close());
 		} catch (error) {
 			this.#options.log?.(`closing watch ${channel} failed: ${String(error)}`);
 		}
