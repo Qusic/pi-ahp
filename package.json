@@ -28,7 +28,9 @@
 	},
 	"license": "MIT",
 	"type": "module",
-	"files": ["dist"],
+	"files": [
+		"dist"
+	],
 	"bin": {
 		"pi-ahp": "dist/bin/cli.js",
 		"pi-ahp-tunnel": "dist/bin/tunnel.js"

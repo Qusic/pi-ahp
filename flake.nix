@@ -64,21 +64,45 @@
             __structuredAttrs = true;
             strictDeps = true;
 
+            buildInputs =
+              with final;
+              lib.optionals stdenv.hostPlatform.isLinux [
+                stdenv.cc.cc.lib
+              ];
+
             nativeBuildInputs = [
               nodejs
               pnpm
             ]
-            ++ (with final; [
-              pnpmConfigHook
-              makeWrapper
-              jq
-              python3
-            ]);
+            ++ (
+              with final;
+              [
+                pnpmConfigHook
+                makeWrapper
+                jq
+                python3
+              ]
+              ++ lib.optionals stdenv.hostPlatform.isLinux [
+                autoPatchelfHook
+              ]
+            );
+
+            preBuild = final.lib.optionalString final.stdenv.hostPlatform.isLinux ''
+              autoPatchelf node_modules
+            '';
 
             buildPhase = ''
               runHook preBuild
               pnpm run build
               runHook postBuild
+            '';
+
+            checkPhase = ''
+              runHook preCheck
+              pnpm run check
+              pnpm run lint
+              pnpm run test
+              runHook postCheck
             '';
 
             installPhase = ''
@@ -109,17 +133,13 @@
         };
       });
 
-      checks = forEachSystem (
-        pkgs:
-        nixpkgs.lib.genAttrs [ "test" "check" "lint" ] (
-          script:
-          pkgs.pi-ahp.overrideAttrs (prev: {
-            pname = "${prev.pname}-${script}";
-            env.AHP_SPEC_PATH = "${pkgs.ahp-spec}";
-            buildPhase = "pnpm run ${script}";
-            installPhase = "touch $out";
-          })
-        )
-      );
+      checks = forEachSystem (pkgs: {
+        default = pkgs.pi-ahp.overrideAttrs (prev: {
+          pname = "${prev.pname}-check";
+          env.AHP_SPEC_PATH = "${pkgs.ahp-spec}";
+          doCheck = true;
+          installPhase = "touch $out";
+        });
+      });
     };
 }
