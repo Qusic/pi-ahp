@@ -58,7 +58,7 @@
               inherit (finalAttrs) src;
               inherit pnpm;
               fetcherVersion = 4;
-              hash = "sha256-O5644kuWF4qaJJoG4BAg5dyyHQy/1kthXdNyYcWBD3g=";
+              hash = "sha256-u7qAiP1CHX9BsCewWyWVMszNN8NW8NCARLz77WEJJAM=";
             };
 
             __structuredAttrs = true;
@@ -75,13 +75,19 @@
               python3
             ]);
 
+            buildPhase = ''
+              runHook preBuild
+              pnpm run build
+              runHook postBuild
+            '';
+
             installPhase = ''
               runHook preInstall
               bin=$out/bin
               lib=$out/lib/${finalAttrs.pname}
               mkdir -p "$bin" "$lib"
               pnpm prune --prod --ignore-scripts
-              cp -r src node_modules package.json "$lib/"
+              cp -r dist node_modules package.json "$lib/"
               jq -r '.bin | to_entries[] | "\(.key) \(.value)"' package.json | \
                 while read -r name entry; do
                   makeWrapper ${nodejs}/bin/node "$bin/$name" --add-flag "$lib/$entry"

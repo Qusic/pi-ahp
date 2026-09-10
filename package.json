@@ -1,12 +1,37 @@
 {
 	"name": "pi-ahp",
-	"version": "0.0.1",
+	"version": "0.0.0",
 	"description": "Agent Host Protocol server for Pi coding agent",
+	"keywords": [
+		"agent-host-protocol",
+		"ahp",
+		"agent-host",
+		"pi",
+		"pi-coding-agent",
+		"coding-agent",
+		"ai-agent",
+		"agent",
+		"ai",
+		"llm",
+		"cli",
+		"json-rpc",
+		"websocket",
+		"vscode"
+	],
+	"homepage": "https://github.com/Qusic/pi-ahp#readme",
+	"bugs": {
+		"url": "https://github.com/Qusic/pi-ahp/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/Qusic/pi-ahp.git"
+	},
+	"license": "MIT",
 	"type": "module",
-	"private": true,
+	"files": ["dist"],
 	"bin": {
-		"pi-ahp": "src/bin/cli.ts",
-		"pi-ahp-tunnel": "src/bin/tunnel.ts"
+		"pi-ahp": "dist/bin/cli.js",
+		"pi-ahp-tunnel": "dist/bin/tunnel.js"
 	},
 	"engines": {
 		"node": ">=24.0.0"
@@ -16,7 +41,10 @@
 		"test": "node --test",
 		"check": "tsc",
 		"lint": "biome check",
-		"format": "biome check --write"
+		"format": "biome check --write",
+		"build": "rm -rf dist && tsc -p tsconfig.build.json",
+		"release": "semantic-release",
+		"prepack": "pnpm run build"
 	},
 	"dependencies": {
 		"@earendil-works/pi-ai": "0.84.4",
@@ -32,6 +60,7 @@
 		"@types/node": "^24.13.3",
 		"@types/ws": "^8.18.1",
 		"ajv": "^8.20.0",
+		"semantic-release": "^25.0.9",
 		"typescript": "^7.0.2"
 	}
 }

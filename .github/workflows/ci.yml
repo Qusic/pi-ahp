@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    concurrency:
+      group: verify-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v7
+      - uses: DeterminateSystems/nix-installer-action@v23
+      - run: nix flake check
+      - run: nix build
+
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    concurrency:
+      group: release
+      cancel-in-progress: false
+    needs: verify
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: DeterminateSystems/nix-installer-action@v23
+      - run: nix develop -c pnpm install --frozen-lockfile
+      - run: nix develop -c pnpm run release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
