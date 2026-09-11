@@ -21,7 +21,7 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import type { ModelSelection } from "@microsoft/agent-host-protocol";
 import type { PiBackend } from "./chat-driver.ts";
-import { THINKING_CONFIG_KEY } from "./models.ts";
+import { findModelBySelectionId, modelSelectionId, THINKING_CONFIG_KEY } from "./models.ts";
 import { type ProjectTrustPolicy, resolveProjectTrust, type TrustDecision } from "./project-trust.ts";
 
 export interface InProcessBackendOptions {
@@ -96,13 +96,14 @@ export class InProcessPiBackend implements PiBackend {
 	 */
 	async selectModel(selection: ModelSelection): Promise<void> {
 		const available = await this.#session.modelRuntime.getAvailable();
-		const model = available.find((candidate) => candidate.id === selection.id);
+		const current = this.#session.model;
+		const model = findModelBySelectionId(available, selection.id, current);
 		if (!model) {
 			// A stale pick from a client whose model list predates a credential
 			// change. Running on the current model beats failing the turn.
 			return;
 		}
-		if (this.#session.model?.id !== model.id) {
+		if (!current || current.id !== model.id || current.provider !== model.provider) {
 			await this.#session.setModel(model as never);
 		}
 
@@ -132,7 +133,7 @@ export class InProcessPiBackend implements PiBackend {
 		if (!model) {
 			return undefined;
 		}
-		return { id: model.id, config: { [THINKING_CONFIG_KEY]: this.#session.thinkingLevel } };
+		return { id: modelSelectionId(model), config: { [THINKING_CONFIG_KEY]: this.#session.thinkingLevel } };
 	}
 
 	dispose(): void {

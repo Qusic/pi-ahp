@@ -11,7 +11,7 @@ import { AhpHost, type HostOptions } from "../core/host.ts";
 import { CompletionService, MENTION_TRIGGER } from "../pi/completions.ts";
 import { deleteSessionFile } from "../pi/delete-session.ts";
 import { InProcessPiBackend } from "../pi/in-process-backend.ts";
-import { buildAgentInfo, THINKING_CONFIG_KEY } from "../pi/models.ts";
+import { buildAgentInfo, modelSelectionId, THINKING_CONFIG_KEY } from "../pi/models.ts";
 import { type ProjectTrustPolicy, resolveProjectTrust } from "../pi/project-trust.ts";
 import { ResourcePathPolicy } from "../pi/resource-paths.ts";
 import { ResourceService } from "../pi/resource-service.ts";
@@ -103,7 +103,9 @@ export async function createPiHost(options: PiHostOptions = {}): Promise<PiHost>
 		? clampThinkingLevel(fallback, configured ? (settingsManager?.getDefaultThinkingLevel() ?? "medium") : "medium")
 		: undefined;
 	const fallbackSelection = (): ModelSelection | undefined =>
-		fallback && fallbackThinking ? { id: fallback.id, config: { [THINKING_CONFIG_KEY]: fallbackThinking } } : undefined;
+		fallback && fallbackThinking
+			? { id: modelSelectionId(fallback), config: { [THINKING_CONFIG_KEY]: fallbackThinking } }
+			: undefined;
 
 	const catalogue = new PiSessionCatalogue();
 	const resourcePaths = new ResourcePathPolicy(options.resourceRoots);

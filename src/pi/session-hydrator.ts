@@ -24,7 +24,7 @@ import { chatIdFromUri, chatUri, isChatChannel, sessionIdFromUri, sessionUri } f
 import type { AhpHost, ChannelHydrator } from "../core/host.ts";
 import { pathToFileUri } from "../core/uri.ts";
 import { rebuildTurnsFromSession } from "./history.ts";
-import { THINKING_CONFIG_KEY } from "./models.ts";
+import { modelSelectionId, THINKING_CONFIG_KEY } from "./models.ts";
 import { PI_PROVIDER } from "./provider.ts";
 import type { PiSessionCatalogue } from "./session-catalogue.ts";
 import { initialTurnsCursor } from "./turn-paging.ts";
@@ -122,13 +122,20 @@ export class SessionHydrator implements ChannelHydrator {
 		// picker is empty until the user has already sent something.
 		//
 		// The recorded model is checked field by field: a session file can carry a
-		// partially-populated entry, and a selection without an `id` is worse than
-		// none — it fails validation and still leaves the picker empty.
+		// partially-populated entry, and the wire id needs both halves of pi's
+		// `(provider, modelId)` identity.
 		const recorded = manager.buildSessionContext();
+		const recordedProvider = recorded.model?.provider;
 		const recordedId = recorded.model?.modelId;
 		const selection: ModelSelection | undefined =
-			typeof recordedId === "string" && recordedId.length > 0
-				? { id: recordedId, config: { [THINKING_CONFIG_KEY]: recorded.thinkingLevel } }
+			typeof recordedProvider === "string" &&
+			recordedProvider.length > 0 &&
+			typeof recordedId === "string" &&
+			recordedId.length > 0
+				? {
+						id: modelSelectionId({ provider: recordedProvider, id: recordedId }),
+						config: { [THINKING_CONFIG_KEY]: recorded.thinkingLevel },
+					}
 				: this.#options.fallbackSelection?.();
 
 		const chatState: ChatState = {

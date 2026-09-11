@@ -18,6 +18,7 @@
  * @see https://microsoft.github.io/agent-host-protocol/specification/chat-channel
  */
 
+import { isDeepStrictEqual } from "node:util";
 import type { AgentSessionEvent } from "@earendil-works/pi-coding-agent";
 import {
 	ActionType,
@@ -342,7 +343,7 @@ export class ChatDriver {
 			return;
 		}
 		const state = this.#host.store.get(this.#chatChannel) as ChatState | undefined;
-		if (state?.draft?.model?.id === selection.id) {
+		if (isDeepStrictEqual(state?.draft?.model, selection)) {
 			return;
 		}
 		this.#host.dispatchServerAction(this.#chatChannel, {

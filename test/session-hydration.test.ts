@@ -69,6 +69,7 @@ function writeSession(root: string, id: string, cwd: string): string {
 				{ type: "toolCall", id: "tc-1", name: "read", arguments: { path: "note.txt" } },
 			],
 			usage: { input: 10, output: 5, cacheRead: 0 },
+			provider: "fixture",
 			model: "test-model",
 			timestamp: 0,
 		},
@@ -85,7 +86,13 @@ function writeSession(root: string, id: string, cwd: string): string {
 	});
 	push({
 		type: "message",
-		message: { role: "assistant", content: [{ type: "text", text: "It says ALPHA." }], timestamp: 0 },
+		message: {
+			role: "assistant",
+			content: [{ type: "text", text: "It says ALPHA." }],
+			provider: "fixture",
+			model: "test-model",
+			timestamp: 0,
+		},
 	});
 	push({ type: "message", message: { role: "user", content: "Thanks", timestamp: 0 } });
 
@@ -661,7 +668,7 @@ describe("model selection on a hydrated session", () => {
 		try {
 			const { result } = await fixture.client.subscribe(chatUri(fixture.sessionId));
 			const draft = (must(result.snapshot).state as ChatState).draft;
-			assert.ok(draft?.model, "a hydrated chat must publish a model selection");
+			assert.equal(draft?.model?.id, "fixture/test-model");
 		} finally {
 			await fixture.close();
 		}

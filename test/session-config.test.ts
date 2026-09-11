@@ -131,7 +131,12 @@ describe("model selection", () => {
 		host = new AhpHost();
 		installRootChannel(host, []);
 		backend = new SelectionRecordingBackend();
-		const sessions = new SessionRegistry({ host, createBackend: () => backend });
+		const sessions = new SessionRegistry({
+			host,
+			createBackend: () => backend,
+			// The backend is authoritative once it starts, including config values.
+			defaultSelection: () => ({ id: "default-model", config: { [THINKING_CONFIG_KEY]: "low" } }),
+		});
 		host.serve({
 			sessions: {
 				create: (params) => sessions.create(params as never),
@@ -172,9 +177,10 @@ describe("model selection", () => {
 		assert.equal(state.draft?.model?.id, "seeded-model");
 	});
 
-	it("publishes the model actually in effect as the chat draft", () => {
+	it("publishes the model and config actually in effect as the chat draft", () => {
 		// There is no protocol field for "the default model"; a client
-		// initialises its input from `draft`, so this is how a host answers.
+		// initialises its input from `draft`, so this is how a host answers. The
+		// backend must also correct a stale config for the same model id.
 		const state = host.store.get(chat) as ChatState;
 		assert.equal(state.draft?.model?.id, "default-model");
 		assert.equal(state.draft?.model?.config?.[THINKING_CONFIG_KEY], "medium");

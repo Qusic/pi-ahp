@@ -9,34 +9,53 @@
  * @see https://microsoft.github.io/agent-host-protocol/specification/root-channel
  */
 
-import type { Model } from "@earendil-works/pi-ai";
+import { getSupportedThinkingLevels, type Model, type ModelThinkingLevel } from "@earendil-works/pi-ai";
 import type { AgentInfo, ConfigSchema, SessionModelInfo } from "@microsoft/agent-host-protocol";
 import { PI_PROVIDER } from "./provider.ts";
 
-/** pi's thinking levels, weakest to strongest. `off` is always available. */
-const THINKING_LEVELS = ["off", "minimal", "low", "medium", "high", "xhigh", "max"] as const;
+export type ThinkingLevel = ModelThinkingLevel;
 
-export type ThinkingLevel = (typeof THINKING_LEVELS)[number];
+interface PiModelIdentity {
+	readonly provider: string;
+	readonly id: string;
+}
+
+/** AHP needs one opaque id, so use pi's canonical `provider/modelId` reference. */
+export function modelSelectionId(model: PiModelIdentity): string {
+	return `${model.provider}/${model.id}`;
+}
+
+/**
+ * Resolves a wire id, with a narrow fallback for drafts written by older hosts.
+ * An ambiguous legacy id is accepted only when it already names the current
+ * model; otherwise guessing a provider would run the turn somewhere unintended.
+ */
+export function findModelBySelectionId<T extends PiModelIdentity>(
+	models: readonly T[],
+	selectionId: string,
+	current?: PiModelIdentity,
+): T | undefined {
+	const qualified = models.find((model) => modelSelectionId(model) === selectionId);
+	if (qualified) {
+		return qualified;
+	}
+
+	const legacyMatches = models.filter((model) => model.id === selectionId);
+	if (legacyMatches.length === 1) {
+		return legacyMatches[0];
+	}
+	if (current?.id === selectionId) {
+		return legacyMatches.find((model) => model.provider === current.provider);
+	}
+	return undefined;
+}
 
 /** The config key carrying the thinking level in `ModelSelection.config`. */
 export const THINKING_CONFIG_KEY = "thinkingLevel";
 
-/**
- * The thinking levels a model actually supports.
- *
- * pi encodes support in `thinkingLevelMap`: a missing key means "use the
- * provider default" (supported), an explicit `null` means unsupported. A model
- * without reasoning at all supports only `off`.
- */
+/** Uses pi's own capability rules so the advertised picker cannot drift. */
 export function supportedThinkingLevels(model: Model<never>): ThinkingLevel[] {
-	if (!model.reasoning) {
-		return ["off"];
-	}
-	const levelMap = model.thinkingLevelMap as Record<string, unknown> | undefined;
-	if (!levelMap) {
-		return [...THINKING_LEVELS];
-	}
-	return THINKING_LEVELS.filter((level) => level === "off" || levelMap[level] !== null);
+	return getSupportedThinkingLevels(model);
 }
 
 function thinkingConfigSchema(model: Model<never>): ConfigSchema | undefined {
@@ -64,7 +83,7 @@ function thinkingConfigSchema(model: Model<never>): ConfigSchema | undefined {
 export function toSessionModelInfo(model: Model<never>): SessionModelInfo {
 	const configSchema = thinkingConfigSchema(model);
 	return {
-		id: model.id,
+		id: modelSelectionId(model),
 		provider: PI_PROVIDER,
 		name: model.name,
 		maxContextWindow: model.contextWindow,

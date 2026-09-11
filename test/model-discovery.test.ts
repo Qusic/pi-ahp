@@ -8,6 +8,7 @@ import type { ChatState, RootState } from "@microsoft/agent-host-protocol";
 import { chatUri, sessionUri } from "../src/core/channels.ts";
 import { createPiHost } from "../src/host/pi-host.ts";
 import { InProcessPiBackend } from "../src/pi/in-process-backend.ts";
+import { modelSelectionId } from "../src/pi/models.ts";
 
 it("advertises extension models and uses pi's configured default", async () => {
 	const root = mkdtempSync(join(tmpdir(), "pi-ahp-model-discovery-"));
@@ -54,7 +55,10 @@ it("advertises extension models and uses pi's configured default", async () => {
 	process.env.PI_CODING_AGENT_DIR = agentDir;
 	let backend: InProcessPiBackend | undefined;
 	try {
-		const selection = { id: "fixture-model", config: { thinkingLevel: "max" } };
+		const selection = {
+			id: modelSelectionId({ provider: "fixture", id: "fixture-model" }),
+			config: { thinkingLevel: "max" },
+		};
 		const { host, sessions } = await createPiHost({
 			workingDirectory: workspace,
 			deleteFile: () => {},
@@ -74,8 +78,8 @@ it("advertises extension models and uses pi's configured default", async () => {
 				piProvider: model._meta?.piProvider,
 			})),
 			[
-				{ id: "other-model", provider: "pi", piProvider: "fixture" },
-				{ id: "fixture-model", provider: "pi", piProvider: "fixture" },
+				{ id: "fixture/other-model", provider: "pi", piProvider: "fixture" },
+				{ id: "fixture/fixture-model", provider: "pi", piProvider: "fixture" },
 			],
 		);
 
