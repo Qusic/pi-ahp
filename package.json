@@ -49,8 +49,8 @@
 		"prepack": "pnpm run build"
 	},
 	"dependencies": {
-		"@earendil-works/pi-ai": "0.84.4",
-		"@earendil-works/pi-coding-agent": "0.84.4",
+		"@earendil-works/pi-ai": "0.85.1",
+		"@earendil-works/pi-coding-agent": "0.85.1",
 		"@microsoft/agent-host-protocol": "0.9.0",
 		"chokidar": "^5.0.0",
 		"mime": "^4.1.0",
@@ -58,8 +58,8 @@
 		"ws": "^8.21.3"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^2.5.11",
-		"@types/node": "^24.13.3",
+		"@biomejs/biome": "^2.5.12",
+		"@types/node": "^24.13.4",
 		"@types/ws": "^8.18.1",
 		"ajv": "^8.20.0",
 		"semantic-release": "^25.0.9",
