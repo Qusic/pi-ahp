@@ -1,20 +1,19 @@
 /**
  * Project trust.
  *
- * A project directory can carry `.pi` resources — extensions, skills, prompt
- * templates, settings — that pi *executes*. pi's CLI gates that behind a
- * prompt; the SDK does not: `SettingsManager.fromStorage` defaults
- * `projectTrusted` to `true`, and `resolveProjectTrusted` is only ever called
- * from `main.ts`. So an embedding host that does nothing silently runs whatever
- * the target directory contains.
+ * A working directory can carry trust-gated pi resources: `.pi` settings,
+ * extensions, skills, prompts, themes and system instructions, plus inherited
+ * `.agents/skills`. Loading some of them executes project-controlled code or
+ * changes the agent's instructions.
  *
- * That matters more here than in a CLI, because the working directory arrives
- * from a client over the network via `createSession`.
+ * The interactive CLI resolves trust before loading those resources. Raw SDK
+ * construction instead defaults `projectTrusted` to true, so an embedding host
+ * must supply its decision explicitly. That matters here because
+ * `createSession` accepts the working directory from a remote client.
  *
- * The default therefore matches pi's own behaviour rather than tightening it.
- * The stricter `inherit` mode deliberately reuses pi's store rather than
- * inventing a parallel one, so a project the user already trusted with `pi`
- * stays trusted here, and revoking in either place revokes in both.
+ * The default `trust` policy preserves the SDK default. The stricter `inherit`
+ * policy reuses pi's trust store, so decisions made by either program apply to
+ * both.
  */
 
 import { getAgentDir, hasTrustRequiringProjectResources, ProjectTrustStore } from "@earendil-works/pi-coding-agent";
@@ -22,8 +21,8 @@ import { getAgentDir, hasTrustRequiringProjectResources, ProjectTrustStore } fro
 /**
  * What to do about a working directory pi has no recorded decision for.
  *
- * - `trust` (default) — load project resources unconditionally, as pi's own SDK
- *   does.
+ * - `trust` (default) — load project resources unconditionally, matching raw
+ *   SDK construction.
  * - `inherit` — honour pi's trust store; decline for a directory it has no
  *   decision for.
  * - `never` — never load project resources.

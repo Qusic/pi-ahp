@@ -12,9 +12,8 @@
 import type { ActionEnvelope } from "@microsoft/agent-host-protocol";
 
 /**
- * How many envelopes to retain for replay. Matches the reference host's
- * `REPLAY_BUFFER_CAPACITY`. A client whose gap predates the buffer gets fresh
- * snapshots instead — correct, just more expensive.
+ * Local memory bound for replay. A client whose gap predates the buffer gets
+ * fresh snapshots instead, preserving correctness at the cost of more data.
  */
 const DEFAULT_REPLAY_BUFFER_CAPACITY = 1000;
 

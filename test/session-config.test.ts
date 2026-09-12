@@ -61,15 +61,18 @@ describe("resolveSessionConfig", () => {
 	it("reports what a directory with no project resources would do", () => {
 		const result = service.resolve({ channel: "ahp-root://", workingDirectory: `file://${bare}` });
 		assert.equal(result.values[PROJECT_TRUST_KEY], true);
-		assert.match(must(result.schema.properties[PROJECT_TRUST_KEY]).description ?? "", /no project-level/);
+		assert.equal(must(result.schema.properties[PROJECT_TRUST_KEY]).readOnly, true);
 	});
 
 	it("re-resolves against whatever directory the client is asking about", () => {
 		// The exchange is iterative: the answer changes as the user picks a
 		// directory, which is the whole reason the command exists.
-		const result = service.resolve({ channel: "ahp-root://", workingDirectory: `file://${withResources}` });
-		assert.equal(result.values[PROJECT_TRUST_KEY], true);
-		assert.match(must(result.schema.properties[PROJECT_TRUST_KEY]).description ?? "", /\.pi directory/);
+		const bareResult = service.resolve({ channel: "ahp-root://", workingDirectory: `file://${bare}` });
+		const projectResult = service.resolve({ channel: "ahp-root://", workingDirectory: `file://${withResources}` });
+		assert.notEqual(
+			must(projectResult.schema.properties[PROJECT_TRUST_KEY]).description,
+			must(bareResult.schema.properties[PROJECT_TRUST_KEY]).description,
+		);
 	});
 
 	it("offers no dynamic completions", () => {

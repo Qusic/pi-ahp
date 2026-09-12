@@ -7,10 +7,9 @@
  * *full* current property set plus resolved values — never a delta — so options
  * can appear and disappear as earlier choices are made.
  *
- * The reference host keeps **model selection out of this schema**: models are
- * advertised on `AgentInfo.models` and chosen per message via `Message.model`.
- * This host follows that, so the schema here covers only what pi itself has to
- * decide up front.
+ * Model selection stays out of this schema: models are advertised on
+ * `AgentInfo.models` and chosen per message via `Message.model`. The schema here
+ * covers only what pi must decide before creating the session.
  *
  * @see https://microsoft.github.io/agent-host-protocol/specification/root-channel
  */
@@ -25,7 +24,7 @@ import type {
 import { fileUriToPath } from "../core/uri.ts";
 import { type ProjectTrustPolicy, resolveProjectTrust } from "./project-trust.ts";
 
-/** Config key describing whether the project's own `.pi` resources load. */
+/** Config key describing whether trust-gated project resources load. */
 export const PROJECT_TRUST_KEY = "projectResources";
 
 export interface SessionConfigOptions {
@@ -43,11 +42,10 @@ export class SessionConfigService {
 	/**
 	 * Describes what a new session in this directory would do.
 	 *
-	 * Only one property, and it is read-only: whether the target directory's
-	 * `.pi` extensions and skills will load. It is surfaced rather than hidden
-	 * because the answer changes with the directory and materially changes what
-	 * the agent can do — a client that shows it lets the user notice a project
-	 * running with fewer tools than they expected.
+	 * Only one property, and it is read-only: whether trust-gated resources from
+	 * the target directory and its ancestors will load. It is surfaced because
+	 * the answer changes with the directory and materially changes the agent's
+	 * tools, settings, and instructions.
 	 */
 	resolve(params: ResolveSessionConfigParams): ResolveSessionConfigResult {
 		const workingDirectory = params.workingDirectory
@@ -63,8 +61,8 @@ export class SessionConfigService {
 					title: "Load project resources",
 					description:
 						trust.reason === "no-project-resources"
-							? "This folder has no project-level pi resources."
-							: `Extensions and skills from this folder's .pi directory (${trust.reason}).`,
+							? "This folder has no trust-gated project resources."
+							: `Trust-gated project resources (${trust.reason}).`,
 					// Host policy, not a per-session choice — see project-trust.ts.
 					readOnly: true,
 				},

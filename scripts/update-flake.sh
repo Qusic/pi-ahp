@@ -2,18 +2,17 @@
 # Refreshes everything in flake.nix that tracks something outside it.
 #
 # Run after `pnpm install` changes pnpm-lock.yaml, or to pick up a newer
-# nixpkgs. The three steps are ordered: newer inputs can change the pnpm major,
-# which changes the dependency hash, and nix-update rewrites the file without
-# regard for formatting.
+# nixpkgs. Update inputs before recomputing fixed-output dependency hashes, then
+# format the file after nix-update rewrites it.
 #
-# Nix reads flake.nix from git, not from disk, so an unstaged edit is invisible
-# to every step here.
+# Existing local edits are visible to Nix and will be combined with these
+# rewrites, so report them before starting.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
 if ! git diff --quiet -- flake.nix || ! git diff --cached --quiet -- flake.nix; then
-	echo "note: flake.nix has unstaged edits; nix reads the staged tree." >&2
+	echo "note: flake.nix already has local edits; this update will combine with them." >&2
 fi
 
 echo "==> nix flake update"

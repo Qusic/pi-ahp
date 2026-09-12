@@ -1,9 +1,10 @@
 /**
  * The event mapper, exercised as a pure function.
  *
- * These tests feed recorded pi event sequences straight through the mapper and
- * reduce the result with the protocol's own `chatReducer`, so they assert what
- * a client would actually end up rendering — no socket, no model, no clock.
+ * These tests feed minimal synthetic pi event sequences through the mapper and
+ * reduce the result with the protocol's own `chatReducer`, so they assert the
+ * resulting client state without a socket, model, or clock. Recorded streams
+ * are covered separately by `mapper-fixtures.test.ts`.
  */
 
 import assert from "node:assert/strict";

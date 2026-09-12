@@ -2,8 +2,9 @@
  * Test harness: a live host over a real WebSocket, driven by the official
  * `@microsoft/agent-host-protocol` client.
  *
- * Using the published client (rather than hand-rolled frames) means these tests
- * exercise the same code path a real consumer — VS Code, AHPX — would.
+ * Using the published client rather than hand-written frames exercises the
+ * complete transport and reducer path without duplicating protocol machinery
+ * in the tests.
  */
 
 import type { AgentInfo } from "@microsoft/agent-host-protocol";
@@ -111,8 +112,8 @@ export async function startHarness(
 			return client;
 		},
 		async connect() {
-			// `WebSocketTransport.connect` uses the global `WebSocket` (Node 21+),
-			// so no `ws` shim is needed on the client side.
+			// The supported Node runtime supplies the global `WebSocket` used by
+			// `WebSocketTransport.connect`, so the client needs no `ws` shim.
 			const client = new AhpClient(await WebSocketTransport.connect(url));
 			client.connect();
 			clients.push(client);

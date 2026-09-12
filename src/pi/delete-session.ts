@@ -2,9 +2,9 @@
  * Deleting a pi session file.
  *
  * Mirrors pi's own delete affordance (`/resume` → Ctrl+D): try the `trash` CLI
- * first so the file lands in the recycle bin, and fall back to `unlink` when it
- * is not installed. Disposal is destructive either way, so preferring `trash`
- * matters.
+ * first so the file lands in the recycle bin, and fall back to `unlink` when
+ * `trash` is unavailable or fails. Disposal is destructive either way, so
+ * preferring `trash` matters.
  */
 
 import { spawnSync } from "node:child_process";

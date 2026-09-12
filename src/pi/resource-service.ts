@@ -55,9 +55,9 @@ export interface ResourceServiceOptions {
 	/**
 	 * Directories a client may reach, as filesystem paths.
 	 *
-	 * Empty (the default) means unrestricted, matching the reference host —
-	 * which is honest rather than lax: a client that can reach this endpoint can
-	 * already start a session and run shell commands, so a filesystem allowlist
+	 * Empty (the default) means unrestricted, which is honest rather than lax: a
+	 * client that can reach this endpoint can already start a session and run
+	 * shell commands, so a filesystem allowlist
 	 * on its own is not a security boundary. Configured roots must already exist;
 	 * they are canonicalized once so later symlink changes cannot retarget them.
 	 */

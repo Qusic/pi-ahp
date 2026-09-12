@@ -2,8 +2,8 @@
  * WebSocket transport.
  *
  * AHP does not mandate a transport — anything reliable, ordered, bidirectional,
- * and message-framed works. WebSocket is the conventional choice and what the
- * reference host uses: one JSON-RPC message per text frame.
+ * and message-framed works. This transport carries one JSON-RPC message per
+ * WebSocket frame.
  *
  * Access control to the endpoint itself is a transport concern, handled here
  * during the HTTP upgrade rather than inside the protocol.

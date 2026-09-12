@@ -1,9 +1,9 @@
 /**
  * Maps pi's model catalogue onto the protocol's agent/model description.
  *
- * The host advertises exactly one agent — pi — whose models are whatever the
- * user has credentials for. Model-specific options (pi's thinking level) travel
- * as a `configSchema`, which is the protocol's escape hatch for exactly this:
+ * The host advertises exactly one agent — pi — with the models its current
+ * runtime reports as available. Model-specific options such as pi's thinking
+ * level travel as a `configSchema`, the protocol's escape hatch for this:
  * clients render it as a form and pass the values back in `ModelSelection`.
  *
  * @see https://microsoft.github.io/agent-host-protocol/specification/root-channel
@@ -102,9 +102,9 @@ export function toSessionModelInfo(model: Model<never>): SessionModelInfo {
 /**
  * Builds the single `AgentInfo` this host advertises.
  *
- * No `protectedResources`: pi authenticates against providers itself using
- * `~/.pi/agent/auth.json`, so there is nothing for the client to authenticate
- * against at the protocol level.
+ * No `protectedResources`: pi resolves model-provider credentials itself, so
+ * there is nothing for the client to authenticate against at the protocol
+ * level.
  *
  * No `capabilities`: this host serves one chat per session and one working
  * directory, so neither `multipleChats` nor `multipleWorkingDirectories` is

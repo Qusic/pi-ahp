@@ -1,10 +1,6 @@
 /**
  * Self-expiring guards for the upstream workarounds in `test/support/schema.ts`.
- *
- * A comment saying "remove this when upstream fixes it" is never read again.
- * These tests fail when the AHP version and matching schema source in
- * `flake.nix` no longer need a workaround, so cleanup is forced rather than
- * remembered. Each failure says exactly what to delete.
+ * They fail when matching AHP schemas no longer need the corresponding repair.
  */
 
 import assert from "node:assert/strict";
@@ -18,8 +14,7 @@ describe("upstream workarounds", () => {
 			[
 				"The upstream schemas no longer contain a dangling `$ref` to an empty `$defs` name.",
 				"Upstream appears to have fixed generate-json-schema.ts.",
-				"ACTION: delete `stripDanglingRefs` (and this test) from test/support/schema.ts,",
-				"and drop the matching note from the research log.",
+				"ACTION: delete `stripDanglingRefs` (and this test) from test/support/schema.ts.",
 			].join("\n"),
 		);
 	});
@@ -35,8 +30,7 @@ describe("upstream workarounds", () => {
 			[
 				"These bitset types are no longer emitted as closed enums — upstream fixed them:",
 				...unused.map(({ def, evidence }) => `  ${def} (evidence: ${evidence})`),
-				"ACTION: remove the listed entries from KNOWN_BITSET_ENUMS in test/support/schema.ts,",
-				"and update the research log.",
+				"ACTION: remove the listed entries from KNOWN_BITSET_ENUMS in test/support/schema.ts.",
 			].join("\n"),
 		);
 	});

@@ -1,8 +1,5 @@
 /**
- * Connection handshake.
- *
- * Mirrors the scenarios in the reference host's
- * `test/node/protocol/handshake.integrationTest.ts`.
+ * Connection handshake and pre-handshake request policy.
  *
  * @see https://microsoft.github.io/agent-host-protocol/specification/lifecycle
  */

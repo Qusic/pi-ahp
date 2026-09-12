@@ -32,9 +32,9 @@ export interface PiHostOptions extends HostOptions {
 	/** Injectable for tests; defaults to an in-process `AgentSession`. */
 	readonly createBackend?: BackendFactory;
 	/**
-	 * How to treat `.pi` resources in a session's working directory.
+	 * How to treat trust-gated pi resources in a session's working directory.
 	 *
-	 * Defaults to `trust`, matching pi's own behaviour. Switch to `inherit` when
+	 * Defaults to `trust`, matching the pi SDK default. Switch to `inherit` when
 	 * the host is reachable from outside its own trust domain: the working
 	 * directory then arrives from a client, and `inherit` will only load project
 	 * resources the user already approved through pi's CLI.
@@ -162,8 +162,8 @@ export async function createPiHost(options: PiHostOptions = {}): Promise<PiHost>
 		},
 		sessions: {
 			create(params: CreateSessionParams): void {
-				// The registry's narrower structural type documents the optional fields
-				// this milestone ignores: config, activeClient, and progressToken.
+				// The registry's narrower structural type makes the unsupported optional
+				// fields explicit: config, activeClient, and progressToken are ignored.
 				sessions.create(params);
 			},
 			dispose(channel: URI): Promise<void> {

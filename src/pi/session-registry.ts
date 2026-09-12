@@ -133,7 +133,7 @@ export interface SessionRegistryOptions {
 	readonly createBackend?: BackendFactory;
 	/** Seeds a new chat's draft so a client has a model selected from the start. */
 	readonly defaultSelection?: () => ModelSelection | undefined;
-	/** Removes a session's durable record. Injected so disposal stays testable. */
+	/** Attempts to remove a session's durable record. Injected so disposal stays testable. */
 	readonly deleteFile?: (path: string) => void;
 	/** Locates the file behind a session this host never ran. */
 	readonly findSessionFile?: (sessionId: string) => Promise<string | undefined>;
@@ -293,8 +293,8 @@ export class SessionRegistry {
 	 * The protocol defines disposal as tearing down the backend and dropping the
 	 * catalogue entry, not as deleting the durable record. But a host that only
 	 * unloaded would announce `root/sessionRemoved` and then hand the same
-	 * session back on the next `listSessions`, so disposal also removes the file
-	 * — via the same trash-then-unlink path pi's own `/resume` delete uses.
+	 * session back on the next `listSessions`, so disposal also attempts to remove
+	 * the file via the same trash-then-unlink path pi's own `/resume` delete uses.
 	 */
 	async dispose(uri: URI): Promise<void> {
 		const session = this.#sessions.get(uri);

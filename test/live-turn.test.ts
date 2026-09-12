@@ -1,7 +1,7 @@
 /**
  * Live end-to-end smoke: a real client, a real model, the whole stack.
  *
- * Opt-in — needs credentials in `~/.pi/agent/auth.json` and network. Run with:
+ * Opt-in — needs a configured pi model provider and network access. Run with:
  *
  *     nix develop -c env PI_AHP_LIVE=1 pnpm exec node --test test/live-turn.test.ts
  *
@@ -79,9 +79,9 @@ describe("live turn", { skip: LIVE ? false : SKIP_REASON }, () => {
 
 		previousAgentDir = process.env.PI_CODING_AGENT_DIR;
 		const sourceAgentDir = previousAgentDir ?? join(homedir(), ".pi", "agent");
-		// Keep the user's configured providers available without letting the test
-		// catalogue or write into their durable sessions. Large package caches are
-		// linked read-only-in-practice; ordinary resource loading does not mutate them.
+		// Keep provider configuration available while isolating durable sessions.
+		// Directories are linked to avoid copying package caches; normal resource
+		// loading does not write to them.
 		if (existsSync(sourceAgentDir)) {
 			for (const entry of readdirSync(sourceAgentDir, { withFileTypes: true })) {
 				if (entry.name === "sessions") continue;
@@ -124,10 +124,10 @@ describe("live turn", { skip: LIVE ? false : SKIP_REASON }, () => {
 		assertValid("state", "ChatState", host.store.get(chatChannel));
 	}
 
-	it("advertises the models pi actually has credentials for", () => {
+	it("advertises the models pi currently makes available", () => {
 		const state = host.store.get("ahp-root://") as { agents: { models: unknown[] }[] };
 		assert.equal(state.agents.length, 1);
-		assert.ok(must(state.agents[0]).models.length > 0, "no models available — is ~/.pi/agent/auth.json populated?");
+		assert.ok(must(state.agents[0]).models.length > 0, "no models available — is a pi provider configured?");
 		assertValid("state", "RootState", state);
 	});
 

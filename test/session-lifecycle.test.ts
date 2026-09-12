@@ -81,9 +81,8 @@ describe("session lifecycle", () => {
 		const { result } = await client.subscribe(uri);
 		const state = result.snapshot?.state as SessionState;
 		assert.equal(state.provider, PI_PROVIDER);
-		// Creation is asynchronous in the protocol, but this milestone has no
-		// agent to start, so the session is already ready by the time a client
-		// can observe it.
+		// Creation is asynchronous in the protocol, but this storage-only fixture
+		// has no backend to start, so readiness is immediate.
 		assert.equal(state.lifecycle, SessionLifecycle.Ready);
 		assert.deepEqual(state.workingDirectories, [`file://${workspace}`]);
 		// Every session gets exactly one chat, and it is the default. The agent

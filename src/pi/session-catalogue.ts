@@ -1,14 +1,10 @@
 /**
  * The session catalogue, backed by pi's on-disk session files.
  *
- * pi stores each session as a JSONL file under
- * `~/.pi/agent/sessions/--<encoded-cwd>--/`. Reading one means parsing the whole
- * file, so a naive "list everything" is O(all bytes on disk) — pi's own TUI
- * pays that cost behind a progress bar.
- *
- * The protocol gives us a way out that pi's TUI does not have: `listSessions`
- * is paginated. So we `stat` every file (cheap), sort by mtime, and parse only
- * the page we are about to return.
+ * This host scans pi's default per-directory JSONL tree under
+ * `getAgentDir()/sessions`; it does not resolve pi's optional custom
+ * `sessionDir` setting. Parsing a summary reads the session file, so
+ * `listSessions` stats and sorts the corpus but parses only the requested page.
  *
  * @see https://microsoft.github.io/agent-host-protocol/specification/root-channel
  */
@@ -154,9 +150,8 @@ function firstLine(text: string, limit: number): string {
 }
 
 /**
- * Title, using pi's own rule: the user-assigned name, else the first user
- * message. Mirrors `session-selector.ts` (`session.name ?? session.firstMessage`)
- * so a session reads the same in this host as it does in pi's `/resume` picker.
+ * Title, using the same rule as pi's session picker: the user-assigned name,
+ * otherwise the first user message.
  */
 function deriveTitle(name: string | undefined, firstUserMessage: string | undefined): string {
 	const trimmed = name?.trim();

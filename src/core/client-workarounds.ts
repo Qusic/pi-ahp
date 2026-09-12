@@ -20,10 +20,8 @@ const DERIVED_CHAT_URI = /^ahp-chat:\/\/[^/]+\/([^/?#]+)$/;
 const VSCODE_CLIENT_NAMES = new Set(["vscode-editor-window", "vscode-agents-window"]);
 
 /**
- * The scheme VS Code will address sessions under, being this host's agent
- * provider name. Hard-coded rather than threaded down from the pi layer:
- * everything about this file is temporary, and a parameter for it would outlive
- * the reason for it in three signatures.
+ * The provider scheme affected by this compatibility layer. Keep it local so
+ * client-specific routing does not leak into canonical host APIs.
  */
 const PROVIDER_SESSION_SCHEME = "pi";
 type SessionDialect = "canonical" | "provider" | "vscode";
@@ -60,38 +58,19 @@ function typeOfAction(value: unknown): string | undefined {
 }
 
 /**
- * VS Code addresses sessions and chats at URIs it computes, not the ones it was
- * given.
+ * VS Code computes provider-scoped session URIs and derived default-chat URIs
+ * instead of using the canonical resources published by the host. It also
+ * targets `completions` at the session URI rather than the chat URI. Publishing
+ * those shapes globally would impose one client's dialect on every client, so
+ * translation remains per connection and core services see canonical URIs.
  *
- * Three assumptions drive it, none of them in the protocol:
+ * `initialize.clientInfo` identifies VS Code before snapshots are sent. A raw
+ * `pi:/...` target identifies only the provider-session dialect used by the iOS
+ * client, while observing a derived chat enables the full VS Code dialect.
+ * Reconnect subscriptions provide the same fingerprints after a host restart.
  *
- *  - A session lives at `<agentProvider>:/<id>`. `agentHostSessionHandler`
- *    rebuilds the URI that way from the provider name rather than using the
- *    `resource` the host published. It has a `sessionSchemeAlias` config for
- *    exactly this mismatch — "sessions are `ahp-session:/<id>` while the agent
- *    is `copilot`" — but only its cloud sandbox provider sets it.
- *  - A session's default chat lives at `ahp-chat://default/<base64url(session)>`,
- *    derived so producer and consumer "can compute it without a lookup table".
- *    `SessionState.defaultChat` and the session's chat list are both ignored.
- *  - `completions` targets the backend session URI even though its `channel`
- *    is specified as a chat URI. VS Code's host accepts either and silently
- *    chooses the default chat; this host keeps that tolerance per connection.
- *
- * So nothing this host sends is addressable by it, and every subscription
- * misses: sessions list, and opening one shows an empty transcript. Publishing
- * its shapes instead would push a base64 blob and a provider-specific scheme
- * onto every other client, so the translation is per connection and only for
- * the clients that need it.
- *
- * Normally VS Code is identified at `initialize`, before the session list and
- * snapshots go out. A raw `pi:/...` target separately identifies only the
- * provider-style session scheme, which covers the iOS client without forcing
- * VS Code's derived-chat format on it. Observing a derived chat enables that
- * second translation. After a host restart, reconnect subscriptions provide the
- * same fingerprints. Replies use each connection's dialect while core services
- * see canonical URIs.
- *
- * Goes when VS Code addresses what it was given.
+ * Remove this layer when VS Code consistently addresses the resources a host
+ * publishes.
  */
 export class ClientWorkarounds {
 	#dialect: SessionDialect = "canonical";
@@ -169,7 +148,7 @@ export class ClientWorkarounds {
 /**
  * Translates a URI this client computed into the one this host minted.
  *
- * A derived chat URI is unwrapped whoever sent it — it names no channel this
+ * A derived chat URI is unwrapped regardless of who sent it — it names no channel this
  * host could otherwise serve. A provider-aliased session URI is only rewritten
  * for a client identified as using that alias; unknown schemes are left alone.
  */

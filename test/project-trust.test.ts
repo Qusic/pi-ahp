@@ -42,7 +42,7 @@ describe("project trust", () => {
 		}
 	});
 
-	it("trusts by default, matching pi itself", () => {
+	it("trusts by default, matching raw pi SDK construction", () => {
 		const decision = resolveProjectTrust(withResources, undefined, agentDir);
 		assert.equal(decision.trusted, true);
 		assert.equal(decision.reason, "policy");

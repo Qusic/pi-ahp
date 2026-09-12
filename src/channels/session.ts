@@ -3,10 +3,9 @@
  *
  * A session is the coordination scope; the conversation itself lives on a chat
  * channel underneath it. Creation is asynchronous by design: the host returns
- * immediately with `lifecycle: 'creating'` and dispatches `session/ready` (or
- * `session/creationFailed`) once the backend is up, so a slow agent start never
- * blocks the client's round-trip.
- *
+ * immediately with `lifecycle: 'creating'` and dispatches `session/ready` or
+ * `session/creationFailed` once backend startup settles, so a slow agent start
+ * never blocks the client's round-trip.
  *
  * @see https://microsoft.github.io/agent-host-protocol/specification/session-channel
  */
@@ -33,7 +32,7 @@ export function initialSessionState(provider: string, title: string, workingDire
 	};
 }
 
-/** Bits 0–4 are mutually exclusive activity; later bits are session metadata. */
+/** The low five bits encode activity; higher bits carry independent metadata flags. */
 const STATUS_ACTIVITY_MASK = (1 << 5) - 1;
 
 interface SessionChatAggregate {

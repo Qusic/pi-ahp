@@ -1,12 +1,11 @@
 /**
  * The in-process pi backend.
  *
- * Embeds `AgentSession` directly rather than spawning `pi --mode rpc`. Both
- * share `~/.pi/agent` — the same `auth.json`, sessions, extensions and skills —
- * so a subprocess would buy crash isolation, not independence, while adding
- * cross-platform spawn and stdio-backpressure surface. The
- * {@link PiBackend} seam keeps a spawned implementation available later without
- * touching the mapper.
+ * Embeds `AgentSession` directly rather than spawning `pi --mode rpc`, reusing
+ * pi's SDK services and configuration. A subprocess would add process lifecycle
+ * and stdio backpressure without isolating provider credentials or user
+ * resources. The narrow {@link PiBackend} seam keeps those concerns out of the
+ * mapper and chat driver.
  *
  * @see ../pi/chat-driver.ts for how a backend is driven
  */
@@ -28,7 +27,7 @@ export interface InProcessBackendOptions {
 	readonly cwd: string;
 	/** Reuses the session manager the host already allocated, so ids line up. */
 	readonly sessionManager: SessionManager;
-	/** How to treat `.pi` resources in the working directory. Default `inherit`. */
+	/** How to treat project-local pi resources. Defaults to `trust`. */
 	readonly projectTrustPolicy?: ProjectTrustPolicy;
 }
 
@@ -55,9 +54,8 @@ export class InProcessPiBackend implements PiBackend {
 	}
 
 	static async create(options: InProcessBackendOptions): Promise<InProcessPiBackend> {
-		// Without an explicit `SettingsManager` the SDK trusts the directory
-		// (`SettingsManager.fromStorage` defaults `projectTrusted` to `true`),
-		// which would execute a client-supplied project's extensions unasked.
+		// SDK session construction defaults projectTrusted to true and does not run
+		// the CLI's trust prompt, so pass this host's decision explicitly.
 		const trust = resolveProjectTrust(options.cwd, options.projectTrustPolicy);
 		const services = await createAgentSessionServices({
 			cwd: options.cwd,

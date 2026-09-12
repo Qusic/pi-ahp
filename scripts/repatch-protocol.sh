@@ -12,8 +12,7 @@
 #
 # A postinstall script doing the same substitution would be shorter than the
 # patch, but nixpkgs' pnpmConfigHook installs with `--ignore-scripts`, so it
-# would never run in `nix build` and the hermetic typecheck would fail with the
-# 86 TS2748 errors this prevents.
+# would never run in `nix build` and the hermetic typecheck would fail.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -33,10 +32,9 @@ fi
 echo "$files" | xargs sed -i 's/declare const enum /declare enum /g'
 pnpm patch-commit "$dir"
 
-# `pnpm patch-commit` rewrites pnpm-workspace.yaml and drops keys it did not
-# put there, `minimumReleaseAgeExclude` among them. Restoring from git is the
-# only reliable way back; a lost exclude block fails the next install with a
-# supply-chain policy error that looks nothing like its cause.
+# `pnpm patch-commit` may rewrite pnpm-workspace.yaml and drop policy keys such
+# as `minimumReleaseAgeExclude`. Show any diff so unrelated changes can be
+# restored before committing the regenerated patch.
 if git -C . diff --quiet -- pnpm-workspace.yaml 2>/dev/null; then
 	:
 else

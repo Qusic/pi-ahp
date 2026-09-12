@@ -2,10 +2,8 @@
  * Validates every message the host puts on the wire against the published
  * JSON Schema.
  *
- * This is the one defence against a whole class of otherwise-silent bugs: the
- * protocol's reducers are total, so a structurally wrong action is not an
- * error — it is a no-op. Content simply never appears, with nothing logged.
- * Schema validation turns that into a loud test failure.
+ * The protocol's reducers are total, so a structurally wrong action may become
+ * a silent no-op. Schema validation turns that into an explicit test failure.
  *
  * The schemas are not included in the npm package, so Nix supplies the matching
  * spec checkout through `AHP_SPEC_PATH`; see `test/support/upstream.ts`.
@@ -42,17 +40,14 @@ const SCHEMA_NAMES: readonly SchemaName[] = ["state", "actions", "commands", "no
  * ---------------------------------------------------------------------------
  * UPSTREAM WORKAROUND — remove when fixed upstream.
  *
- * Bug: `scripts/generate-json-schema.ts:462` builds `StateAction` by calling
- * `splitUnionType()` *without* the `.filter(p => p !== 'undefined' && p !== '')`
- * that line 206 applies for the same hazard. The alias's printed text carries a
- * leading `|` (`types/common/actions.ts:245`), so the split yields an empty
- * first element and the schema gets `{"$ref": "#/$defs/"}`. Ajv then refuses to
- * compile anything transitively referencing `StateAction` — including
- * `ActionEnvelope`, i.e. every action we emit.
+ * The generator's general union path removes empty members, but its special
+ * `StateAction` path maps `splitUnionType()` directly. The multiline alias has
+ * a leading `|`, so the split yields an empty member and the schema gets
+ * `{"$ref": "#/$defs/"}`. Ajv then refuses to compile anything transitively
+ * referencing `StateAction`, including every action envelope we validate.
  *
- * Present in `spec/v0.6.0` and `main`. Upstream's own guard
- * (`generate-json-schema.test.ts:43`) misses it because `/^#\/\$defs\/(.+)$/`
- * requires at least one character.
+ * Upstream's dangling-ref guard also skips the empty name because its match
+ * requires at least one character after `#/$defs/`.
  *
  * Removal is enforced, not remembered: `test/upstream-workarounds.test.ts`
  * fails once a re-sync brings in schemas that no longer need this.

@@ -1,8 +1,8 @@
 /**
  * Driving the `devtunnel` CLI.
  *
- * Not bundled: it is a 59 MB .NET binary that only tunnel users need, and it
- * has to be logged in before any of this works, so it is expected on PATH.
+ * Not bundled: it is a separate .NET CLI that only tunnel users need, and it
+ * must be installed and logged in before these operations can run.
  *
  * Its interface has several edges worth knowing, and each function below
  * carries the one it works around.
