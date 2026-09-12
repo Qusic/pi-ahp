@@ -61,7 +61,7 @@ it("advertises extension models and uses pi's configured default", async () => {
 		};
 		const { host, sessions } = await createPiHost({
 			workingDirectory: workspace,
-			deleteFile: () => {},
+			deleteFile: () => ({ ok: true }),
 			createBackend: () => ({
 				subscribe: () => () => {},
 				prompt: async () => {},

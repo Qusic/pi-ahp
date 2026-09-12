@@ -1,10 +1,12 @@
 /** Operations performed after a durable pi session has been hydrated. */
 
 import assert from "node:assert/strict";
+import { existsSync, rmSync } from "node:fs";
 import { after, before, describe, it } from "node:test";
 import { SessionManager } from "@earendil-works/pi-coding-agent";
 import {
 	ActionType,
+	AhpErrorCodes,
 	type ChatState,
 	MessageKind,
 	type SessionState,
@@ -12,7 +14,7 @@ import {
 } from "@microsoft/agent-host-protocol";
 import { chatUri, ROOT_CHANNEL, sessionUri } from "../src/core/channels.ts";
 import { PiSessionCatalogue } from "../src/pi/session-catalogue.ts";
-import { must } from "./support/assertions.ts";
+import { expectRpcError, must } from "./support/assertions.ts";
 import { eventually } from "./support/async.ts";
 import { type HydratedSessionFixture, startHydratedSessionFixture } from "./support/hydrated-session.ts";
 
@@ -76,6 +78,46 @@ describe("disposing a hydrated session", () => {
 			const list = await fixture.client.request("listSessions", { channel: ROOT_CHANNEL });
 			assert.equal(list.items.length, 0, "a disposed session must not come back on the next listing");
 		} finally {
+			await fixture.close();
+		}
+	});
+
+	it("prevents an unloaded session from being recreated or hydrated during deletion", async () => {
+		let deletionStarted = false;
+		let finishDeletion!: (result: { ok: boolean }) => void;
+		const deletion = new Promise<{ ok: boolean }>((resolve) => {
+			finishDeletion = resolve;
+		});
+		const fixture = await startHydratedSessionFixture({
+			deleteFile: async (path) => {
+				deletionStarted = true;
+				const result = await deletion;
+				if (result.ok) rmSync(path, { force: true });
+				return result;
+			},
+		});
+		try {
+			const uri = sessionUri(fixture.sessionId);
+			const disposing = fixture.client.request("disposeSession", { channel: uri });
+			await eventually("durable deletion to start", () => deletionStarted);
+
+			await expectRpcError(fixture.client.subscribe(uri), AhpErrorCodes.NotFound);
+			await expectRpcError(
+				fixture.client.request("createSession", { channel: uri }),
+				AhpErrorCodes.SessionAlreadyExists,
+			);
+
+			finishDeletion({ ok: true });
+			await disposing;
+			assert.equal(fixture.deletedFiles.length, 1);
+			assert.equal(existsSync(must(fixture.deletedFiles[0], "deleted session path")), false);
+			const listed = await fixture.client.request("listSessions", { channel: ROOT_CHANNEL });
+			assert.equal(
+				listed.items.some((item) => item.resource === uri),
+				false,
+			);
+		} finally {
+			finishDeletion({ ok: false });
 			await fixture.close();
 		}
 	});

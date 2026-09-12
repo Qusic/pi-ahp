@@ -87,9 +87,12 @@ export class ChatDriver {
 	readonly #unsubscribe: () => void;
 
 	#mapper: TurnMapper | undefined;
+	/** Backend mutations already accepted by this driver but not yet settled. */
+	readonly #inFlight = new Set<Promise<unknown>>();
+	/** Stops new mutations while the owner decides whether to remove the session. */
+	#quiesced = false;
 	/** Id of the steering message pi has been handed but not yet consumed. */
 	#pendingSteeringId: string | undefined;
-	/** Its text, so the transcript can show what was injected. */
 	/** Last steering-queue length pi reported, to detect a consumption. */
 	#steeringQueueLength = 0;
 
@@ -114,13 +117,50 @@ export class ChatDriver {
 		return this.#mapper !== undefined;
 	}
 
+	/** Stops new work, aborts the active run, and waits for accepted mutations to settle. */
+	async quiesce(): Promise<void> {
+		this.#quiesced = true;
+		try {
+			await this.#backend.abort();
+			await this.#drainInFlight();
+			// A backend is required to settle after abort, but a narrow test or future
+			// backend may only honour the Promise boundary.
+			this.#finishTurn("cancelled");
+		} catch (error) {
+			this.resume();
+			throw error;
+		}
+	}
+
+	/** Reopens the driver after the operation that requested quiescence failed. */
+	resume(): void {
+		if (!this.#quiesced) {
+			return;
+		}
+		this.#quiesced = false;
+		this.#consumeNextQueuedMessage();
+	}
+
+	/** Final cleanup is best-effort; callers may already have removed durable state. */
 	dispose(): void {
-		this.#unsubscribe();
-		this.#backend.dispose?.();
+		try {
+			this.#unsubscribe();
+		} catch (error) {
+			this.#log?.(`backend unsubscribe failed: ${String(error)}`);
+		}
+		try {
+			this.#backend.dispose?.();
+		} catch (error) {
+			this.#log?.(`backend disposal failed: ${String(error)}`);
+		}
 	}
 
 	/** Asks the agent to move its conversation back to `entryId`. */
-	async truncate(entryId: string): Promise<boolean> {
+	truncate(entryId: string): Promise<boolean> {
+		return this.#track(this.#truncate(entryId));
+	}
+
+	async #truncate(entryId: string): Promise<boolean> {
 		if (!this.#backend.truncate) {
 			return false;
 		}
@@ -149,9 +189,11 @@ export class ChatDriver {
 				this.#startTurn(action.turnId, action.message);
 				return true;
 			case ActionType.ChatTurnCancelled:
-				void this.#backend.abort().catch((error: unknown) => {
-					this.#log?.(`abort failed: ${String(error)}`);
-				});
+				void this.#track(
+					this.#backend.abort().catch((error: unknown) => {
+						this.#log?.(`abort failed: ${String(error)}`);
+					}),
+				);
 				return true;
 			case ActionType.ChatPendingMessageSet:
 				// Steering is the only kind pi needs to know about: it is
@@ -162,7 +204,7 @@ export class ChatDriver {
 					// pi actually injects it — the client shows it as waiting
 					// until then.
 					this.#pendingSteeringId = action.id;
-					void this.#steer(action.message);
+					void this.#track(this.#steer(action.message));
 				} else {
 					// A message queued while the chat is idle is consumed straight
 					// away; otherwise it waits for the running turn to finish.
@@ -186,29 +228,42 @@ export class ChatDriver {
 	}
 
 	#startTurn(turnId: string, message: Message): void {
-		this.#mapper = new TurnMapper(turnId, Date.now(), {
+		const mapper = new TurnMapper(turnId, Date.now(), {
 			...(this.#workingDirectory ? { workingDirectory: this.#workingDirectory } : {}),
 		});
+		this.#mapper = mapper;
+		this.#runPrompt(mapper, message, "prompt");
+	}
 
-		// The client's choice has to land before the prompt, or the turn runs on
-		// whatever the previous one used.
-		const ready =
-			message.model && this.#backend.selectModel
-				? this.#backend.selectModel(message.model).catch((error: unknown) => {
-						this.#log?.(`selectModel failed: ${String(error)}`);
-					})
-				: Promise.resolve();
-
-		void ready
-			.then(() => this.#backend.prompt(messageTextForPi(message)))
-			.catch((error: unknown) => {
-				// `prompt()` rejects before any agent event when the model is
-				// unavailable or a turn is already running. Nothing will ever emit
-				// `agent_settled`, so the turn has to be closed here or it stays
-				// active forever.
-				this.#log?.(`prompt failed: ${String(error)}`);
+	#runPrompt(mapper: TurnMapper, message: Message, label: "prompt" | "queued prompt"): void {
+		const operation = (async () => {
+			// The client's choice has to land before the prompt, or the turn runs on
+			// whatever the previous one used. Selection may itself append to the
+			// session, so quiescence waits for this whole operation rather than only
+			// guarding the eventual prompt call.
+			if (message.model && this.#backend.selectModel) {
+				try {
+					await this.#backend.selectModel(message.model);
+				} catch (error) {
+					this.#log?.(`selectModel failed: ${String(error)}`);
+				}
+			}
+			if (this.#mapper !== mapper || this.#quiesced) {
+				return;
+			}
+			try {
+				await this.#backend.prompt(messageTextForPi(message));
+			} catch (error) {
+				if (this.#mapper !== mapper) {
+					return;
+				}
+				// `prompt()` can reject before any agent event. Nothing will emit
+				// `agent_settled`, so close the turn explicitly.
+				this.#log?.(`${label} failed: ${String(error)}`);
 				this.#finishTurn("error", error instanceof Error ? error.message : String(error));
-			});
+			}
+		})();
+		void this.#track(operation);
 	}
 
 	#onAgentEvent(event: AgentSessionEvent): void {
@@ -297,6 +352,9 @@ export class ChatDriver {
 	 * running.
 	 */
 	#consumeNextQueuedMessage(): void {
+		if (this.#quiesced) {
+			return;
+		}
 		const state = this.#host.store.get(this.#chatChannel) as ChatState | undefined;
 		const next = state?.queuedMessages?.[0];
 		if (!next || this.#mapper) {
@@ -304,9 +362,10 @@ export class ChatDriver {
 		}
 
 		const turnId = `turn-${next.id}`;
-		this.#mapper = new TurnMapper(turnId, Date.now(), {
+		const mapper = new TurnMapper(turnId, Date.now(), {
 			...(this.#workingDirectory ? { workingDirectory: this.#workingDirectory } : {}),
 		});
+		this.#mapper = mapper;
 		this.#host.dispatchServerAction(this.#chatChannel, {
 			type: ActionType.ChatTurnStarted,
 			turnId,
@@ -315,17 +374,22 @@ export class ChatDriver {
 			queuedMessageId: next.id,
 		});
 
-		const selection = next.message.model;
-		const ready =
-			selection && this.#backend.selectModel
-				? this.#backend.selectModel(selection).catch(() => undefined)
-				: Promise.resolve();
-		void ready
-			.then(() => this.#backend.prompt(messageTextForPi(next.message)))
-			.catch((error: unknown) => {
-				this.#log?.(`queued prompt failed: ${String(error)}`);
-				this.#finishTurn("error", error instanceof Error ? error.message : String(error));
-			});
+		this.#runPrompt(mapper, next.message, "queued prompt");
+	}
+
+	#track<T>(operation: Promise<T>): Promise<T> {
+		let tracked: Promise<T>;
+		tracked = operation.finally(() => {
+			this.#inFlight.delete(tracked);
+		});
+		this.#inFlight.add(tracked);
+		return tracked;
+	}
+
+	async #drainInFlight(): Promise<void> {
+		while (this.#inFlight.size > 0) {
+			await Promise.allSettled([...this.#inFlight]);
+		}
 	}
 
 	/**

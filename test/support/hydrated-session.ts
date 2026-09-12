@@ -12,7 +12,7 @@ import { AhpHost } from "../../src/core/host.ts";
 import type { PiBackend } from "../../src/pi/chat-driver.ts";
 import { PiSessionCatalogue } from "../../src/pi/session-catalogue.ts";
 import { SessionHydrator } from "../../src/pi/session-hydrator.ts";
-import { SessionRegistry } from "../../src/pi/session-registry.ts";
+import { type SessionFileDeletionResult, SessionRegistry } from "../../src/pi/session-registry.ts";
 import { type RunningServer, serveWebSocket } from "../../src/transport/websocket.ts";
 
 /** Writes a pi session file containing one full turn with a tool call. */
@@ -104,7 +104,9 @@ export interface HydratedSessionFixture {
 	close(): Promise<void>;
 }
 
-export async function startHydratedSessionFixture(): Promise<HydratedSessionFixture> {
+export async function startHydratedSessionFixture(
+	options: { deleteFile?: (path: string) => SessionFileDeletionResult | Promise<SessionFileDeletionResult> } = {},
+): Promise<HydratedSessionFixture> {
 	const root = mkdtempSync(join(tmpdir(), "pi-ahp-hydrate-"));
 	const workspace = mkdtempSync(join(tmpdir(), "pi ahp hydrate cwd-"));
 	const sessionId = randomUUID();
@@ -119,9 +121,13 @@ export async function startHydratedSessionFixture(): Promise<HydratedSessionFixt
 		host,
 		defaultWorkingDirectory: workspace,
 		createBackend: () => backend,
-		deleteFile: (path) => {
+		deleteFile: async (path) => {
 			deletedFiles.push(path);
+			if (options.deleteFile) {
+				return options.deleteFile(path);
+			}
 			rmSync(path, { force: true });
+			return { ok: true };
 		},
 		findSessionFile: (id) => catalogue.findSessionFile(id),
 	});
@@ -133,6 +139,7 @@ export async function startHydratedSessionFixture(): Promise<HydratedSessionFixt
 			host,
 			catalogue,
 			isLive: (session) => sessions.has(session),
+			isDisposing: (session) => sessions.isDisposing(session),
 			adopt: (session) => void sessions.adopt(session),
 			fallbackSelection: () => ({ id: "fallback-model", config: { thinkingLevel: "medium" } }),
 		}),

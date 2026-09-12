@@ -163,6 +163,27 @@ describe("session catalogue", () => {
 		const empty = new PiSessionCatalogue(join(root, "does-not-exist"));
 		assert.deepEqual(await empty.list(undefined, undefined), { items: [] });
 	});
+
+	it("does not return a cached path after its session file is removed", async () => {
+		const isolatedRoot = mkdtempSync(join(tmpdir(), "pi-ahp-catalogue-cache-"));
+		try {
+			const id = randomUUID();
+			const file = writeFakeSession(isolatedRoot, id, {
+				cwd: "/tmp/cached",
+				firstUserMessage: "cache me",
+				mtimeSeconds: 1_700_003_000,
+			});
+			const isolated = new PiSessionCatalogue(isolatedRoot);
+			await isolated.list(undefined, undefined);
+			assert.equal(await isolated.findSessionFile(id), file);
+
+			rmSync(file);
+
+			assert.equal(await isolated.findSessionFile(id), undefined);
+		} finally {
+			rmSync(isolatedRoot, { recursive: true, force: true });
+		}
+	});
 });
 
 describe("live session catalogue overlays", () => {

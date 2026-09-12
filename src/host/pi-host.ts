@@ -19,7 +19,7 @@ import { ResourceWatchService } from "../pi/resource-watch.ts";
 import { PiSessionCatalogue } from "../pi/session-catalogue.ts";
 import { SessionConfigService } from "../pi/session-config.ts";
 import { SessionHydrator } from "../pi/session-hydrator.ts";
-import { type BackendFactory, SessionRegistry } from "../pi/session-registry.ts";
+import { type BackendFactory, type SessionFileDeletionResult, SessionRegistry } from "../pi/session-registry.ts";
 import { TerminalService } from "./terminal-service.ts";
 
 export interface PiHostOptions extends HostOptions {
@@ -27,8 +27,8 @@ export interface PiHostOptions extends HostOptions {
 	readonly workingDirectory?: string;
 	/** Injectable for tests; defaults to pi's real model runtime. */
 	readonly modelRuntime?: Pick<ModelRuntime, "getAvailable">;
-	/** Injectable for tests; defaults to trash-then-unlink. */
-	readonly deleteFile?: (path: string) => void;
+	/** Injectable for tests; defaults to checked trash-then-unlink deletion. */
+	readonly deleteFile?: (path: string) => SessionFileDeletionResult | Promise<SessionFileDeletionResult>;
 	/** Injectable for tests; defaults to an in-process `AgentSession`. */
 	readonly createBackend?: BackendFactory;
 	/**
@@ -130,7 +130,7 @@ export async function createPiHost(options: PiHostOptions = {}): Promise<PiHost>
 		defaultWorkingDirectory: workingDirectory,
 		createBackend,
 		defaultSelection: fallbackSelection,
-		deleteFile: options.deleteFile ?? ((path: string) => void deleteSessionFile(path)),
+		deleteFile: options.deleteFile ?? deleteSessionFile,
 		findSessionFile: (id) => catalogue.findSessionFile(id),
 		...(options.log ? { log: options.log } : {}),
 	});
@@ -174,6 +174,7 @@ export async function createPiHost(options: PiHostOptions = {}): Promise<PiHost>
 			host,
 			catalogue,
 			isLive: (session) => sessions.has(session),
+			isDisposing: (session) => sessions.isDisposing(session),
 			// Adopted without a backend; one starts on the first turn.
 			adopt: (session) => void sessions.adopt(session),
 			fallbackSelection,

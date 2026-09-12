@@ -34,7 +34,7 @@ it("wires product services through createPiHost", async () => {
 			steer: async () => {},
 			abort: async () => {},
 		}),
-		deleteFile: () => {},
+		deleteFile: () => ({ ok: true }),
 	});
 	const server = await serveWebSocket(built.host, { host: "127.0.0.1", port: 0 });
 	const client = new AhpClient(await WebSocketTransport.connect(`ws://127.0.0.1:${server.port}`));

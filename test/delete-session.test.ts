@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
 import { describe, it } from "node:test";
@@ -16,7 +16,13 @@ function withPath(path: string, run: () => void): void {
 	}
 }
 
-function fakeTrash(root: string, behavior: "remove" | "fail" | "remove-and-fail"): { bin: string; calls: string } {
+function fakeTrash(
+	root: string,
+	behavior: "remove" | "fail" | "remove-and-fail" | "leave",
+): {
+	bin: string;
+	calls: string;
+} {
 	const bin = join(root, "bin");
 	const calls = join(root, "trash-calls.json");
 	mkdirSync(bin);
@@ -29,7 +35,7 @@ function fakeTrash(root: string, behavior: "remove" | "fail" | "remove-and-fail"
 			"const args = process.argv.slice(2);",
 			`fs.writeFileSync(${JSON.stringify(calls)}, JSON.stringify(args));`,
 			"const target = args.at(-1);",
-			...(behavior !== "fail" ? ["fs.rmSync(target, { force: true });"] : []),
+			...(["remove", "remove-and-fail"].includes(behavior) ? ["fs.rmSync(target, { force: true });"] : []),
 			...(behavior === "fail" ? ["process.exit(1);"] : []),
 			...(behavior === "remove-and-fail" ? ["process.exit(1);"] : []),
 		].join("\n"),
@@ -40,10 +46,15 @@ function fakeTrash(root: string, behavior: "remove" | "fail" | "remove-and-fail"
 
 describe("session file deletion", () => {
 	it("treats an already-missing file as success", () => {
-		assert.deepEqual(deleteSessionFile(join(tmpdir(), "pi-ahp-does-not-exist")), {
-			ok: true,
-			method: "missing",
-		});
+		const root = mkdtempSync(join(tmpdir(), "pi-ahp-delete-missing-"));
+		try {
+			assert.deepEqual(deleteSessionFile(join(root, "session.jsonl")), {
+				ok: true,
+				method: "missing",
+			});
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
 	});
 
 	it("prefers trash and guards a path that looks like an option", () => {
@@ -56,9 +67,25 @@ describe("session file deletion", () => {
 			withPath(`${fake.bin}${delimiter}${process.env.PATH ?? ""}`, () => {
 				assert.deepEqual(deleteSessionFile("-session.jsonl"), { ok: true, method: "trash" });
 			});
+			assert.equal(existsSync("-session.jsonl"), false);
 			assert.deepEqual(JSON.parse(readFileSync(fake.calls, "utf8")), ["--", "-session.jsonl"]);
 		} finally {
 			process.chdir(previousCwd);
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it("falls back to unlink when trash exits successfully but leaves the file", () => {
+		const root = mkdtempSync(join(tmpdir(), "pi-ahp-delete-left-behind-"));
+		try {
+			const fake = fakeTrash(root, "leave");
+			const target = join(root, "session.jsonl");
+			writeFileSync(target, "session\n");
+			withPath(`${fake.bin}${delimiter}${process.env.PATH ?? ""}`, () => {
+				assert.deepEqual(deleteSessionFile(target), { ok: true, method: "unlink" });
+			});
+			assert.equal(existsSync(target), false);
+		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}
 	});
@@ -72,6 +99,7 @@ describe("session file deletion", () => {
 			withPath(`${fake.bin}${delimiter}${process.env.PATH ?? ""}`, () => {
 				assert.deepEqual(deleteSessionFile(target), { ok: true, method: "trash" });
 			});
+			assert.equal(existsSync(target), false);
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}
@@ -88,6 +116,7 @@ describe("session file deletion", () => {
 				withPath(bin, () => {
 					assert.deepEqual(deleteSessionFile(target), { ok: true, method: "unlink" });
 				});
+				assert.equal(existsSync(target), false);
 			} finally {
 				rmSync(root, { recursive: true, force: true });
 			}
@@ -104,6 +133,7 @@ describe("session file deletion", () => {
 				assert.equal(result.ok, false);
 				assert.equal(result.method, "unlink");
 				assert.match(result.error ?? "", /directory|operation not permitted|permission denied/is);
+				assert.equal(existsSync(target), true);
 			});
 		} finally {
 			rmSync(root, { recursive: true, force: true });

@@ -126,6 +126,11 @@ export interface CreateSessionRequest {
 	readonly provider?: string;
 }
 
+export interface SessionFileDeletionResult {
+	readonly ok: boolean;
+	readonly error?: string;
+}
+
 export interface SessionRegistryOptions {
 	readonly host: AhpHost;
 	/** Used for sessions created without one of their own. */
@@ -133,8 +138,8 @@ export interface SessionRegistryOptions {
 	readonly createBackend?: BackendFactory;
 	/** Seeds a new chat's draft so a client has a model selected from the start. */
 	readonly defaultSelection?: () => ModelSelection | undefined;
-	/** Attempts to remove a session's durable record. Injected so disposal stays testable. */
-	readonly deleteFile?: (path: string) => void;
+	/** A failed result or rejection prevents protocol removal. */
+	readonly deleteFile?: (path: string) => SessionFileDeletionResult | Promise<SessionFileDeletionResult>;
 	/** Locates the file behind a session this host never ran. */
 	readonly findSessionFile?: (sessionId: string) => Promise<string | undefined>;
 	readonly log?: (message: string) => void;
@@ -147,6 +152,8 @@ export class SessionRegistry {
 	readonly #byChat = new Map<URI, LiveSession>();
 	/** Last root-catalog value used as a diff baseline; never authoritative state. */
 	readonly #summaryBaselines = new Map<URI, SessionSummary>();
+	/** Coalesces duplicate disposal requests and blocks new work during deletion. */
+	readonly #disposals = new Map<URI, Promise<void>>();
 	/** Prevents projection-generated session actions from recursively republishing. */
 	readonly #projectingSessions = new Set<URI>();
 
@@ -169,7 +176,9 @@ export class SessionRegistry {
 		});
 
 		this.#host.onClientAction((channel, action) => {
-			void this.#routeClientAction(channel, action);
+			void this.#routeClientAction(channel, action).catch((error) => {
+				this.#options.log?.(`side effect failed for ${channel}: ${String(error)}`);
+			});
 		});
 
 		this.#host.addClientActionValidator((channel, action) => this.#validateClientAction(channel, action));
@@ -187,6 +196,10 @@ export class SessionRegistry {
 
 	has(uri: URI): boolean {
 		return this.#sessions.has(uri);
+	}
+
+	isDisposing(uri: URI): boolean {
+		return this.#disposals.has(uri);
 	}
 
 	/** Live summaries that override or supplement pi's on-disk catalogue. */
@@ -215,7 +228,7 @@ export class SessionRegistry {
 		if (!sessionId) {
 			throw ProtocolError.invalidParams(`Not a session URI: ${uri}`);
 		}
-		if (this.#sessions.has(uri) || this.#host.store.has(uri)) {
+		if (this.#disposals.has(uri) || this.#sessions.has(uri) || this.#host.store.has(uri)) {
 			throw ProtocolError.sessionAlreadyExists(uri);
 		}
 		if (request.provider !== undefined && request.provider !== PI_PROVIDER) {
@@ -290,44 +303,102 @@ export class SessionRegistry {
 	 * been live here, so refusing to dispose them would make the delete
 	 * affordance fail on almost everything the list shows.
 	 *
-	 * The protocol defines disposal as tearing down the backend and dropping the
-	 * catalogue entry, not as deleting the durable record. But a host that only
-	 * unloaded would announce `root/sessionRemoved` and then hand the same
-	 * session back on the next `listSessions`, so disposal also attempts to remove
-	 * the file via the same trash-then-unlink path pi's own `/resume` delete uses.
+	 * AHP requires backend teardown and catalogue removal but does not prescribe
+	 * how a host stores sessions. This catalogue is the set of pi session files,
+	 * so stable removal also requires deleting the backing file via the same
+	 * trash-then-unlink path pi's own `/resume` delete uses.
 	 */
-	async dispose(uri: URI): Promise<void> {
+	dispose(uri: URI): Promise<void> {
+		const pending = this.#disposals.get(uri);
+		if (pending) {
+			return pending;
+		}
+
+		// Defer the work so the gate is installed before backend shutdown can emit
+		// events or any other message can observe the transition.
+		const operation = Promise.resolve().then(() => this.#disposeOnce(uri));
+		this.#disposals.set(uri, operation);
+		const clear = (): void => {
+			if (this.#disposals.get(uri) === operation) {
+				this.#disposals.delete(uri);
+			}
+		};
+		void operation.then(clear, clear);
+		return operation;
+	}
+
+	async #disposeOnce(uri: URI): Promise<void> {
 		const session = this.#sessions.get(uri);
+		let sessionId: string;
 		let file: string | undefined;
+		let quiesced: ChatDriver | undefined;
 
-		if (session) {
-			file = session.sessionManager.getSessionFile();
-			session.driver?.dispose();
+		try {
+			if (session) {
+				sessionId = session.sessionId;
+				quiesced = session.driver;
+				await quiesced?.quiesce();
+				file = session.sessionManager.getSessionFile();
+
+				// Storage-only or failed-start backends have no driver to close a turn.
+				const chat = this.#host.store.get(session.chatChannel) as ChatState | undefined;
+				if (chat?.activeTurn) {
+					const started = Date.parse(chat.activeTurn.startedAt);
+					this.#host.dispatchServerAction(session.chatChannel, {
+						type: ActionType.ChatTurnCancelled,
+						turnId: chat.activeTurn.id,
+						duration: Number.isFinite(started) ? Math.max(0, Date.now() - started) : 0,
+					});
+				}
+			} else {
+				const kind = this.#host.store.kindOf(uri);
+				if (kind !== undefined && kind !== "session") {
+					throw ProtocolError.sessionNotFound(uri);
+				}
+				const parsedId = sessionIdFromUri(uri, [PI_PROVIDER]);
+				if (!parsedId) {
+					throw ProtocolError.sessionNotFound(uri);
+				}
+				sessionId = parsedId;
+				file = await this.#options.findSessionFile?.(sessionId);
+				if (!file && !this.#host.store.has(uri)) {
+					throw ProtocolError.sessionNotFound(uri);
+				}
+			}
+
+			if (file) {
+				const deleteFile = this.#options.deleteFile;
+				if (!deleteFile) {
+					throw new Error("durable session deletion is not configured");
+				}
+				const result = await deleteFile(file);
+				if (!result.ok) {
+					throw new Error(result.error ?? "the durable session file remains");
+				}
+			}
+		} catch (error) {
+			quiesced?.resume();
+			if (error instanceof ProtocolError) {
+				throw error;
+			}
+			const message = error instanceof Error ? error.message : String(error);
+			throw new Error(`Could not dispose session ${uri}: ${message}`);
+		}
+
+		// Durable deletion is now committed. Re-read the live entry defensively so
+		// cleanup cannot leave registry and protocol state disagreeing.
+		const current = this.#sessions.get(uri);
+		if (current) {
+			current.driver?.dispose();
 			this.#sessions.delete(uri);
-			this.#byChat.delete(session.chatChannel);
+			this.#byChat.delete(current.chatChannel);
 			// Disposing a session cascades to every chat in its catalog.
-			this.#host.store.delete(session.chatChannel);
+			this.#host.deleteChannel(current.chatChannel);
 		} else {
-			const kind = this.#host.store.kindOf(uri);
-			if (kind !== undefined && kind !== "session") {
-				throw ProtocolError.sessionNotFound(uri);
-			}
-			const sessionId = sessionIdFromUri(uri, [PI_PROVIDER]);
-			if (!sessionId) {
-				throw ProtocolError.sessionNotFound(uri);
-			}
-			file = await this.#options.findSessionFile?.(sessionId);
-			if (!file && !this.#host.store.has(uri)) {
-				throw ProtocolError.sessionNotFound(uri);
-			}
-			this.#host.store.delete(chatUri(sessionId));
+			this.#host.deleteChannel(chatUri(sessionId));
 		}
-
-		this.#host.store.delete(uri);
+		this.#host.deleteChannel(uri);
 		this.#summaryBaselines.delete(uri);
-		if (file) {
-			this.#options.deleteFile?.(file);
-		}
 		notifySessionRemoved(this.#host, uri);
 		this.#bumpActiveSessions();
 	}
@@ -411,6 +482,11 @@ export class SessionRegistry {
 	// ── Client actions ──────────────────────────────────────────────────────
 
 	#validateClientAction(channel: URI, action: StateAction): string | undefined {
+		const session = this.#sessions.get(channel) ?? this.#byChat.get(channel);
+		if (this.#disposals.has(channel) || (session && this.#disposals.has(session.uri))) {
+			return "This session is being disposed";
+		}
+
 		const unsupported = unsupportedClientActionReason(action);
 		if (unsupported) {
 			return unsupported;
@@ -502,12 +578,33 @@ export class SessionRegistry {
 		if (!session) {
 			return;
 		}
+		if (!session.driver) {
+			await this.#attachBackend(session);
+		}
+		// An action accepted before disposal may have been waiting for lazy
+		// backend startup. On failure it still belongs to the surviving session;
+		// on success there is no session left to mutate.
+		const disposal = this.#disposals.get(session.uri);
+		if (disposal) {
+			try {
+				await disposal;
+				return;
+			} catch {
+				// Disposal rolled back; continue with the action already in state.
+			}
+		}
+		if (this.#sessions.get(session.uri) !== session) {
+			return;
+		}
 		if (action.type === ActionType.ChatTruncated) {
 			await this.#truncate(session, action.turnId);
 			return;
 		}
-		if (!session.driver) {
-			await this.#attachBackend(session);
+		if (action.type === ActionType.ChatTurnStarted) {
+			const chat = this.#host.store.get(channel) as ChatState | undefined;
+			if (chat?.activeTurn?.id !== action.turnId) {
+				return;
+			}
 		}
 		session.driver?.handleClientAction(channel, action);
 	}
@@ -561,9 +658,6 @@ export class SessionRegistry {
 			// the file changed underneath us.
 			this.#options.log?.(`no truncation anchor for ${turnId ?? "(all)"} in ${session.uri}`);
 			return;
-		}
-		if (!session.driver) {
-			await this.#attachBackend(session);
 		}
 		const applied = await session.driver?.truncate(anchor);
 		if (applied === false) {

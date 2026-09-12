@@ -8,7 +8,7 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { existsSync, unlinkSync } from "node:fs";
+import { lstatSync, unlinkSync } from "node:fs";
 
 export interface DeleteResult {
 	readonly ok: boolean;
@@ -16,19 +16,27 @@ export interface DeleteResult {
 	readonly error?: string;
 }
 
+function isMissing(path: string): boolean {
+	try {
+		lstatSync(path);
+		return false;
+	} catch (error) {
+		const code = (error as NodeJS.ErrnoException).code;
+		return code === "ENOENT" || code === "ENOTDIR";
+	}
+}
+
 export function deleteSessionFile(path: string): DeleteResult {
-	if (!existsSync(path)) {
+	if (isMissing(path)) {
 		return { ok: true, method: "missing" };
 	}
 
 	// `--` guards against a path that looks like a flag.
 	const args = path.startsWith("-") ? ["--", path] : [path];
-	const trashed = spawnSync("trash", args, { encoding: "utf-8" });
-	if (!trashed.error && trashed.status === 0) {
-		return { ok: true, method: "trash" };
-	}
-	// `trash` may report success oddly but still have moved the file.
-	if (!existsSync(path)) {
+	spawnSync("trash", args, { encoding: "utf-8" });
+	// Process status alone is not enough for the disposal contract: a wrapper or
+	// broken installation can exit successfully without moving the file.
+	if (isMissing(path)) {
 		return { ok: true, method: "trash" };
 	}
 
@@ -36,6 +44,10 @@ export function deleteSessionFile(path: string): DeleteResult {
 		unlinkSync(path);
 		return { ok: true, method: "unlink" };
 	} catch (error) {
+		// Another process deleting the same session is still the desired outcome.
+		if (isMissing(path)) {
+			return { ok: true, method: "missing" };
+		}
 		return { ok: false, method: "unlink", error: error instanceof Error ? error.message : String(error) };
 	}
 }

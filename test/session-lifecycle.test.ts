@@ -23,7 +23,6 @@ import {
 import { type AhpClient, RpcError, type Subscription } from "@microsoft/agent-host-protocol/client";
 import { chatUri, ROOT_CHANNEL, sessionUri } from "../src/core/channels.ts";
 import { pathToFileUri } from "../src/core/uri.ts";
-import type { PiBackend } from "../src/pi/chat-driver.ts";
 import { PI_PROVIDER } from "../src/pi/provider.ts";
 import { type Harness, nextClientId, startHarness } from "./harness.ts";
 import { assertValid } from "./support/schema.ts";
@@ -171,9 +170,15 @@ describe("session lifecycle", () => {
 	it("disposes a session, drops its channel, and announces the removal", async () => {
 		const client = await initialized();
 		const rootSubscription = client.attachSubscription(ROOT_CHANNEL);
-		const uri = sessionUri(randomUUID());
+		const id = randomUUID();
+		const uri = sessionUri(id);
+		const chat = chatUri(id);
 		await client.request("createSession", { channel: uri });
+		await client.subscribe(uri);
+		await client.subscribe(chat);
 		assert.ok(harness.host.store.has(uri));
+		assert.equal(harness.host.subscriberCount(uri), 1);
+		assert.equal(harness.host.subscriberCount(chat), 1);
 
 		await client.request("disposeSession", { channel: uri });
 
@@ -181,42 +186,8 @@ describe("session lifecycle", () => {
 		assert.equal((event.params as { session: string }).session, uri);
 		assert.equal(harness.host.store.has(uri), false);
 		assert.equal(harness.sessions?.get(uri), undefined);
-	});
-
-	it("disposes a backend that finishes starting after its session was removed", async () => {
-		let finishStart!: (backend: PiBackend) => void;
-		const starting = new Promise<PiBackend>((resolve) => {
-			finishStart = resolve;
-		});
-		let backendDisposals = 0;
-		const isolated = await startHarness({
-			sessions: true,
-			workingDirectory: workspace,
-			createBackend: () => starting,
-		});
-		try {
-			const client = await isolated.connect();
-			await client.initialize({ clientId: nextClientId(), protocolVersions: SUPPORTED_PROTOCOL_VERSIONS });
-			const uri = sessionUri(randomUUID());
-			await client.request("createSession", { channel: uri });
-			await client.request("disposeSession", { channel: uri });
-
-			finishStart({
-				subscribe: () => () => undefined,
-				prompt: async () => undefined,
-				steer: async () => undefined,
-				abort: async () => undefined,
-				dispose: () => {
-					backendDisposals += 1;
-				},
-			});
-			await new Promise<void>((resolve) => setImmediate(resolve));
-
-			assert.equal(backendDisposals, 1);
-			assert.equal(isolated.host.store.has(uri), false);
-		} finally {
-			await isolated.dispose();
-		}
+		assert.equal(harness.host.subscriberCount(uri), 0);
+		assert.equal(harness.host.subscriberCount(chat), 0);
 	});
 
 	it("does not let session disposal target another channel kind", async () => {

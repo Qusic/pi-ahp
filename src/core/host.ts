@@ -296,6 +296,22 @@ export class AhpHost {
 		return this.#store;
 	}
 
+	/** Removes a channel and releases every connection subscribed to that identity. */
+	deleteChannel(channel: URI): boolean {
+		const deleted = this.#store.delete(channel);
+		let released = false;
+		for (const connection of this.#connections) {
+			if (connection.isSubscribed(channel)) {
+				connection.unsubscribe(channel);
+				released = true;
+			}
+		}
+		if (released) {
+			this.#notifySubscriberCount(channel);
+		}
+		return deleted;
+	}
+
 	get serverSeq(): number {
 		return this.#sequencer.current;
 	}

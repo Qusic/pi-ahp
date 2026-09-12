@@ -34,6 +34,8 @@ export interface SessionHydratorOptions {
 	readonly catalogue: PiSessionCatalogue;
 	/** Sessions this host already has live; those must never be reloaded over. */
 	readonly isLive: (sessionChannel: URI) => boolean;
+	/** Prevents a disk session from becoming live while its removal is pending. */
+	readonly isDisposing: (sessionChannel: URI) => boolean;
 	/**
 	 * The model to show when the session file records none.
 	 *
@@ -84,6 +86,9 @@ export class SessionHydrator implements ChannelHydrator {
 			// be overwritten with what happens to be on disk.
 			return this.#options.host.store.has(channel);
 		}
+		if (this.#options.isDisposing(session)) {
+			return false;
+		}
 
 		const file = await this.#options.catalogue.findSessionFile(sessionId);
 		if (!file) {
@@ -112,6 +117,13 @@ export class SessionHydrator implements ChannelHydrator {
 		}
 		const workingDirectory = manager.getCwd();
 		const title = manager.getSessionName()?.trim() || firstUserText(turns) || "Untitled session";
+
+		// Disposal may have started during file lookup or stat. From this check
+		// through adoption there is no await, so the pair is created atomically
+		// with respect to a new disposal request.
+		if (this.#options.isDisposing(session)) {
+			return false;
+		}
 
 		// Read, for the same reason the catalogue reports read — see
 		// `readSessionSummary`. The reducer still clears the bit if a turn starts.

@@ -15,7 +15,7 @@ import { AhpHost } from "../src/core/host.ts";
 import { PI_PROVIDER } from "../src/pi/provider.ts";
 import { PiSessionCatalogue } from "../src/pi/session-catalogue.ts";
 import { SessionHydrator } from "../src/pi/session-hydrator.ts";
-import { type BackendFactory, SessionRegistry } from "../src/pi/session-registry.ts";
+import { type BackendFactory, type SessionFileDeletionResult, SessionRegistry } from "../src/pi/session-registry.ts";
 import { type RunningServer, serveWebSocket } from "../src/transport/websocket.ts";
 
 export const TEST_AGENT: AgentInfo = {
@@ -51,6 +51,8 @@ export async function startHarness(
 		workingDirectory?: string;
 		/** Backend for live session tests; omitted for storage-only sessions. */
 		createBackend?: BackendFactory;
+		/** Durable deletion boundary. */
+		deleteFile?: (path: string) => SessionFileDeletionResult | Promise<SessionFileDeletionResult>;
 		/** Root of the session catalogue; defaults to pi's real sessions directory. */
 		catalogueRoot?: string;
 	} = {},
@@ -69,7 +71,12 @@ export async function startHarness(
 			host,
 			defaultWorkingDirectory: options.workingDirectory ?? process.cwd(),
 			...(options.createBackend ? { createBackend: options.createBackend } : {}),
-			deleteFile: (path) => deletedFiles.push(path),
+			deleteFile:
+				options.deleteFile ??
+				((path) => {
+					deletedFiles.push(path);
+					return { ok: true };
+				}),
 			findSessionFile: (id) => catalogue.findSessionFile(id),
 		});
 		sessions = registry;
@@ -81,6 +88,7 @@ export async function startHarness(
 				host,
 				catalogue,
 				isLive: (session) => registry.has(session),
+				isDisposing: (session) => registry.isDisposing(session),
 				adopt: (session) => void registry.adopt(session),
 			}),
 			sessions: {

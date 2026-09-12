@@ -89,6 +89,7 @@ async function startFixture(before: number, after: number): Promise<Fixture> {
 			host,
 			catalogue,
 			isLive: (uri) => sessions.has(uri),
+			isDisposing: (uri) => sessions.isDisposing(uri),
 			adopt: (session) => void sessions.adopt(session),
 		}),
 	});

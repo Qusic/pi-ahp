@@ -259,9 +259,15 @@ export class PiSessionCatalogue {
 	 * almost immediately.
 	 */
 	async findSessionFile(sessionId: string): Promise<string | undefined> {
-		const cached = this.#index.get(sessionUri(sessionId));
+		const uri = sessionUri(sessionId);
+		const cached = this.#index.get(uri);
 		if (cached) {
-			return cached;
+			// The cache is only an index hint: deletion by this host, pi, or the
+			// user must invalidate a path before it is returned again.
+			if (readSessionId(cached) === sessionId) {
+				return cached;
+			}
+			this.#index.delete(uri);
 		}
 		for (const file of await listSessionFiles(this.#root)) {
 			const id = readSessionId(file.path);
