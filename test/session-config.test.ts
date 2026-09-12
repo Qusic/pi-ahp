@@ -1,4 +1,5 @@
 import { must } from "./support/assertions.ts";
+import { eventually } from "./support/async.ts";
 /**
  * Session configuration and model selection.
  *
@@ -33,14 +34,6 @@ import { PROJECT_TRUST_KEY, SessionConfigService } from "../src/pi/session-confi
 import { SessionRegistry } from "../src/pi/session-registry.ts";
 import { type RunningServer, serveWebSocket } from "../src/transport/websocket.ts";
 import { assertValid } from "./support/schema.ts";
-
-async function waitFor(predicate: () => boolean, timeoutMs = 2_000): Promise<void> {
-	const deadline = Date.now() + timeoutMs;
-	while (!predicate()) {
-		if (Date.now() > deadline) throw new Error("condition never became true");
-		await new Promise((resolve) => setTimeout(resolve, 5));
-	}
-}
 
 describe("resolveSessionConfig", () => {
 	let bare: string;
@@ -154,7 +147,10 @@ describe("model selection", () => {
 		chat = chatUri(id);
 		await client.request("createSession", { channel: sessionUri(id) });
 		await client.subscribe(chat);
-		await waitFor(() => (host.store.get(chat) as ChatState).draft?.model?.id === "default-model");
+		await eventually(
+			"the backend model to reach the chat draft",
+			() => (host.store.get(chat) as ChatState).draft?.model?.id === "default-model",
+		);
 	});
 
 	after(async () => {
@@ -200,7 +196,7 @@ describe("model selection", () => {
 				model: { id: "picked-model", config: { [THINKING_CONFIG_KEY]: "high" } },
 			},
 		});
-		await waitFor(() => backend.prompts.length === promptsBefore + 1);
+		await eventually("the prompt to reach the backend", () => backend.prompts.length === promptsBefore + 1);
 
 		assert.equal(backend.selections.length, selectionsBefore + 1);
 		assert.deepEqual(backend.selections.at(-1), {
@@ -221,7 +217,7 @@ describe("model selection", () => {
 			startedAt: new Date().toISOString(),
 			message: { text: "again", origin: { kind: MessageKind.User } },
 		});
-		await waitFor(() => backend.prompts.length === promptsBefore + 1);
+		await eventually("the prompt to reach the backend", () => backend.prompts.length === promptsBefore + 1);
 
 		assert.equal(backend.selections.length, selectionsBefore, "no selection means no switch");
 		assert.equal(backend.prompts.length, promptsBefore + 1);

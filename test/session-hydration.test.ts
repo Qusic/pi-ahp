@@ -1,4 +1,5 @@
 import { must } from "./support/assertions.ts";
+import { eventually } from "./support/async.ts";
 /**
  * Opening a session that only exists on disk.
  *
@@ -605,11 +606,11 @@ describe("resuming a hydrated session", () => {
 				message: { text: "continue please", origin: { kind: MessageKind.User } },
 			});
 
-			await waitFor(() => fixture.backend.prompts.length === 1);
+			await eventually("the resumed prompt to reach the backend", () => fixture.backend.prompts.length === 1);
 			assert.deepEqual(fixture.backend.prompts, ["continue please"]);
 
 			// The turn must also close, rather than sitting active forever.
-			await waitFor(() => {
+			await eventually("the resumed turn to settle", () => {
 				const state = fixture.host.store.get(chat) as ChatState;
 				return state.activeTurn === undefined;
 			});
@@ -631,8 +632,11 @@ describe("resuming a hydrated session", () => {
 				startedAt: new Date().toISOString(),
 				message: { text: "and again", origin: { kind: MessageKind.User } },
 			});
-			await waitFor(() => fixture.backend.prompts.length === 1);
-			await waitFor(() => (fixture.host.store.get(chat) as ChatState).turns.length === before + 1);
+			await eventually("the resumed prompt to reach the backend", () => fixture.backend.prompts.length === 1);
+			await eventually(
+				"the resumed turn to append after history",
+				() => (fixture.host.store.get(chat) as ChatState).turns.length === before + 1,
+			);
 
 			// History from disk stays put; the new turn lands after it.
 			const turns = (fixture.host.store.get(chat) as ChatState).turns;
@@ -643,19 +647,6 @@ describe("resuming a hydrated session", () => {
 		}
 	});
 });
-
-async function waitFor(predicate: () => boolean, timeoutMs = 3_000): Promise<void> {
-	const deadline = Date.now() + timeoutMs;
-	while (!predicate()) {
-		if (Date.now() > deadline) {
-			throw new Error("condition never became true");
-		}
-		await new Promise((resolve) => {
-			const handle = setTimeout(resolve, 10);
-			handle.unref?.();
-		});
-	}
-}
 
 describe("model selection on a hydrated session", () => {
 	it("seeds the picker from the model the session was using", async () => {

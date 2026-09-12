@@ -22,6 +22,7 @@ import type { AhpClient, Subscription } from "@microsoft/agent-host-protocol/cli
 import { chatUri, ROOT_CHANNEL, sessionUri } from "../src/core/channels.ts";
 import type { PiBackend } from "../src/pi/chat-driver.ts";
 import { type Harness, nextClientId, startHarness } from "./harness.ts";
+import { eventually } from "./support/async.ts";
 
 const CLIENT_ID = "active-turn-reconnect-client";
 const TURN_ID = "active-turn";
@@ -82,19 +83,6 @@ interface ActiveTurnFixture {
 	readonly workspace: string;
 }
 
-async function waitFor(predicate: () => boolean, timeoutMs = 2_000): Promise<void> {
-	const deadline = Date.now() + timeoutMs;
-	while (!predicate()) {
-		if (Date.now() >= deadline) {
-			throw new Error("condition never became true");
-		}
-		await new Promise((resolve) => {
-			const handle = setTimeout(resolve, 5);
-			handle.unref?.();
-		});
-	}
-}
-
 async function nextEnvelope(
 	subscription: Subscription,
 	matches: (envelope: ActionEnvelope) => boolean,
@@ -146,7 +134,7 @@ async function startActiveTurn(replayBufferCapacity = 64): Promise<ActiveTurnFix
 		startedAt: new Date().toISOString(),
 		message: { text: "keep working", origin: { kind: MessageKind.User } },
 	});
-	await waitFor(() => backend.prompts.length === 1);
+	await eventually("the initial prompt to reach the backend", () => backend.prompts.length === 1);
 	assert.equal((harness.host.store.get(chat) as ChatState).activeTurn?.id, TURN_ID);
 
 	return { backend, baseline: harness.host.serverSeq, chat, client, harness, session, workspace };
@@ -172,7 +160,10 @@ describe("active-turn reconnect", () => {
 			const { subscription: observerEvents } = await observer.subscribe(fixture.chat);
 
 			await fixture.client.shutdown();
-			await waitFor(() => fixture.harness.host.subscriberCount(fixture.chat) === 1);
+			await eventually(
+				"only the observer to remain subscribed",
+				() => fixture.harness.host.subscriberCount(fixture.chat) === 1,
+			);
 			fixture.backend.startResponse("offline partial");
 			const observed = await nextEnvelope(
 				observerEvents,
@@ -197,13 +188,13 @@ describe("active-turn reconnect", () => {
 				id: "after-reconnect",
 				message: { text: "focus here", origin: { kind: MessageKind.User } },
 			});
-			await waitFor(() => fixture.backend.steers.length === 1);
+			await eventually("reconnected steering to reach the backend", () => fixture.backend.steers.length === 1);
 			resumed.dispatch(fixture.chat, {
 				type: ActionType.ChatTurnCancelled,
 				turnId: TURN_ID,
 				duration: 0,
 			});
-			await waitFor(() => fixture.backend.aborts === 1);
+			await eventually("reconnected cancellation to reach the backend", () => fixture.backend.aborts === 1);
 
 			const state = fixture.harness.host.store.get(fixture.chat) as ChatState;
 			assert.equal(state.activeTurn, undefined);
@@ -217,7 +208,10 @@ describe("active-turn reconnect", () => {
 		const fixture = await startActiveTurn();
 		try {
 			await fixture.client.shutdown();
-			await waitFor(() => fixture.harness.host.subscriberCount(fixture.chat) === 0);
+			await eventually(
+				"the original chat subscription to disconnect",
+				() => fixture.harness.host.subscriberCount(fixture.chat) === 0,
+			);
 			fixture.backend.startResponse("finished offline");
 			fixture.backend.finishResponse();
 
@@ -243,7 +237,10 @@ describe("active-turn reconnect", () => {
 		const fixture = await startActiveTurn(4);
 		try {
 			await fixture.client.shutdown();
-			await waitFor(() => fixture.harness.host.subscriberCount(fixture.chat) === 0);
+			await eventually(
+				"the original chat subscription to disconnect",
+				() => fixture.harness.host.subscriberCount(fixture.chat) === 0,
+			);
 			fixture.backend.startResponse("snapshot partial");
 			for (let i = 0; i < 6; i++) {
 				fixture.harness.host.dispatchServerAction(ROOT_CHANNEL, {

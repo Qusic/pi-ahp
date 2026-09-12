@@ -25,6 +25,7 @@ import { AhpHost } from "../src/core/host.ts";
 import { pathToFileUri } from "../src/core/uri.ts";
 import { TerminalService } from "../src/host/terminal-service.ts";
 import { serveWebSocket } from "../src/transport/websocket.ts";
+import { eventually } from "./support/async.ts";
 import { assertValid } from "./support/schema.ts";
 
 const EXPECTED_SCROLLBACK_CHARS = 1_000_000;
@@ -153,14 +154,6 @@ function rootState(fixture: Fixture): RootState {
 	return fixture.host.store.get(ROOT_CHANNEL) as RootState;
 }
 
-async function waitFor(predicate: () => boolean, timeoutMs = 2_000): Promise<void> {
-	const deadline = Date.now() + timeoutMs;
-	while (!predicate()) {
-		if (Date.now() >= deadline) throw new Error("condition never became true");
-		await new Promise((resolve) => setTimeout(resolve, 5));
-	}
-}
-
 async function nextAction(subscription: Subscription, clientSeq: number): Promise<ActionEnvelope> {
 	let timer: NodeJS.Timeout | undefined;
 	const timeout = new Promise<never>((_, reject) => {
@@ -253,21 +246,24 @@ describe("terminal service", () => {
 		const { subscription } = await owner.subscribe(channel);
 		assert.equal(terminalState(fixture, channel).title, "test-shell");
 		pty.emitData("hello\u001b[31m red");
-		await waitFor(() => terminalState(fixture, channel).content.length > 0);
+		await eventually("terminal output to be published", () => terminalState(fixture, channel).content.length > 0);
 		assert.deepEqual(terminalState(fixture, channel).content, [{ type: "unclassified", value: "hello\u001b[31m red" }]);
 
 		owner.dispatch(channel, { type: ActionType.TerminalInput, data: "echo hi\r" });
-		await waitFor(() => pty.writes.length === 1);
+		await eventually("terminal input to reach the PTY", () => pty.writes.length === 1);
 		assert.deepEqual(pty.writes, ["echo hi\r"]);
 
 		owner.dispatch(channel, { type: ActionType.TerminalResized, cols: 120, rows: 40 });
-		await waitFor(() => pty.resizes.length === 1);
+		await eventually("terminal resize to reach the PTY", () => pty.resizes.length === 1);
 		assert.deepEqual(pty.resizes, [{ cols: 120, rows: 40 }]);
 		assert.equal(terminalState(fixture, channel).cols, 120);
 		assert.equal(terminalState(fixture, channel).rows, 40);
 
 		owner.dispatch(channel, { type: ActionType.TerminalTitleChanged, title: "Tests" });
-		await waitFor(() => rootState(fixture).terminals?.[0]?.title === "Tests");
+		await eventually(
+			"the terminal title to reach root state",
+			() => rootState(fixture).terminals?.[0]?.title === "Tests",
+		);
 		assert.equal(terminalState(fixture, channel).title, "Tests");
 
 		pty.emitData("stale pending output");
@@ -281,7 +277,7 @@ describe("terminal service", () => {
 		const { channel, pty } = await createTerminal();
 		const before = fixture.host.serverSeq;
 		for (let index = 0; index < 100; index += 1) pty.emitData("x");
-		await waitFor(() => terminalState(fixture, channel).content.length > 0);
+		await eventually("terminal output to be published", () => terminalState(fixture, channel).content.length > 0);
 		assert.equal(fixture.host.serverSeq, before + 1);
 		assert.deepEqual(terminalState(fixture, channel).content, [{ type: "unclassified", value: "x".repeat(100) }]);
 
@@ -404,7 +400,7 @@ describe("terminal service", () => {
 		const lastSeenServerSeq = fixture.host.serverSeq;
 		await owner.shutdown();
 		pty.emitData("offline output");
-		await waitFor(() => fixture.host.serverSeq > lastSeenServerSeq);
+		await eventually("offline terminal output to be sequenced", () => fixture.host.serverSeq > lastSeenServerSeq);
 
 		const resumed = await fixture.open();
 		const result = await resumed.reconnect({
@@ -420,7 +416,7 @@ describe("terminal service", () => {
 		assert.equal(fixture.spawner.calls.length, 1);
 
 		resumed.dispatch(channel, { type: ActionType.TerminalInput, data: "continued" });
-		await waitFor(() => pty.writes.includes("continued"));
+		await eventually("reconnected terminal input to reach the PTY", () => pty.writes.includes("continued"));
 	});
 
 	it("falls back to a live terminal snapshot after replay eviction", async () => {
@@ -432,7 +428,7 @@ describe("terminal service", () => {
 		for (const chunk of chunks) {
 			const before = fixture.host.serverSeq;
 			pty.emitData(chunk);
-			await waitFor(() => fixture.host.serverSeq > before);
+			await eventually("terminal output to be sequenced", () => fixture.host.serverSeq > before);
 		}
 
 		const resumed = await fixture.open();
@@ -454,13 +450,13 @@ describe("terminal service", () => {
 		assert.equal(fixture.spawner.calls.length, 1);
 
 		resumed.dispatch(channel, { type: ActionType.TerminalInput, data: "after snapshot" });
-		await waitFor(() => pty.writes.includes("after snapshot"));
+		await eventually("post-snapshot input to reach the PTY", () => pty.writes.includes("after snapshot"));
 	});
 
 	it("bounds snapshot scrollback while retaining the newest VT stream", async () => {
 		const { channel, pty } = await createTerminal();
 		pty.emitData(`discard${"x".repeat(EXPECTED_SCROLLBACK_CHARS)}`);
-		await waitFor(() => terminalState(fixture, channel).content.length > 0);
+		await eventually("terminal output to be published", () => terminalState(fixture, channel).content.length > 0);
 		const [part] = terminalState(fixture, channel).content;
 		assert.ok(part?.type === "unclassified");
 		assert.equal(part.value.length, EXPECTED_SCROLLBACK_CHARS);

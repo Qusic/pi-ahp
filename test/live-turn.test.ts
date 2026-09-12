@@ -1,4 +1,5 @@
 import { must, turnError } from "./support/assertions.ts";
+import { eventually } from "./support/async.ts";
 /**
  * Live end-to-end smoke: a real client, a real model, the whole stack.
  *
@@ -47,19 +48,6 @@ import { assertValid } from "./support/schema.ts";
 
 const LIVE = process.env.PI_AHP_LIVE === "1";
 const TURN_TIMEOUT_MS = 180_000;
-
-async function waitFor(predicate: () => boolean, timeoutMs = TURN_TIMEOUT_MS): Promise<void> {
-	const deadline = Date.now() + timeoutMs;
-	while (!predicate()) {
-		if (Date.now() > deadline) {
-			throw new Error("condition never became true");
-		}
-		await new Promise((resolve) => {
-			const handle = setTimeout(resolve, 50);
-			handle.unref?.();
-		});
-	}
-}
 
 /**
  * Printed by every offline run, so it is the suite's real documentation.
@@ -150,7 +138,11 @@ describe("live turn", { skip: LIVE ? false : SKIP_REASON }, () => {
 		await client.request("createSession", { channel: sessionChannel });
 		await client.subscribe(sessionChannel);
 		await client.subscribe(chatChannel);
-		await waitFor(() => (host.store.get(sessionChannel) as SessionState).lifecycle === SessionLifecycle.Ready, 30_000);
+		await eventually(
+			"the live session to become ready",
+			() => (host.store.get(sessionChannel) as SessionState).lifecycle === SessionLifecycle.Ready,
+			{ timeoutMs: 30_000, intervalMs: 50 },
+		);
 
 		client.dispatch(chatChannel, {
 			type: ActionType.ChatTurnStarted,
@@ -159,7 +151,10 @@ describe("live turn", { skip: LIVE ? false : SKIP_REASON }, () => {
 			message: { text: "Reply with exactly the word: PONG", origin: { kind: MessageKind.User } },
 		});
 
-		await waitFor(() => (host.store.get(chatChannel) as ChatState).turns.length === 1);
+		await eventually("the live turn to complete", () => (host.store.get(chatChannel) as ChatState).turns.length === 1, {
+			timeoutMs: TURN_TIMEOUT_MS,
+			intervalMs: 50,
+		});
 
 		const state = host.store.get(chatChannel) as ChatState;
 		assertSessionState(sessionChannel, chatChannel);
@@ -193,7 +188,11 @@ describe("live turn", { skip: LIVE ? false : SKIP_REASON }, () => {
 
 		await client.request("createSession", { channel: sessionChannel });
 		await client.subscribe(chatChannel);
-		await waitFor(() => (host.store.get(sessionChannel) as SessionState).lifecycle === SessionLifecycle.Ready, 30_000);
+		await eventually(
+			"the live session to become ready",
+			() => (host.store.get(sessionChannel) as SessionState).lifecycle === SessionLifecycle.Ready,
+			{ timeoutMs: 30_000, intervalMs: 50 },
+		);
 
 		client.dispatch(chatChannel, {
 			type: ActionType.ChatTurnStarted,
@@ -205,7 +204,10 @@ describe("live turn", { skip: LIVE ? false : SKIP_REASON }, () => {
 			},
 		});
 
-		await waitFor(() => (host.store.get(chatChannel) as ChatState).turns.length === 1);
+		await eventually("the live turn to complete", () => (host.store.get(chatChannel) as ChatState).turns.length === 1, {
+			timeoutMs: TURN_TIMEOUT_MS,
+			intervalMs: 50,
+		});
 
 		assertSessionState(sessionChannel, chatChannel);
 		const turn = must((host.store.get(chatChannel) as ChatState).turns[0]);

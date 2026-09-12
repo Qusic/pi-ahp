@@ -1,4 +1,5 @@
 import { must, turnError } from "./support/assertions.ts";
+import { eventually } from "./support/async.ts";
 /**
  * The chat driver end-to-end: a client turn reaching a backend, streamed output
  * coming back as actions, and queued-message consumption.
@@ -110,19 +111,6 @@ interface Fixture {
 	server: RunningServer;
 }
 
-async function waitFor(predicate: () => boolean, timeoutMs = 2_000): Promise<void> {
-	const deadline = Date.now() + timeoutMs;
-	while (!predicate()) {
-		if (Date.now() > deadline) {
-			throw new Error("condition never became true");
-		}
-		await new Promise((resolve) => {
-			const handle = setTimeout(resolve, 5);
-			handle.unref?.();
-		});
-	}
-}
-
 describe("chat driver", () => {
 	let fixture: Fixture;
 	let backend: ScriptedBackend;
@@ -176,7 +164,7 @@ describe("chat driver", () => {
 			message: { text: "hello", origin: { kind: MessageKind.User } },
 		});
 
-		await waitFor(() => {
+		await eventually("the streamed turn to complete", () => {
 			const state = fixture.host.store.get(fixture.chatChannel) as ChatState;
 			return state.turns.length === 1;
 		});
@@ -205,7 +193,7 @@ describe("chat driver", () => {
 			},
 		});
 
-		await waitFor(() => backend.prompts.includes(expected));
+		await eventually("the attachment-expanded prompt to reach the backend", () => backend.prompts.includes(expected));
 		assert.equal(backend.prompts.at(-1), expected);
 	});
 
@@ -233,7 +221,7 @@ describe("chat driver", () => {
 			},
 		});
 
-		await waitFor(() => backend.steers.length === 1);
+		await eventually("the steering message to reach the backend", () => backend.steers.length === 1);
 		assert.deepEqual(backend.steers, ["focus on tests\n\nsteering context"]);
 	});
 
@@ -253,7 +241,7 @@ describe("chat driver", () => {
 			},
 		});
 
-		await waitFor(() => backend.prompts.length === promptsBefore + 1);
+		await eventually("the prompt to reach the backend", () => backend.prompts.length === promptsBefore + 1);
 
 		const state = fixture.host.store.get(fixture.chatChannel) as ChatState;
 		assert.equal(backend.prompts.at(-1), "then do this\n\nqueued context");
@@ -271,7 +259,7 @@ describe("chat driver", () => {
 			startedAt: new Date().toISOString(),
 			message: { text: "long running", origin: { kind: MessageKind.User } },
 		});
-		await waitFor(() => backend.prompts.length === promptsBefore + 1);
+		await eventually("the prompt to reach the backend", () => backend.prompts.length === promptsBefore + 1);
 
 		fixture.client.dispatch(fixture.chatChannel, {
 			type: ActionType.ChatPendingMessageSet,
@@ -287,7 +275,10 @@ describe("chat driver", () => {
 		assert.equal(waiting.queuedMessages?.[0]?.id, "q-after-active");
 
 		backend.emit({ type: "agent_settled" } as AgentSessionEvent);
-		await waitFor(() => backend.prompts.length === promptsBefore + 2);
+		await eventually(
+			"the queued message to start after settlement",
+			() => backend.prompts.length === promptsBefore + 2,
+		);
 
 		const completed = fixture.host.store.get(fixture.chatChannel) as ChatState;
 		assert.equal(backend.prompts.at(-1), "run after");
@@ -305,7 +296,7 @@ describe("chat driver", () => {
 			startedAt: new Date().toISOString(),
 			message: { text: "long running", origin: { kind: MessageKind.User } },
 		});
-		await waitFor(() => backend.prompts.length === promptsBefore + 1);
+		await eventually("the prompt to reach the backend", () => backend.prompts.length === promptsBefore + 1);
 		assert.equal((fixture.host.store.get(fixture.chatChannel) as ChatState).activeTurn?.id, "t-cancel");
 
 		fixture.client.dispatch(fixture.chatChannel, {
@@ -314,7 +305,7 @@ describe("chat driver", () => {
 			duration: 0,
 		});
 
-		await waitFor(() => backend.aborts === abortsBefore + 1);
+		await eventually("cancellation to reach the backend", () => backend.aborts === abortsBefore + 1);
 		const chat = fixture.host.store.get(fixture.chatChannel) as ChatState;
 		const session = fixture.host.store.get(fixture.sessionChannel) as SessionState;
 		assert.equal(chat.turns.at(-1)?.state, TurnState.Cancelled);
@@ -335,7 +326,10 @@ describe("chat driver — backend failure", () => {
 
 		const uri = sessionUri(randomUUID());
 		sessions.create({ channel: uri });
-		await waitFor(() => (host.store.get(uri) as SessionState).lifecycle !== SessionLifecycle.Creating);
+		await eventually(
+			"backend startup failure to reach session state",
+			() => (host.store.get(uri) as SessionState).lifecycle !== SessionLifecycle.Creating,
+		);
 
 		const state = host.store.get(uri) as SessionState;
 		assert.equal(state.lifecycle, SessionLifecycle.Failed);
@@ -382,7 +376,10 @@ describe("chat driver — backend failure", () => {
 
 			// Nothing will ever emit `agent_settled`, so without explicit handling
 			// the turn would stay active and the session stuck at InProgress.
-			await waitFor(() => (host.store.get(chat) as ChatState).turns.length === 1);
+			await eventually(
+				"the rejected prompt to close its turn",
+				() => (host.store.get(chat) as ChatState).turns.length === 1,
+			);
 			const state = host.store.get(chat) as ChatState;
 			assert.equal(state.activeTurn, undefined);
 			assert.equal(state.turns[0]?.state, TurnState.Error);
@@ -457,12 +454,18 @@ describe("steering message lifetime", () => {
 				message: { text: "focus on tests", origin: { kind: MessageKind.User } },
 			});
 
-			await waitFor(() => (host.store.get(chat) as ChatState).steeringMessage !== undefined);
+			await eventually(
+				"the steering message to enter protocol state",
+				() => (host.store.get(chat) as ChatState).steeringMessage !== undefined,
+			);
 
 			// …and consumes it by shrinking the queue right before injecting.
 			emit({ type: "queue_update", steering: [], followUp: [] });
 
-			await waitFor(() => (host.store.get(chat) as ChatState).steeringMessage === undefined);
+			await eventually(
+				"the consumed steering message to leave protocol state",
+				() => (host.store.get(chat) as ChatState).steeringMessage === undefined,
+			);
 
 			// The text itself is not recorded here — pi delivers it as an
 			// ordinary user message, and the mapper turns that into its own

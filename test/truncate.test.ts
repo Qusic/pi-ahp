@@ -1,4 +1,5 @@
 import { must } from "./support/assertions.ts";
+import { eventually } from "./support/async.ts";
 /**
  * Truncating a conversation.
  *
@@ -162,13 +163,6 @@ async function startFixture(options: { acceptTruncate?: boolean } = {}): Promise
 	};
 }
 
-async function settle(ms = 150): Promise<void> {
-	await new Promise((resolve) => {
-		const handle = setTimeout(resolve, ms);
-		handle.unref?.();
-	});
-}
-
 describe("chat/truncated", () => {
 	let fixture: Fixture;
 
@@ -187,7 +181,7 @@ describe("chat/truncated", () => {
 		assert.equal(turns.length, 2);
 
 		fixture.client.dispatch(chat, { type: ActionType.ChatTruncated, turnId: must(turns[0]).id });
-		await settle();
+		await eventually("pi's history to receive the truncation", () => fixture.truncated.length === 1);
 
 		// Both halves have to move: the reducer drops the later turn, and pi is
 		// told to branch from the kept one.
@@ -202,7 +196,7 @@ describe("chat/truncated", () => {
 			await fresh.client.subscribe(chat);
 
 			fresh.client.dispatch(chat, { type: ActionType.ChatTruncated });
-			await settle();
+			await eventually("pi's history to receive the clear-all truncation", () => fresh.truncated.length === 1);
 
 			assert.equal((fresh.host.store.get(chat) as ChatState).turns.length, 0);
 			assert.equal(fresh.truncated.length, 1);

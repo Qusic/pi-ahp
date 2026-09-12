@@ -28,6 +28,7 @@ import { chatUri, ROOT_CHANNEL, sessionUri } from "../src/core/channels.ts";
 import type { PiBackend } from "../src/pi/chat-driver.ts";
 import { type Harness, startHarness } from "./harness.ts";
 import { must } from "./support/assertions.ts";
+import { eventually } from "./support/async.ts";
 
 const CLIENT_ID = "reconnecting-client";
 
@@ -67,19 +68,6 @@ class RestartBackend implements PiBackend {
 
 	async steer(): Promise<void> {}
 	async abort(): Promise<void> {}
-}
-
-async function waitFor(predicate: () => boolean, timeoutMs = 2_000): Promise<void> {
-	const deadline = Date.now() + timeoutMs;
-	while (!predicate()) {
-		if (Date.now() >= deadline) {
-			throw new Error("condition never became true");
-		}
-		await new Promise((resolve) => {
-			const handle = setTimeout(resolve, 5);
-			handle.unref?.();
-		});
-	}
 }
 
 describe("reconnect", () => {
@@ -339,7 +327,7 @@ describe("reconnect after host restart", () => {
 				startedAt: new Date().toISOString(),
 				message: { text: "continue after restart", origin: { kind: MessageKind.User } },
 			});
-			await waitFor(() => backend.prompts.length === 1);
+			await eventually("the post-restart prompt to reach the backend", () => backend.prompts.length === 1);
 			assert.deepEqual(backend.prompts, ["continue after restart"]);
 			const state = harness.host.store.get(chatUri(id)) as ChatState;
 			assert.equal(state.activeTurn, undefined);
