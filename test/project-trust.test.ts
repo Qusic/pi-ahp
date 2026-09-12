@@ -7,11 +7,12 @@
  */
 
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before, describe, it } from "node:test";
-import { ProjectTrustStore } from "@earendil-works/pi-coding-agent";
+import { ProjectTrustStore, SessionManager } from "@earendil-works/pi-coding-agent";
+import { InProcessPiBackend } from "../src/pi/in-process-backend.ts";
 import { resolveProjectTrust } from "../src/pi/project-trust.ts";
 
 describe("project trust", () => {
@@ -71,23 +72,48 @@ describe("project trust", () => {
 		assert.equal(decision.reason, "user-untrusted");
 	});
 
-	it("never overrides an explicit distrust, whatever the policy", () => {
+	it("the `never` policy overrides a stored trust decision", () => {
 		new ProjectTrustStore(agentDir).set(withResources, true);
 		const decision = resolveProjectTrust(withResources, "never", agentDir);
 		assert.equal(decision.trusted, false);
 		assert.equal(decision.reason, "policy");
 	});
 
-	it("trusts unconditionally under the `trust` policy", () => {
-		const fresh = mkdtempSync(join(tmpdir(), "pi-ahp-trust-fresh-"));
+	it("applies the decision before pi loads project extensions", async () => {
+		const previousAgentDir = process.env.PI_CODING_AGENT_DIR;
+		process.env.PI_CODING_AGENT_DIR = agentDir;
+		const workspaces: string[] = [];
 		try {
-			mkdirSync(join(fresh, ".pi", "extensions"), { recursive: true });
-			writeFileSync(join(fresh, ".pi", "extensions", "ext.ts"), "export default () => {};\n");
-			const decision = resolveProjectTrust(fresh, "trust", agentDir);
-			assert.equal(decision.trusted, true);
-			assert.equal(decision.reason, "policy");
+			for (const [policy, shouldLoad] of [
+				["never", false],
+				["trust", true],
+			] as const) {
+				const cwd = mkdtempSync(join(tmpdir(), `pi-ahp-trust-${policy}-`));
+				workspaces.push(cwd);
+				const marker = join(cwd, "extension-loaded");
+				const extensions = join(cwd, ".pi", "extensions");
+				mkdirSync(extensions, { recursive: true });
+				writeFileSync(
+					join(extensions, "probe.js"),
+					`import { writeFileSync } from "node:fs"; export default function () { writeFileSync(${JSON.stringify(marker)}, "loaded"); }`,
+				);
+
+				const backend = await InProcessPiBackend.create({
+					cwd,
+					sessionManager: SessionManager.inMemory(cwd),
+					projectTrustPolicy: policy,
+				});
+				try {
+					assert.equal(backend.projectTrust.trusted, shouldLoad);
+					assert.equal(existsSync(marker), shouldLoad, `${policy} project extension execution`);
+				} finally {
+					backend.dispose();
+				}
+			}
 		} finally {
-			rmSync(fresh, { recursive: true, force: true });
+			if (previousAgentDir === undefined) delete process.env.PI_CODING_AGENT_DIR;
+			else process.env.PI_CODING_AGENT_DIR = previousAgentDir;
+			for (const cwd of workspaces) rmSync(cwd, { recursive: true, force: true });
 		}
 	});
 });

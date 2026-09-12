@@ -71,17 +71,16 @@ it("advertises extension models and uses pi's configured default", async () => {
 			}),
 		});
 		const rootState = host.store.get("ahp-root://") as RootState;
-		assert.deepEqual(
-			rootState.agents[0]?.models.map((model) => ({
-				id: model.id,
-				provider: model.provider,
-				piProvider: model._meta?.piProvider,
-			})),
-			[
-				{ id: "fixture/other-model", provider: "pi", piProvider: "fixture" },
-				{ id: "fixture/fixture-model", provider: "pi", piProvider: "fixture" },
-			],
+		const advertised = Object.fromEntries(
+			(rootState.agents[0]?.models ?? []).map((model) => [
+				model.id,
+				{ provider: model.provider, piProvider: model._meta?.piProvider },
+			]),
 		);
+		assert.deepEqual(advertised, {
+			"fixture/other-model": { provider: "pi", piProvider: "fixture" },
+			"fixture/fixture-model": { provider: "pi", piProvider: "fixture" },
+		});
 
 		const id = "default-selection";
 		sessions.create({ channel: sessionUri(id) });
@@ -105,7 +104,7 @@ it("advertises extension models and uses pi's configured default", async () => {
 	}
 });
 
-it("switches between providers that expose the same model id", async () => {
+it("resolves stale and provider-qualified model selections safely", async () => {
 	const root = mkdtempSync(join(tmpdir(), "pi-ahp-model-identity-"));
 	const workspace = join(root, "workspace");
 	const agentDir = join(root, "agent");
@@ -148,9 +147,17 @@ it("switches between providers that expose the same model id", async () => {
 			sessionManager: SessionManager.inMemory(workspace),
 		});
 		assert.equal(backend.session.model?.provider, "fixture-one");
+		const before = backend.currentSelection();
+		await backend.selectModel({ id: "missing/stale-model", config: { thinkingLevel: "high" } });
+		assert.deepEqual(backend.currentSelection(), before, "a stale client choice must not change the active model");
 
-		await backend.selectModel({ id: modelSelectionId({ provider: "fixture-two", id: "shared-model" }) });
+		const second = modelSelectionId({ provider: "fixture-two", id: "shared-model" });
+		await backend.selectModel({ id: second });
 		assert.equal(backend.session.model?.provider, "fixture-two");
+
+		const supportedLevel = backend.session.thinkingLevel;
+		await backend.selectModel({ id: second, config: { thinkingLevel: "high" } });
+		assert.equal(backend.session.thinkingLevel, supportedLevel, "an unsupported thinking level must be ignored");
 	} finally {
 		backend?.dispose();
 		if (previousAgentDir === undefined) delete process.env.PI_CODING_AGENT_DIR;

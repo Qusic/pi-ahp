@@ -67,7 +67,8 @@ describe("model mapping", () => {
 
 	it("accepts an unambiguous legacy bare model id", () => {
 		const only = model();
-		assert.equal(findModelBySelectionId([only], only.id), only);
+		const other = model({ id: "other-model" });
+		assert.equal(findModelBySelectionId([only, other], only.id), only);
 	});
 
 	it("exposes thinking level as a model configSchema", () => {
@@ -77,6 +78,7 @@ describe("model mapping", () => {
 		assert.ok(property);
 		assert.equal(property.type, "string");
 		assert.equal(property.default, "medium");
+		assert.deepEqual(property.enum, ["off", "minimal", "low", "medium", "high"]);
 		assert.equal(info.id, "anthropic/claude-sonnet-4");
 		assert.equal(info.provider, PI_PROVIDER);
 		// Do not advertise the underlying model's vision support until this host
