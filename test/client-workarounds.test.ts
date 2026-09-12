@@ -6,6 +6,8 @@ import { after, before, describe, it } from "node:test";
 import {
 	ActionType,
 	type ChatState,
+	JsonRpcErrorCodes,
+	MessageKind,
 	type SessionState,
 	SUPPORTED_PROTOCOL_VERSIONS,
 } from "@microsoft/agent-host-protocol";
@@ -15,9 +17,16 @@ import { chatUri, ROOT_CHANNEL, sessionIdFromUri, sessionUri } from "../src/core
 import { ClientWorkarounds } from "../src/core/client-workarounds.ts";
 import { PI_PROVIDER } from "../src/pi/provider.ts";
 import type { RunningServer } from "../src/transport/websocket.ts";
-import { must } from "./support/assertions.ts";
+import { expectRpcError, must } from "./support/assertions.ts";
 import { type HydratedSessionFixture, startHydratedSessionFixture } from "./support/hydrated-session.ts";
 import { assertValid } from "./support/schema.ts";
+
+async function expectVscodeDisposalRefusal(request: Promise<unknown>): Promise<void> {
+	const error = await expectRpcError(request, JsonRpcErrorCodes.InvalidRequest);
+	assert.match(error.message, /temporarily disabled for VS Code/u);
+	assert.match(error.message, /VS Code provisional-session lifecycle bug/u);
+	assert.match(error.message, /session was kept/u);
+}
 
 async function initialSnapshotResources(
 	server: RunningServer,
@@ -86,6 +95,94 @@ describe("client URI dialects over the wire", () => {
 			);
 		});
 	}
+});
+
+describe("VS Code session disposal workaround", () => {
+	it("protects a durable session that this connection did not create", async () => {
+		const fixture = await startHydratedSessionFixture();
+		try {
+			const client = await fixture.connectAsVSCode();
+			const resource = `pi:/${fixture.sessionId}`;
+
+			await expectVscodeDisposalRefusal(client.request("disposeSession", { channel: resource }));
+
+			assert.deepEqual(fixture.deletedFiles, []);
+			const listed = await client.request("listSessions", { channel: ROOT_CHANNEL });
+			assert.equal(
+				listed.items.some((item) => item.resource === resource),
+				true,
+			);
+		} finally {
+			await fixture.close();
+		}
+	});
+
+	it("still disposes an empty session created by this VS Code connection", async () => {
+		const fixture = await startHydratedSessionFixture();
+		try {
+			const client = await fixture.connectAsVSCode();
+			const id = randomUUID();
+			const resource = `pi:/${id}`;
+			await client.request("createSession", { channel: resource });
+
+			await client.request("disposeSession", { channel: resource });
+
+			assert.equal(fixture.host.store.has(sessionUri(id)), false);
+		} finally {
+			await fixture.close();
+		}
+	});
+
+	it("restores an empty session after disposal fails so VS Code can retry", async () => {
+		let attempts = 0;
+		const fixture = await startHydratedSessionFixture({
+			deleteFile: () => {
+				attempts += 1;
+				return attempts === 1 ? { ok: false, error: "temporary failure" } : { ok: true };
+			},
+		});
+		try {
+			const client = await fixture.connectAsVSCode();
+			const id = randomUUID();
+			const resource = `pi:/${id}`;
+			await client.request("createSession", { channel: resource });
+
+			const error = await expectRpcError(
+				client.request("disposeSession", { channel: resource }),
+				JsonRpcErrorCodes.InternalError,
+			);
+			assert.match(error.message, /temporary failure/u);
+			await client.request("disposeSession", { channel: resource });
+
+			assert.equal(attempts, 2);
+			assert.equal(fixture.host.store.has(sessionUri(id)), false);
+		} finally {
+			await fixture.close();
+		}
+	});
+
+	it("protects a session after its first turn starts", async () => {
+		const fixture = await startHydratedSessionFixture();
+		try {
+			const client = await fixture.connectAsVSCode();
+			const id = randomUUID();
+			const resource = `pi:/${id}`;
+			const chat = `ahp-chat://default/${Buffer.from(resource).toString("base64url")}`;
+			await client.request("createSession", { channel: resource });
+			client.dispatch(chat, {
+				type: ActionType.ChatTurnStarted,
+				turnId: "materialized-turn",
+				startedAt: new Date().toISOString(),
+				message: { text: "keep this", origin: { kind: MessageKind.User } },
+			});
+
+			await expectVscodeDisposalRefusal(client.request("disposeSession", { channel: resource }));
+
+			assert.equal(fixture.host.store.has(sessionUri(id)), true);
+		} finally {
+			await fixture.close();
+		}
+	});
 });
 
 describe("session URI classification", () => {
