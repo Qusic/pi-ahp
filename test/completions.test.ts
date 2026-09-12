@@ -16,6 +16,7 @@ import { after, before, describe, it } from "node:test";
 import {
 	CompletionItemKind,
 	type CompletionsResult,
+	type InitializeResult,
 	JsonRpcErrorCodes,
 	MessageAttachmentKind,
 	SUPPORTED_PROTOCOL_VERSIONS,
@@ -209,6 +210,7 @@ describe("completions", () => {
 describe("completions over the wire", () => {
 	let server: RunningServer;
 	let client: AhpClient;
+	let initialization: InitializeResult;
 	let workspace: string;
 
 	before(async () => {
@@ -226,6 +228,10 @@ describe("completions over the wire", () => {
 		server = await serveWebSocket(host, { host: "127.0.0.1", port: 0 });
 		client = new AhpClient(await WebSocketTransport.connect(`ws://127.0.0.1:${server.port}`));
 		client.connect();
+		initialization = await client.initialize({
+			clientId: "completions-client",
+			protocolVersions: SUPPORTED_PROTOCOL_VERSIONS,
+		});
 	});
 
 	after(async () => {
@@ -234,16 +240,11 @@ describe("completions over the wire", () => {
 		rmSync(workspace, { recursive: true, force: true });
 	});
 
-	it("advertises only the trigger it can answer", async () => {
-		const result = await client.initialize({
-			clientId: "completions-client",
-			protocolVersions: SUPPORTED_PROTOCOL_VERSIONS,
-		});
-
+	it("advertises only the trigger it can answer", () => {
 		// `/` is deliberately absent: pi's slash commands attach nothing, and
 		// every completion item must carry an attachment.
-		assert.deepEqual(result.completionTriggerCharacters, ["@"]);
-		assert.equal(checkSchema("commands", "InitializeResult", result), undefined);
+		assert.deepEqual(initialization.completionTriggerCharacters, ["@"]);
+		assert.equal(checkSchema("commands", "InitializeResult", initialization), undefined);
 	});
 
 	it("serves a schema-conforming result", async () => {

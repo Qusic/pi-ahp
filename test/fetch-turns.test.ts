@@ -128,40 +128,31 @@ describe("fetchTurns", () => {
 	before(async () => {
 		// 25 pre-compaction exchanges, so a 20-turn page leaves a second one.
 		fixture = await startFixture(25, 2);
+		await fixture.client.subscribe(chatUri(fixture.sessionId));
 	});
 
 	after(async () => {
 		await fixture.close();
 	});
 
-	it("advertises a cursor when history precedes the window", async () => {
-		const { result } = await fixture.client.subscribe(chatUri(fixture.sessionId));
-		const chat = must(result.snapshot).state as ChatState;
+	it("pages backward while preserving a complete oldest-first transcript", async () => {
+		const channel = chatUri(fixture.sessionId);
+		const initial = state(fixture);
 
 		// Its presence is the protocol's signal that `turns` is a tail window.
-		assert.ok(chat.turnsNextCursor, "a compacted session must offer more history");
-		assert.equal(checkSchema("state", "ChatState", chat), undefined);
-	});
+		assert.ok(initial.turnsNextCursor, "a compacted session must offer more history");
+		assert.equal(checkSchema("state", "ChatState", initial), undefined);
+		const newestTurn = initial.turns.at(-1)?.id;
+		const initialCount = initial.turns.length;
 
-	it("prepends a page of older turns", async () => {
-		const chat = chatUri(fixture.sessionId);
-		const before = state(fixture);
-		const beforeCount = before.turns.length;
-
-		await fixture.client.request("fetchTurns", { channel: chat, cursor: before.turnsNextCursor } as never);
-
-		const after = state(fixture);
-		assert.ok(after.turns.length > beforeCount);
-		// Older turns go in front, and the previously-visible ones stay put.
-		assert.equal(after.turns.at(-1)?.id, before.turns.at(-1)?.id);
-		assert.match(must(after.turns[0]).message.text, /question \d+/);
-	});
-
-	it("keeps the state ordered oldest-first across pages", async () => {
-		const chat = chatUri(fixture.sessionId);
+		await fixture.client.request("fetchTurns", { channel, cursor: initial.turnsNextCursor } as never);
 		let current = state(fixture);
+		assert.ok(current.turns.length > initialCount);
+		assert.equal(current.turns.at(-1)?.id, newestTurn, "paging must preserve the visible tail");
+		assert.match(must(current.turns[0]).message.text, /question \d+/);
+
 		while (current.turnsNextCursor) {
-			await fixture.client.request("fetchTurns", { channel: chat, cursor: current.turnsNextCursor } as never);
+			await fixture.client.request("fetchTurns", { channel, cursor: current.turnsNextCursor } as never);
 			current = state(fixture);
 		}
 
@@ -173,11 +164,8 @@ describe("fetchTurns", () => {
 			numbered,
 			[...numbered].sort((a, b) => a - b),
 		);
-	});
-
-	it("clears the cursor once the beginning is reached", () => {
 		// Without this the client would keep asking for pages that do not exist.
-		assert.equal(state(fixture).turnsNextCursor, undefined);
+		assert.equal(current.turnsNextCursor, undefined);
 	});
 
 	it("rejects a session channel for this chat-scoped command", async () => {

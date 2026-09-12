@@ -333,12 +333,14 @@ describe("renaming a session", () => {
 	async function renamed(uri: string, title: string): Promise<void> {
 		const client = await harness.connect();
 		await client.initialize({ clientId: nextClientId(), protocolVersions: SUPPORTED_PROTOCOL_VERSIONS });
-		await client.subscribe(uri);
-		client.dispatch(uri, { type: ActionType.SessionTitleChanged, title } as never);
-		await new Promise((resolve) => {
-			const handle = setTimeout(resolve, 120);
-			handle.unref?.();
+		const { subscription } = await client.subscribe(uri);
+		const dispatched = client.dispatch(uri, { type: ActionType.SessionTitleChanged, title } as never);
+		await nextEvent(subscription, (event) => {
+			if (event.type !== "action") return false;
+			const envelope = (event as { params?: ActionEnvelope }).params;
+			return envelope?.origin?.clientSeq === dispatched.clientSeq;
 		});
+		await client.ping();
 	}
 
 	it("records the new name on the session", async () => {

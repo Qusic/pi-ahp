@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, it } from "node:test";
 import {
 	type ActionEnvelope,
 	ActionType,
+	AhpErrorCodes,
 	JsonRpcErrorCodes,
 	ReconnectResultType,
 	type RootState,
@@ -333,7 +334,9 @@ describe("terminal service", () => {
 			owner.request("createTerminal", params as never),
 		]);
 		assert.equal(results.filter((result) => result.status === "fulfilled").length, 1);
-		assert.equal(results.filter((result) => result.status === "rejected").length, 1);
+		const rejected = results.find((result) => result.status === "rejected");
+		assert.ok(rejected?.reason instanceof RpcError);
+		assert.equal(rejected.reason.code, AhpErrorCodes.AlreadyExists);
 		assert.equal(fixture.spawner.calls.length, 1);
 	});
 
@@ -346,7 +349,10 @@ describe("terminal service", () => {
 			{ channel, claim: { kind: TerminalClaimKind.Client, clientId: ownerId }, cwd: "https://example.com" },
 			{ channel, claim: { kind: TerminalClaimKind.Client, clientId: ownerId }, cwd: "file://remote/share" },
 		]) {
-			await assert.rejects(owner.request("createTerminal", params as never), RpcError);
+			await assert.rejects(
+				owner.request("createTerminal", params as never),
+				(error: unknown) => error instanceof RpcError && error.code === JsonRpcErrorCodes.InvalidParams,
+			);
 		}
 		assert.deepEqual(fixture.spawner.calls, []);
 	});

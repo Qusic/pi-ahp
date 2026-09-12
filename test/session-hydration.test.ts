@@ -685,14 +685,8 @@ describe("renaming a session loaded from disk", () => {
 			const uri = sessionUri(fixture.sessionId);
 			await fixture.client.subscribe(uri);
 			fixture.client.dispatch(uri, { type: "session/titleChanged", title: "Archived work" } as never);
-			await waitFor(() => {
-				const file = fixture.host.store.get(uri) as { title?: string };
-				return file.title === "Archived work";
-			});
-			await new Promise((resolve) => {
-				const handle = setTimeout(resolve, 100);
-				handle.unref?.();
-			});
+			await fixture.client.ping();
+			assert.equal((fixture.host.store.get(uri) as { title?: string }).title, "Archived work");
 
 			const file = await new PiSessionCatalogue(fixture.root).findSessionFile(fixture.sessionId);
 			assert.ok(file);

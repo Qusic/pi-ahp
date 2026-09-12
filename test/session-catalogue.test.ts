@@ -150,13 +150,13 @@ describe("session catalogue", () => {
 	});
 
 	it("skips files that are not readable pi sessions", async () => {
+		const before = await catalogue.list(undefined, undefined);
 		const directory = join(root, "--tmp-project-broken--");
 		mkdirSync(directory, { recursive: true });
 		writeFileSync(join(directory, "1700002000_broken.jsonl"), "not json at all\n");
 
-		// One corrupt file must not take down the whole catalogue.
-		const result = await catalogue.list(undefined, undefined);
-		assert.ok(result.items.length >= 5);
+		// One corrupt file must neither appear nor take down the catalogue.
+		assert.deepEqual(await catalogue.list(undefined, undefined), before);
 	});
 
 	it("returns an empty catalogue when nothing exists yet", async () => {

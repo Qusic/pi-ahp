@@ -34,11 +34,12 @@ import { SessionRegistry } from "../src/pi/session-registry.ts";
 import { type RunningServer, serveWebSocket } from "../src/transport/websocket.ts";
 import { checkSchema } from "./support/schema.ts";
 
-async function settle(ms = 80): Promise<void> {
-	await new Promise((resolve) => {
-		const handle = setTimeout(resolve, ms);
-		handle.unref?.();
-	});
+async function waitFor(predicate: () => boolean, timeoutMs = 2_000): Promise<void> {
+	const deadline = Date.now() + timeoutMs;
+	while (!predicate()) {
+		if (Date.now() > deadline) throw new Error("condition never became true");
+		await new Promise((resolve) => setTimeout(resolve, 5));
+	}
 }
 
 describe("resolveSessionConfig", () => {
@@ -153,7 +154,7 @@ describe("model selection", () => {
 		chat = chatUri(id);
 		await client.request("createSession", { channel: sessionUri(id) } as never);
 		await client.subscribe(chat);
-		await settle();
+		await waitFor(() => (host.store.get(chat) as ChatState).draft?.model?.id === "default-model");
 	});
 
 	after(async () => {
@@ -187,6 +188,8 @@ describe("model selection", () => {
 	});
 
 	it("applies the model a client picked, before the prompt runs", async () => {
+		const promptsBefore = backend.prompts.length;
+		const selectionsBefore = backend.selections.length;
 		client.dispatch(chat, {
 			type: ActionType.ChatTurnStarted,
 			turnId: "t-model",
@@ -197,28 +200,30 @@ describe("model selection", () => {
 				model: { id: "picked-model", config: { [THINKING_CONFIG_KEY]: "high" } },
 			},
 		} as never);
-		await settle(200);
+		await waitFor(() => backend.prompts.length === promptsBefore + 1);
 
+		assert.equal(backend.selections.length, selectionsBefore + 1);
 		assert.deepEqual(backend.selections.at(-1), {
 			id: "picked-model",
 			config: { [THINKING_CONFIG_KEY]: "high" },
 		});
 		// Ordering matters: selecting after the prompt would run the turn on
 		// whatever the previous one used.
-		assert.equal(backend.prompts.length, 1);
+		assert.equal(backend.prompts.length, promptsBefore + 1);
 	});
 
 	it("runs on the current model when the message carries no selection", async () => {
-		const before = backend.selections.length;
+		const selectionsBefore = backend.selections.length;
+		const promptsBefore = backend.prompts.length;
 		client.dispatch(chat, {
 			type: ActionType.ChatTurnStarted,
 			turnId: "t-plain",
 			startedAt: new Date().toISOString(),
 			message: { text: "again", origin: { kind: MessageKind.User } },
 		} as never);
-		await settle(200);
+		await waitFor(() => backend.prompts.length === promptsBefore + 1);
 
-		assert.equal(backend.selections.length, before, "no selection means no switch");
-		assert.equal(backend.prompts.length, 2);
+		assert.equal(backend.selections.length, selectionsBefore, "no selection means no switch");
+		assert.equal(backend.prompts.length, promptsBefore + 1);
 	});
 });
