@@ -1,11 +1,9 @@
 /**
  * Replays a recorded provider stream through a real `AgentSession`.
  *
- * A fixture records two layers of the same capture: `turns` is what the
- * provider fed pi, `events` is what pi emitted in response. Feeding `turns`
- * back in re-runs pi's own orchestration — turn boundaries, tool execution,
- * compaction — so a change in its semantics surfaces as a diff rather than
- * passing against a frozen copy of the old output.
+ * The resulting current pi events are mapped into AHP state by the caller. This
+ * keeps the compatibility check at the host boundary instead of treating pi's
+ * internal event sequence as a public contract.
  */
 
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
@@ -46,6 +44,7 @@ function useStubAgentDir(): void {
 		return;
 	}
 	const dir = join(tmpdir(), "pi-ahp-replay-agent");
+	rmSync(dir, { recursive: true, force: true });
 	mkdirSync(dir, { recursive: true });
 	writeFileSync(
 		join(dir, "auth.json"),
@@ -53,7 +52,26 @@ function useStubAgentDir(): void {
 			"github-copilot": { type: "oauth", refresh: "stub", access: "stub", expires: Date.now() + 86_400_000 },
 		}),
 	);
+	// The captured manual-compaction scenario uses this deliberately small
+	// history budget; without it pi correctly refuses to compact the fixture.
+	writeFileSync(join(dir, "settings.json"), JSON.stringify({ compaction: { keepRecentTokens: 200 } }));
 	process.env.PI_CODING_AGENT_DIR = dir;
+}
+
+function waitForMessageUpdates(backend: InProcessPiBackend, count: number): Promise<void> {
+	return new Promise((resolve, reject) => {
+		let seen = 0;
+		const unsubscribe = backend.subscribe((event) => {
+			if (event.type === "message_update") seen += 1;
+			if (seen >= count) {
+				unsubscribe();
+				resolve();
+			} else if (event.type === "agent_settled") {
+				unsubscribe();
+				reject(new Error(`turn settled after ${seen} updates; steering was never injected`));
+			}
+		});
+	});
 }
 
 /**
@@ -67,6 +85,7 @@ export async function replayTurns(fixture: RecordedFixture, options: ReplayOptio
 	const workspace = join(tmpdir(), `pi-ahp-replay-${fixture.name}`);
 	rmSync(workspace, { recursive: true, force: true });
 	mkdirSync(workspace, { recursive: true });
+	let backend: InProcessPiBackend | undefined;
 
 	try {
 		for (const [name, contents] of Object.entries(options.files ?? {})) {
@@ -75,7 +94,7 @@ export async function replayTurns(fixture: RecordedFixture, options: ReplayOptio
 			writeFileSync(target, contents);
 		}
 
-		const backend = await InProcessPiBackend.create({
+		backend = await InProcessPiBackend.create({
 			cwd: workspace,
 			sessionManager: SessionManager.create(workspace, undefined, { id: `replay-${fixture.name}` }),
 		});
@@ -121,22 +140,29 @@ export async function replayTurns(fixture: RecordedFixture, options: ReplayOptio
 			}
 		});
 
-		await backend.prompt(fixture.prompt);
+		const steeringReady = fixture.name === "steering" ? waitForMessageUpdates(backend, 25) : undefined;
+		const prompting = backend.prompt(fixture.prompt);
+		if (steeringReady) {
+			await steeringReady;
+			await backend.steer("Stop counting. Reply with the word STOPPED and nothing else.");
+		}
+		await prompting;
+		if (fixture.name === "compaction") {
+			await backend.prompt("Use bash to run `seq 1 400`. Reply DONE.");
+			await backend.prompt("Reply with the word TWO.");
+			await backend.session.compact();
+		}
+
 		const deadline = Date.now() + (options.settleTimeoutMs ?? DEFAULT_SETTLE_TIMEOUT_MS);
 		while (!settled && Date.now() < deadline) {
 			await new Promise((resolve) => setTimeout(resolve, 10));
 		}
-		backend.dispose();
 		if (!settled) {
 			throw new Error(`${fixture.name}: replay never settled`);
 		}
 		return events;
 	} finally {
+		backend?.dispose();
 		rmSync(workspace, { recursive: true, force: true });
 	}
-}
-
-/** The event-type sequence, with runs of the same type collapsed to one. */
-export function eventSkeleton(events: readonly { type: string }[]): string[] {
-	return events.map((event) => event.type).filter((type, i, all) => type !== all[i - 1]);
 }
