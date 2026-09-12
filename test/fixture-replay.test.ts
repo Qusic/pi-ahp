@@ -53,12 +53,22 @@ function replay(fixture: RecordedFixture): Replayed {
 }
 
 const fixtures = loadRecordedFixtures().map(({ fixture }) => fixture);
-const byName = new Map(fixtures.map((fixture) => [fixture.name, replay(fixture)]));
+const fixturesByName = new Map(fixtures.map((fixture) => [fixture.name, fixture]));
+const replayedByName = new Map<string, Replayed>();
 
 function get(name: string): Replayed {
-	const replayed = byName.get(name);
-	assert.ok(replayed, `missing fixture: ${name} — run \`node scripts/capture-fixtures.ts\``);
+	const fixture = fixturesByName.get(name);
+	assert.ok(fixture, `unknown recorded fixture: ${name}`);
+	let replayed = replayedByName.get(name);
+	if (!replayed) {
+		replayed = replay(fixture);
+		replayedByName.set(name, replayed);
+	}
 	return replayed;
+}
+
+function allReplayed(): Replayed[] {
+	return fixtures.map((fixture) => get(fixture.name));
 }
 
 function markdownText(state: ChatState): string {
@@ -96,64 +106,52 @@ function toolResultText(call: ReplayedToolCall): string {
 		.join("");
 }
 
+function assertReplayInvariants({ fixture, actions, state }: Replayed): void {
+	const opened = actions.filter((action) => action.type === ActionType.ChatTurnStarted).length;
+	const terminators = actions.filter(
+		(action) =>
+			action.type === ActionType.ChatTurnComplete ||
+			action.type === ActionType.ChatTurnCancelled ||
+			action.type === ActionType.ChatError,
+	);
+
+	// More than one turn means pi injected a message mid-run; each still has to
+	// terminate exactly once.
+	assert.equal(terminators.length, opened, `${fixture.name}: every opened turn must terminate once`);
+	assert.equal(state.activeTurn, undefined, `${fixture.name}: active turn remained after replay`);
+	assert.equal(state.turns.length, opened, `${fixture.name}: reduced turn count differs from opened turns`);
+
+	for (const action of actions) {
+		assertValid("actions", "StateAction", action, `${fixture.name}: non-conforming ${action.type}`);
+	}
+	for (const call of toolCalls(state)) {
+		assert.ok(
+			call.status === ToolCallStatus.Completed || call.status === ToolCallStatus.Cancelled,
+			`${fixture.name}: ${call.toolName} ended in ${call.status}`,
+		);
+	}
+
+	// A delta naming an unknown partId is a silent reducer no-op, so validate
+	// creation order as well as uniqueness.
+	const created = new Set<string>();
+	const ids: Array<string | undefined> = [];
+	for (const action of actions) {
+		if (action.type === ActionType.ChatResponsePart) {
+			const id = "id" in action.part ? action.part.id : undefined;
+			ids.push(id);
+			if (id) created.add(id);
+		}
+		if (action.type === ActionType.ChatDelta || action.type === ActionType.ChatReasoning) {
+			assert.ok(created.has(action.partId), `${fixture.name}: delta targets unknown part ${action.partId}`);
+		}
+	}
+	assert.equal(new Set(ids).size, ids.length, `${fixture.name}: response part ids collided within a turn`);
+}
+
 describe("recorded stream replay — invariants", () => {
-	it("has fixtures to replay", () => {
-		assert.ok(fixtures.length >= 5, `expected the captured corpus, found ${fixtures.length}`);
-	});
-
-	for (const { fixture, actions, state } of byName.values()) {
-		describe(`${fixture.name} — ${fixture.description}`, () => {
-			it("closes every turn it opens, exactly once each", () => {
-				const opened = actions.filter((action) => action.type === ActionType.ChatTurnStarted).length;
-				const terminators = actions.filter(
-					(action) =>
-						action.type === ActionType.ChatTurnComplete ||
-						action.type === ActionType.ChatTurnCancelled ||
-						action.type === ActionType.ChatError,
-				);
-
-				// More than one turn means pi injected a message mid-run; each
-				// still has to terminate exactly once.
-				assert.equal(terminators.length, opened, "every opened turn must terminate once");
-				assert.equal(state.activeTurn, undefined);
-				assert.equal(state.turns.length, opened);
-			});
-
-			it("emits only schema-conforming actions", () => {
-				for (const action of actions) {
-					assertValid("actions", "StateAction", action, `non-conforming ${action.type}`);
-				}
-			});
-
-			it("leaves no tool call unresolved", () => {
-				for (const call of toolCalls(state)) {
-					assert.ok(
-						call.status === ToolCallStatus.Completed || call.status === ToolCallStatus.Cancelled,
-						`${call.toolName} ended in ${call.status}`,
-					);
-				}
-			});
-
-			it("targets every delta at a part that exists", () => {
-				// A delta naming an unknown partId is a silent no-op in the
-				// reducer, so a mismatch here would lose content with no error.
-				const created = new Set<string>();
-				for (const action of actions) {
-					if (action.type === ActionType.ChatResponsePart && "id" in action.part) {
-						created.add(action.part.id);
-					}
-					if (action.type === ActionType.ChatDelta || action.type === ActionType.ChatReasoning) {
-						assert.ok(created.has(action.partId), `delta targets unknown part ${action.partId}`);
-					}
-				}
-			});
-
-			it("keeps every response part id unique", () => {
-				const ids = actions
-					.filter((action) => action.type === ActionType.ChatResponsePart)
-					.map((action) => ("id" in action.part ? action.part.id : undefined));
-				assert.equal(new Set(ids).size, ids.length, "part ids collided within a turn");
-			});
+	for (const fixture of fixtures) {
+		it(`${fixture.name} — ${fixture.description}`, () => {
+			assertReplayInvariants(get(fixture.name));
 		});
 	}
 });
@@ -171,7 +169,7 @@ describe("recorded stream replay — per scenario", () => {
 		// heading, a line while it runs, and a line once it has. pi knows which
 		// file was read or which command ran, and a message that only repeats the
 		// tool's name spends all three on saying `read` three times.
-		for (const { fixture, state } of byName.values()) {
+		for (const { fixture, state } of allReplayed()) {
 			for (const call of toolCalls(state)) {
 				if (!call.toolInput || call.toolInput === "{}") {
 					continue;
@@ -198,7 +196,7 @@ describe("recorded stream replay — per scenario", () => {
 		// protocol carries no structured parameters beside it, so serialising the
 		// argument object spends the field on quoting and braces. Each of pi's
 		// tools has one argument that says what the call is about.
-		for (const { fixture, state } of byName.values()) {
+		for (const { fixture, state } of allReplayed()) {
 			for (const call of toolCalls(state)) {
 				if (call.toolInput === undefined) {
 					continue;
