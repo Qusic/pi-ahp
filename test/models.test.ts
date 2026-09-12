@@ -43,7 +43,7 @@ describe("model mapping", () => {
 
 	it("drops unsupported levels and opts into extended levels exactly as pi does", () => {
 		const levels = supportedThinkingLevels(
-			model({ thinkingLevelMap: { off: null, minimal: null, xhigh: "xhigh", max: null } as never }),
+			model({ thinkingLevelMap: { off: null, minimal: null, xhigh: "xhigh", max: null } }),
 		);
 		assert.deepEqual(levels, ["low", "medium", "high", "xhigh"]);
 	});

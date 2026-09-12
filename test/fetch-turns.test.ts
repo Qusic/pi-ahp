@@ -145,14 +145,14 @@ describe("fetchTurns", () => {
 		const newestTurn = initial.turns.at(-1)?.id;
 		const initialCount = initial.turns.length;
 
-		await fixture.client.request("fetchTurns", { channel, cursor: initial.turnsNextCursor } as never);
+		await fixture.client.request("fetchTurns", { channel, cursor: initial.turnsNextCursor });
 		let current = state(fixture);
 		assert.ok(current.turns.length > initialCount);
 		assert.equal(current.turns.at(-1)?.id, newestTurn, "paging must preserve the visible tail");
 		assert.match(must(current.turns[0]).message.text, /question \d+/);
 
 		while (current.turnsNextCursor) {
-			await fixture.client.request("fetchTurns", { channel, cursor: current.turnsNextCursor } as never);
+			await fixture.client.request("fetchTurns", { channel, cursor: current.turnsNextCursor });
 			current = state(fixture);
 		}
 
@@ -170,14 +170,14 @@ describe("fetchTurns", () => {
 
 	it("rejects a session channel for this chat-scoped command", async () => {
 		await assert.rejects(
-			fixture.client.request("fetchTurns", { channel: sessionUri(fixture.sessionId) } as never),
+			fixture.client.request("fetchTurns", { channel: sessionUri(fixture.sessionId) }),
 			(error: unknown) => error instanceof RpcError && error.code === JsonRpcErrorCodes.InvalidParams,
 		);
 	});
 
 	it("rejects a cursor it did not issue", async () => {
 		const error = await fixture.client
-			.request("fetchTurns", { channel: chatUri(fixture.sessionId), cursor: "made-up" } as never)
+			.request("fetchTurns", { channel: chatUri(fixture.sessionId), cursor: "made-up" })
 			.then(
 				() => undefined,
 				(reason: unknown) => reason,

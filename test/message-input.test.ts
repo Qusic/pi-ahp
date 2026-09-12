@@ -77,7 +77,9 @@ describe("pi message input", () => {
 
 	it("requires client-created simple attachments to carry a model representation", () => {
 		for (const modelRepresentation of [undefined, null]) {
-			const input = message([{ type: MessageAttachmentKind.Simple, label: "missing", modelRepresentation } as never]);
+			const input = message([
+				{ type: MessageAttachmentKind.Simple, label: "missing", modelRepresentation: modelRepresentation as never },
+			]);
 			assert.equal(messageRejectionReason(input), "A simple attachment requires modelRepresentation");
 			assert.throws(() => messageTextForPi(input), /requires modelRepresentation/);
 		}
@@ -137,7 +139,7 @@ describe("pi message input", () => {
 				]),
 				/invalid text selection/,
 			],
-			[message([embedded("", { contentType: undefined as never })]), /requires a content type/],
+			[message([embedded("", { contentType: undefined } as never)]), /requires a content type/],
 		];
 
 		for (const [input, reason] of malformed) {

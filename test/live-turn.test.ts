@@ -30,6 +30,7 @@ import { after, before, describe, it } from "node:test";
 import {
 	ActionType,
 	type ChatState,
+	MessageKind,
 	ResponsePartKind,
 	SessionLifecycle,
 	type SessionState,
@@ -146,7 +147,7 @@ describe("live turn", { skip: LIVE ? false : SKIP_REASON }, () => {
 		const sessionChannel = sessionUri(id);
 		const chatChannel = chatUri(id);
 
-		await client.request("createSession", { channel: sessionChannel } as never);
+		await client.request("createSession", { channel: sessionChannel });
 		await client.subscribe(sessionChannel);
 		await client.subscribe(chatChannel);
 		await waitFor(() => (host.store.get(sessionChannel) as SessionState).lifecycle === SessionLifecycle.Ready, 30_000);
@@ -155,8 +156,8 @@ describe("live turn", { skip: LIVE ? false : SKIP_REASON }, () => {
 			type: ActionType.ChatTurnStarted,
 			turnId: "live-1",
 			startedAt: new Date().toISOString(),
-			message: { text: "Reply with exactly the word: PONG", origin: { kind: "user" } },
-		} as never);
+			message: { text: "Reply with exactly the word: PONG", origin: { kind: MessageKind.User } },
+		});
 
 		await waitFor(() => (host.store.get(chatChannel) as ChatState).turns.length === 1);
 
@@ -190,7 +191,7 @@ describe("live turn", { skip: LIVE ? false : SKIP_REASON }, () => {
 		const sessionChannel = sessionUri(id);
 		const chatChannel = chatUri(id);
 
-		await client.request("createSession", { channel: sessionChannel } as never);
+		await client.request("createSession", { channel: sessionChannel });
 		await client.subscribe(chatChannel);
 		await waitFor(() => (host.store.get(sessionChannel) as SessionState).lifecycle === SessionLifecycle.Ready, 30_000);
 
@@ -200,9 +201,9 @@ describe("live turn", { skip: LIVE ? false : SKIP_REASON }, () => {
 			startedAt: new Date().toISOString(),
 			message: {
 				text: "Read note.txt in the working directory and reply with its exact contents.",
-				origin: { kind: "user" },
+				origin: { kind: MessageKind.User },
 			},
-		} as never);
+		});
 
 		await waitFor(() => (host.store.get(chatChannel) as ChatState).turns.length === 1);
 

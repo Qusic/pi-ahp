@@ -15,6 +15,7 @@ import { type AgentSessionEvent, SessionManager } from "@earendil-works/pi-codin
 import {
 	ActionType,
 	type ChatState,
+	MessageKind,
 	type ReconnectReplayResult,
 	ReconnectResultType,
 	type ReconnectSnapshotResult,
@@ -215,9 +216,9 @@ describe("reconnect", () => {
 		await first.request("initialize", {
 			channel: ROOT_CHANNEL,
 			clientId,
-			protocolVersions: SUPPORTED_PROTOCOL_VERSIONS,
+			protocolVersions: [...SUPPORTED_PROTOCOL_VERSIONS],
 			clientInfo: { name: "vscode-editor-window" },
-		} as never);
+		});
 		await first.shutdown();
 
 		const replacement = await harness.connect();
@@ -266,9 +267,9 @@ describe("reconnect", () => {
 		await first.request("initialize", {
 			channel: ROOT_CHANNEL,
 			clientId,
-			protocolVersions: SUPPORTED_PROTOCOL_VERSIONS,
+			protocolVersions: [...SUPPORTED_PROTOCOL_VERSIONS],
 			clientInfo: { name: "vscode-editor-window" },
-		} as never);
+		});
 		assert.equal((await first.subscribe(clientUri)).result.snapshot?.resource, clientUri);
 		const staleSeq = harness.host.serverSeq;
 		await first.shutdown();
@@ -335,8 +336,8 @@ describe("reconnect after host restart", () => {
 				type: ActionType.ChatTurnStarted,
 				turnId: "after-restart",
 				startedAt: new Date().toISOString(),
-				message: { text: "continue after restart", origin: { kind: "user" } },
-			} as never);
+				message: { text: "continue after restart", origin: { kind: MessageKind.User } },
+			});
 			await waitFor(() => backend.prompts.length === 1);
 			assert.deepEqual(backend.prompts, ["continue after restart"]);
 			const state = harness.host.store.get(chatUri(id)) as ChatState;

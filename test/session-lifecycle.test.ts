@@ -76,7 +76,7 @@ describe("session lifecycle", () => {
 		const client = await initialized();
 		const uri = sessionUri(randomUUID());
 
-		await client.request("createSession", { channel: uri, provider: PI_PROVIDER } as never);
+		await client.request("createSession", { channel: uri, provider: PI_PROVIDER });
 
 		const { result } = await client.subscribe(uri);
 		const state = result.snapshot?.state as SessionState;
@@ -97,7 +97,7 @@ describe("session lifecycle", () => {
 	it("uses pi's session id as the URI's uuid", async () => {
 		const client = await initialized();
 		const id = randomUUID();
-		await client.request("createSession", { channel: sessionUri(id) } as never);
+		await client.request("createSession", { channel: sessionUri(id) });
 
 		const live = harness.sessions?.get(sessionUri(id));
 		assert.ok(live);
@@ -111,7 +111,7 @@ describe("session lifecycle", () => {
 		const rootSubscription = client.attachSubscription(ROOT_CHANNEL);
 		const uri = sessionUri(randomUUID());
 
-		await client.request("createSession", { channel: uri } as never);
+		await client.request("createSession", { channel: uri });
 
 		const event = await nextEvent(rootSubscription, (candidate) => candidate.type === "sessionAdded");
 		const params = event.params as { summary: { resource: string } };
@@ -122,9 +122,9 @@ describe("session lifecycle", () => {
 	it("rejects a duplicate session URI with SessionAlreadyExists", async () => {
 		const client = await initialized();
 		const uri = sessionUri(randomUUID());
-		await client.request("createSession", { channel: uri } as never);
+		await client.request("createSession", { channel: uri });
 
-		const error = await client.request("createSession", { channel: uri } as never).then(
+		const error = await client.request("createSession", { channel: uri }).then(
 			() => undefined,
 			(reason: unknown) => reason,
 		);
@@ -135,12 +135,10 @@ describe("session lifecycle", () => {
 
 	it("rejects an unknown provider with ProviderNotFound", async () => {
 		const client = await initialized();
-		const error = await client
-			.request("createSession", { channel: sessionUri(randomUUID()), provider: "claude" } as never)
-			.then(
-				() => undefined,
-				(reason: unknown) => reason,
-			);
+		const error = await client.request("createSession", { channel: sessionUri(randomUUID()), provider: "claude" }).then(
+			() => undefined,
+			(reason: unknown) => reason,
+		);
 
 		assert.ok(error instanceof RpcError);
 		assert.equal(error.code, -32002);
@@ -152,7 +150,7 @@ describe("session lifecycle", () => {
 		try {
 			const uri = sessionUri(randomUUID());
 			const workingDirectory = pathToFileUri(other);
-			await client.request("createSession", { channel: uri, workingDirectories: [workingDirectory] } as never);
+			await client.request("createSession", { channel: uri, workingDirectories: [workingDirectory] });
 
 			const state = harness.host.store.get(uri) as SessionState;
 			assert.deepEqual(state.workingDirectories, [workingDirectory]);
@@ -165,7 +163,7 @@ describe("session lifecycle", () => {
 		const client = await initialized();
 		const before = (harness.host.store.get(ROOT_CHANNEL) as { activeSessions?: number }).activeSessions ?? 0;
 
-		await client.request("createSession", { channel: sessionUri(randomUUID()) } as never);
+		await client.request("createSession", { channel: sessionUri(randomUUID()) });
 
 		const after = (harness.host.store.get(ROOT_CHANNEL) as { activeSessions?: number }).activeSessions ?? 0;
 		assert.equal(after, before + 1);
@@ -175,10 +173,10 @@ describe("session lifecycle", () => {
 		const client = await initialized();
 		const rootSubscription = client.attachSubscription(ROOT_CHANNEL);
 		const uri = sessionUri(randomUUID());
-		await client.request("createSession", { channel: uri } as never);
+		await client.request("createSession", { channel: uri });
 		assert.ok(harness.host.store.has(uri));
 
-		await client.request("disposeSession", { channel: uri } as never);
+		await client.request("disposeSession", { channel: uri });
 
 		const event = await nextEvent(rootSubscription, (candidate) => candidate.type === "sessionRemoved");
 		assert.equal((event.params as { session: string }).session, uri);
@@ -201,8 +199,8 @@ describe("session lifecycle", () => {
 			const client = await isolated.connect();
 			await client.initialize({ clientId: nextClientId(), protocolVersions: SUPPORTED_PROTOCOL_VERSIONS });
 			const uri = sessionUri(randomUUID());
-			await client.request("createSession", { channel: uri } as never);
-			await client.request("disposeSession", { channel: uri } as never);
+			await client.request("createSession", { channel: uri });
+			await client.request("disposeSession", { channel: uri });
 
 			finishStart({
 				subscribe: () => () => undefined,
@@ -225,7 +223,7 @@ describe("session lifecycle", () => {
 	it("does not let session disposal target another channel kind", async () => {
 		const client = await initialized();
 		await assert.rejects(
-			client.request("disposeSession", { channel: ROOT_CHANNEL } as never),
+			client.request("disposeSession", { channel: ROOT_CHANNEL }),
 			(error: unknown) => error instanceof RpcError && error.code === JsonRpcErrorCodes.InvalidParams,
 		);
 		assert.equal(harness.host.store.has(ROOT_CHANNEL), true);
@@ -233,7 +231,7 @@ describe("session lifecycle", () => {
 
 	it("rejects disposing a session that does not exist", async () => {
 		const client = await initialized();
-		const error = await client.request("disposeSession", { channel: sessionUri("nope") } as never).then(
+		const error = await client.request("disposeSession", { channel: sessionUri("nope") }).then(
 			() => undefined,
 			(reason: unknown) => reason,
 		);
@@ -245,7 +243,7 @@ describe("session lifecycle", () => {
 	it("accepts session/titleChanged from a client", async () => {
 		const client = await initialized();
 		const uri = sessionUri(randomUUID());
-		await client.request("createSession", { channel: uri } as never);
+		await client.request("createSession", { channel: uri });
 		await client.subscribe(uri);
 
 		client.dispatch(uri, { type: ActionType.SessionTitleChanged, title: "Refactor auth" });
@@ -261,13 +259,13 @@ describe("session lifecycle", () => {
 		await client.request("initialize", {
 			channel: ROOT_CHANNEL,
 			clientId: nextClientId(),
-			protocolVersions: SUPPORTED_PROTOCOL_VERSIONS,
+			protocolVersions: [...SUPPORTED_PROTOCOL_VERSIONS],
 			clientInfo: { name: "vscode-editor-window" },
-		} as never);
+		});
 		const id = randomUUID();
 		const clientSession = `pi:/${id}`;
 		const clientChat = `ahp-chat://default/${Buffer.from(clientSession).toString("base64url")}`;
-		await client.request("createSession", { channel: clientSession } as never);
+		await client.request("createSession", { channel: clientSession });
 		await client.subscribe(clientSession);
 		const events = client.attachSubscription(clientSession);
 
@@ -287,9 +285,9 @@ describe("session lifecycle", () => {
 		await client.request("initialize", {
 			channel: ROOT_CHANNEL,
 			clientId,
-			protocolVersions: SUPPORTED_PROTOCOL_VERSIONS,
+			protocolVersions: [...SUPPORTED_PROTOCOL_VERSIONS],
 			clientInfo: { name: "vscode-editor-window" },
-		} as never);
+		});
 		const id = randomUUID();
 		const uri = sessionUri(id);
 		const clientUri = `pi:/${id}`;
@@ -297,7 +295,7 @@ describe("session lifecycle", () => {
 
 		// VS Code supplies this eagerly. It is ignored rather than making an
 		// otherwise usable session fail.
-		await client.request("createSession", { channel: clientUri, activeClient } as never);
+		await client.request("createSession", { channel: clientUri, activeClient });
 		await client.subscribe(clientUri);
 
 		for (const action of [
@@ -334,7 +332,7 @@ describe("renaming a session", () => {
 		const client = await harness.connect();
 		await client.initialize({ clientId: nextClientId(), protocolVersions: SUPPORTED_PROTOCOL_VERSIONS });
 		const { subscription } = await client.subscribe(uri);
-		const dispatched = client.dispatch(uri, { type: ActionType.SessionTitleChanged, title } as never);
+		const dispatched = client.dispatch(uri, { type: ActionType.SessionTitleChanged, title });
 		await nextEvent(subscription, (event) => {
 			if (event.type !== "action") return false;
 			const envelope = (event as { params?: ActionEnvelope }).params;
@@ -347,7 +345,7 @@ describe("renaming a session", () => {
 		const client = await harness.connect();
 		await client.initialize({ clientId: nextClientId(), protocolVersions: SUPPORTED_PROTOCOL_VERSIONS });
 		const uri = sessionUri(randomUUID());
-		await client.request("createSession", { channel: uri } as never);
+		await client.request("createSession", { channel: uri });
 
 		await renamed(uri, "Refactor auth middleware");
 
@@ -360,7 +358,7 @@ describe("renaming a session", () => {
 		const client = await harness.connect();
 		await client.initialize({ clientId: nextClientId(), protocolVersions: SUPPORTED_PROTOCOL_VERSIONS });
 		const uri = sessionUri(randomUUID());
-		await client.request("createSession", { channel: uri } as never);
+		await client.request("createSession", { channel: uri });
 		await renamed(uri, "Never answered");
 
 		// pi withholds the file until a session has an assistant message
@@ -378,7 +376,7 @@ describe("renaming a session", () => {
 		await client.initialize({ clientId: nextClientId(), protocolVersions: SUPPORTED_PROTOCOL_VERSIONS });
 		const id = randomUUID();
 		const uri = sessionUri(id);
-		await client.request("createSession", { channel: uri } as never);
+		await client.request("createSession", { channel: uri });
 		await renamed(uri, "Ship the release");
 
 		const session = harness.host.store.get(uri) as SessionState;

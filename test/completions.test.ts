@@ -253,7 +253,7 @@ describe("completions over the wire", () => {
 			channel: CHAT,
 			text: "see @not",
 			offset: 8,
-		} as never);
+		});
 
 		assert.equal(result.items.length, 1);
 		assert.equal(result.items[0]?.insertText, "@notes.md");
@@ -277,13 +277,13 @@ describe("completions over the wire", () => {
 			channel: "ahp-root://",
 			clientId: "vscode-completions-client",
 			clientInfo: { name: "vscode-editor-window" },
-			protocolVersions: SUPPORTED_PROTOCOL_VERSIONS,
-		} as never);
+			protocolVersions: [...SUPPORTED_PROTOCOL_VERSIONS],
+		});
 		try {
 			const params = { kind: CompletionItemKind.UserMessage, text: "@not", offset: 4 };
 			for (const result of await Promise.all([
-				vscode.request("completions", { ...params, channel: "pi:/completions" } as never),
-				client.request("completions", { ...params, channel: "pi:/completions" } as never),
+				vscode.request("completions", { ...params, channel: "pi:/completions" }),
+				client.request("completions", { ...params, channel: "pi:/completions" }),
 			])) {
 				assert.deepEqual(
 					result.items.map((item) => item.insertText),
@@ -313,7 +313,7 @@ describe("completions without a handler", () => {
 				channel: CHAT,
 				text: "@x",
 				offset: 2,
-			} as never);
+			});
 			assert.deepEqual(result.items, []);
 		} finally {
 			await client.shutdown();

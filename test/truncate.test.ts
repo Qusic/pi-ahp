@@ -129,7 +129,7 @@ async function startFixture(options: { acceptTruncate?: boolean } = {}): Promise
 	const sessions = new SessionRegistry({ host, defaultWorkingDirectory: workspace, createBackend: () => backend });
 	host.serve({
 		sessions: {
-			create: (params) => sessions.create(params as never),
+			create: (params) => sessions.create(params),
 			dispose: (channel) => sessions.dispose(channel),
 		},
 	});
@@ -186,7 +186,7 @@ describe("chat/truncated", () => {
 		const turns = (must(result.snapshot).state as ChatState).turns;
 		assert.equal(turns.length, 2);
 
-		fixture.client.dispatch(chat, { type: ActionType.ChatTruncated, turnId: must(turns[0]).id } as never);
+		fixture.client.dispatch(chat, { type: ActionType.ChatTruncated, turnId: must(turns[0]).id });
 		await settle();
 
 		// Both halves have to move: the reducer drops the later turn, and pi is
@@ -201,7 +201,7 @@ describe("chat/truncated", () => {
 			const chat = chatUri(fresh.sessionId);
 			await fresh.client.subscribe(chat);
 
-			fresh.client.dispatch(chat, { type: ActionType.ChatTruncated } as never);
+			fresh.client.dispatch(chat, { type: ActionType.ChatTruncated });
 			await settle();
 
 			assert.equal((fresh.host.store.get(chat) as ChatState).turns.length, 0);
@@ -219,7 +219,7 @@ describe("chat/truncated", () => {
 			const before = (must(result.snapshot).state as ChatState).turns.length;
 			const subscription = fresh.client.attachSubscription(chat);
 
-			fresh.client.dispatch(chat, { type: ActionType.ChatTruncated, turnId: "no-such-turn" } as never);
+			fresh.client.dispatch(chat, { type: ActionType.ChatTruncated, turnId: "no-such-turn" });
 
 			// Refused before the reducer runs: accepting would truncate the
 			// client's view while pi kept everything.

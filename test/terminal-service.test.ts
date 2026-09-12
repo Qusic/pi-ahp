@@ -8,6 +8,7 @@ import {
 	type ActionEnvelope,
 	ActionType,
 	AhpErrorCodes,
+	type CreateTerminalParams,
 	JsonRpcErrorCodes,
 	ReconnectResultType,
 	type RootState,
@@ -199,7 +200,7 @@ describe("terminal service", () => {
 			channel,
 			claim: { kind: TerminalClaimKind.Client, clientId: ownerId },
 			...params,
-		} as never);
+		});
 		const pty = fixture.spawner.calls.at(-1)?.pty;
 		assert.ok(pty);
 		return { channel, pty };
@@ -318,7 +319,7 @@ describe("terminal service", () => {
 			clientId: ownerId,
 		});
 
-		await observer.request("disposeTerminal", { channel } as never);
+		await observer.request("disposeTerminal", { channel });
 		assert.equal(pty.kills, 1);
 		assert.equal(fixture.host.store.has(channel), false);
 		assert.deepEqual(rootState(fixture).terminals, []);
@@ -328,10 +329,10 @@ describe("terminal service", () => {
 		const params = {
 			channel: `ahp-terminal:/${randomUUID()}`,
 			claim: { kind: TerminalClaimKind.Client, clientId: ownerId },
-		};
+		} satisfies CreateTerminalParams;
 		const results = await Promise.allSettled([
-			owner.request("createTerminal", params as never),
-			owner.request("createTerminal", params as never),
+			owner.request("createTerminal", params),
+			owner.request("createTerminal", params),
 		]);
 		assert.equal(results.filter((result) => result.status === "fulfilled").length, 1);
 		const rejected = results.find((result) => result.status === "rejected");
@@ -362,7 +363,7 @@ describe("terminal service", () => {
 			owner.request("createTerminal", {
 				channel: "pi:/reserved-for-sessions",
 				claim: { kind: TerminalClaimKind.Client, clientId: ownerId },
-			} as never),
+			}),
 			(error: unknown) => error instanceof RpcError && error.code === JsonRpcErrorCodes.InvalidParams,
 		);
 		assert.deepEqual(fixture.spawner.calls, []);
@@ -370,7 +371,7 @@ describe("terminal service", () => {
 
 	it("does not let terminal disposal target another channel kind", async () => {
 		await assert.rejects(
-			owner.request("disposeTerminal", { channel: ROOT_CHANNEL } as never),
+			owner.request("disposeTerminal", { channel: ROOT_CHANNEL }),
 			(error: unknown) => error instanceof RpcError && error.code === JsonRpcErrorCodes.InvalidParams,
 		);
 		assert.equal(fixture.host.store.has(ROOT_CHANNEL), true);
@@ -385,16 +386,16 @@ describe("terminal service", () => {
 		});
 		assert.equal(rootState(fixture).terminals?.[0]?.lifecycle.status, TerminalLifecycleStatus.Exited);
 
-		await owner.request("disposeTerminal", { channel: first.channel } as never);
+		await owner.request("disposeTerminal", { channel: first.channel });
 		assert.equal(fixture.host.store.has(first.channel), false);
 		assert.equal(first.pty.kills, 0);
 		assert.deepEqual(rootState(fixture).terminals, []);
 
 		const second = await createTerminal({ name: "Second" });
-		await owner.request("disposeTerminal", { channel: second.channel } as never);
+		await owner.request("disposeTerminal", { channel: second.channel });
 		assert.equal(second.pty.kills, 1);
 		assert.equal(fixture.host.store.has(second.channel), false);
-		await owner.request("disposeTerminal", { channel: second.channel } as never);
+		await owner.request("disposeTerminal", { channel: second.channel });
 	});
 
 	it("keeps the PTY attached across a same-host reconnect", async () => {
@@ -488,7 +489,7 @@ it("returns MethodNotFound when terminal support is not wired", async () => {
 			client.request("createTerminal", {
 				channel: "ahp-terminal:/none",
 				claim: { kind: TerminalClaimKind.Client, clientId: "no-terminals" },
-			} as never),
+			}),
 			{ code: JsonRpcErrorCodes.MethodNotFound },
 		);
 	} finally {

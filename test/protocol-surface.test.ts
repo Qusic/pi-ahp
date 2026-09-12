@@ -92,7 +92,7 @@ describe("AHP command surface", () => {
 	it("returns MethodNotFound for every deliberately unsupported command", async () => {
 		for (const [method, params] of Object.entries(UNSUPPORTED_REQUESTS)) {
 			await expectRpcError(
-				client.request(method as UnsupportedMethod, params as never),
+				client.request(method as UnsupportedMethod, params),
 				JsonRpcErrorCodes.MethodNotFound,
 				method,
 			);
@@ -102,7 +102,7 @@ describe("AHP command surface", () => {
 	it("requires the root routing channel on every connection-level command", async () => {
 		for (const method of ROOT_METHODS) {
 			await expectRpcError(
-				client.request(method, { channel: "ahp-session:/wrong-channel" } as never),
+				client.request(method, { channel: "ahp-session:/wrong-channel" }),
 				JsonRpcErrorCodes.InvalidParams,
 				method,
 			);

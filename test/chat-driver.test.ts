@@ -16,6 +16,7 @@ import {
 	ActionType,
 	type ChatState,
 	MessageAttachmentKind,
+	MessageKind,
 	PendingMessageKind,
 	SessionLifecycle,
 	type SessionState,
@@ -133,7 +134,7 @@ describe("chat driver", () => {
 		const sessions = new SessionRegistry({ host, createBackend: () => backend });
 		host.serve({
 			sessions: {
-				create: (params) => sessions.create(params as never),
+				create: (params) => sessions.create(params),
 				dispose: (channel) => sessions.dispose(channel),
 			},
 		});
@@ -146,7 +147,7 @@ describe("chat driver", () => {
 		const id = randomUUID();
 		const sessionChannel = sessionUri(id);
 		const chatChannel = chatUri(id);
-		await client.request("createSession", { channel: sessionChannel } as never);
+		await client.request("createSession", { channel: sessionChannel });
 		await client.subscribe(sessionChannel);
 		const { subscription } = await client.subscribe(chatChannel);
 
@@ -172,8 +173,8 @@ describe("chat driver", () => {
 			type: ActionType.ChatTurnStarted,
 			turnId: "t1",
 			startedAt: new Date().toISOString(),
-			message: { text: "hello", origin: { kind: "user" } },
-		} as never);
+			message: { text: "hello", origin: { kind: MessageKind.User } },
+		});
 
 		await waitFor(() => {
 			const state = fixture.host.store.get(fixture.chatChannel) as ChatState;
@@ -195,14 +196,14 @@ describe("chat driver", () => {
 			startedAt: new Date().toISOString(),
 			message: {
 				text,
-				origin: { kind: "user" },
+				origin: { kind: MessageKind.User },
 				attachments: [
 					{ type: MessageAttachmentKind.Resource, label: "outside.ts", uri: "file:///outside.ts" },
 					{ type: MessageAttachmentKind.Simple, label: "selection", modelRepresentation: "selected context" },
 					embeddedText("embedded context", "note.txt"),
 				],
 			},
-		} as never);
+		});
 
 		await waitFor(() => backend.prompts.includes(expected));
 		assert.equal(backend.prompts.at(-1), expected);
@@ -225,12 +226,12 @@ describe("chat driver", () => {
 			id: "steer-1",
 			message: {
 				text: "focus on tests",
-				origin: { kind: "user" },
+				origin: { kind: MessageKind.User },
 				attachments: [
 					{ type: MessageAttachmentKind.Simple, label: "context", modelRepresentation: "steering context" },
 				],
 			},
-		} as never);
+		});
 
 		await waitFor(() => backend.steers.length === 1);
 		assert.deepEqual(backend.steers, ["focus on tests\n\nsteering context"]);
@@ -247,10 +248,10 @@ describe("chat driver", () => {
 			id: "q-1",
 			message: {
 				text: "then do this",
-				origin: { kind: "user" },
+				origin: { kind: MessageKind.User },
 				attachments: [embeddedText("queued context", "queued.txt")],
 			},
-		} as never);
+		});
 
 		await waitFor(() => backend.prompts.length === promptsBefore + 1);
 
@@ -268,16 +269,16 @@ describe("chat driver", () => {
 			type: ActionType.ChatTurnStarted,
 			turnId: "t-blocking",
 			startedAt: new Date().toISOString(),
-			message: { text: "long running", origin: { kind: "user" } },
-		} as never);
+			message: { text: "long running", origin: { kind: MessageKind.User } },
+		});
 		await waitFor(() => backend.prompts.length === promptsBefore + 1);
 
 		fixture.client.dispatch(fixture.chatChannel, {
 			type: ActionType.ChatPendingMessageSet,
 			kind: PendingMessageKind.Queued,
 			id: "q-after-active",
-			message: { text: "run after", origin: { kind: "user" } },
-		} as never);
+			message: { text: "run after", origin: { kind: MessageKind.User } },
+		});
 		await fixture.client.ping();
 
 		const waiting = fixture.host.store.get(fixture.chatChannel) as ChatState;
@@ -302,8 +303,8 @@ describe("chat driver", () => {
 			type: ActionType.ChatTurnStarted,
 			turnId: "t-cancel",
 			startedAt: new Date().toISOString(),
-			message: { text: "long running", origin: { kind: "user" } },
-		} as never);
+			message: { text: "long running", origin: { kind: MessageKind.User } },
+		});
 		await waitFor(() => backend.prompts.length === promptsBefore + 1);
 		assert.equal((fixture.host.store.get(fixture.chatChannel) as ChatState).activeTurn?.id, "t-cancel");
 
@@ -311,7 +312,7 @@ describe("chat driver", () => {
 			type: ActionType.ChatTurnCancelled,
 			turnId: "t-cancel",
 			duration: 0,
-		} as never);
+		});
 
 		await waitFor(() => backend.aborts === abortsBefore + 1);
 		const chat = fixture.host.store.get(fixture.chatChannel) as ChatState;
@@ -353,7 +354,7 @@ describe("chat driver — backend failure", () => {
 		const sessions = new SessionRegistry({ host, createBackend: () => backend });
 		host.serve({
 			sessions: {
-				create: (params) => sessions.create(params as never),
+				create: (params) => sessions.create(params),
 				dispose: (channel) => sessions.dispose(channel),
 			},
 		});
@@ -367,7 +368,7 @@ describe("chat driver — backend failure", () => {
 			const id = randomUUID();
 			const session = sessionUri(id);
 			const chat = chatUri(id);
-			await client.request("createSession", { channel: session } as never);
+			await client.request("createSession", { channel: session });
 			await client.subscribe(chat);
 
 			// Dispatched through the wire so the reducer creates the active turn
@@ -376,8 +377,8 @@ describe("chat driver — backend failure", () => {
 				type: ActionType.ChatTurnStarted,
 				turnId: "t1",
 				startedAt: new Date().toISOString(),
-				message: { text: "hi", origin: { kind: "user" } },
-			} as never);
+				message: { text: "hi", origin: { kind: MessageKind.User } },
+			});
 
 			// Nothing will ever emit `agent_settled`, so without explicit handling
 			// the turn would stay active and the session stuck at InProgress.
@@ -428,7 +429,7 @@ describe("steering message lifetime", () => {
 		const sessions = new SessionRegistry({ host, createBackend: () => backend });
 		host.serve({
 			sessions: {
-				create: (params) => sessions.create(params as never),
+				create: (params) => sessions.create(params),
 				dispose: (channel) => sessions.dispose(channel),
 			},
 		});
@@ -440,21 +441,21 @@ describe("steering message lifetime", () => {
 		try {
 			const id = randomUUID();
 			const chat = chatUri(id);
-			await client.request("createSession", { channel: sessionUri(id) } as never);
+			await client.request("createSession", { channel: sessionUri(id) });
 			await client.subscribe(chat);
 
 			client.dispatch(chat, {
 				type: ActionType.ChatTurnStarted,
 				turnId: "t1",
 				startedAt: new Date().toISOString(),
-				message: { text: "go", origin: { kind: "user" } },
-			} as never);
+				message: { text: "go", origin: { kind: MessageKind.User } },
+			});
 			client.dispatch(chat, {
 				type: ActionType.ChatPendingMessageSet,
 				kind: PendingMessageKind.Steering,
 				id: "steer-1",
-				message: { text: "focus on tests", origin: { kind: "user" } },
-			} as never);
+				message: { text: "focus on tests", origin: { kind: MessageKind.User } },
+			});
 
 			await waitFor(() => (host.store.get(chat) as ChatState).steeringMessage !== undefined);
 

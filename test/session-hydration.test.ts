@@ -178,7 +178,7 @@ async function startFixture(): Promise<Fixture> {
 			list: (limit, cursor) => catalogue.list(limit, cursor, () => sessions.catalogueOverrides()),
 		},
 		sessions: {
-			create: (params) => sessions.create(params as never),
+			create: (params) => sessions.create(params),
 			dispose: (channel) => sessions.dispose(channel),
 		},
 	});
@@ -196,9 +196,9 @@ async function startFixture(): Promise<Fixture> {
 		await other.request("initialize", {
 			channel: ROOT_CHANNEL,
 			clientId: "vscode-client",
-			protocolVersions: SUPPORTED_PROTOCOL_VERSIONS,
+			protocolVersions: [...SUPPORTED_PROTOCOL_VERSIONS],
 			clientInfo: { name: "vscode-editor-window", title: "VS Code" },
-		} as never);
+		});
 		return other;
 	};
 
@@ -233,10 +233,10 @@ async function initialSnapshotResources(
 		const result = await client.request("initialize", {
 			channel: ROOT_CHANNEL,
 			clientId,
-			protocolVersions: SUPPORTED_PROTOCOL_VERSIONS,
+			protocolVersions: [...SUPPORTED_PROTOCOL_VERSIONS],
 			initialSubscriptions,
 			...(clientInfo ? { clientInfo } : {}),
-		} as never);
+		});
 		return result.snapshots.map((snapshot) => snapshot.resource);
 	} finally {
 		await client.shutdown();
@@ -369,11 +369,11 @@ it("preserves catalogue modifiedAt when a disk session becomes a live overlay", 
 		const file = must(await new PiSessionCatalogue(fixture.root).findSessionFile(fixture.sessionId));
 		const timestamp = new Date("2025-06-01T12:00:00.000Z");
 		utimesSync(file, timestamp, timestamp);
-		const before = await fixture.client.request("listSessions", { channel: ROOT_CHANNEL } as never);
+		const before = await fixture.client.request("listSessions", { channel: ROOT_CHANNEL });
 		assert.equal(before.items[0]?.modifiedAt, timestamp.toISOString());
 		const { result } = await fixture.client.subscribe(chatUri(fixture.sessionId));
 		assert.equal((must(result.snapshot).state as ChatState).modifiedAt, timestamp.toISOString());
-		const after = await fixture.client.request("listSessions", { channel: ROOT_CHANNEL } as never);
+		const after = await fixture.client.request("listSessions", { channel: ROOT_CHANNEL });
 		assert.equal(after.items.length, 1);
 		assert.equal(after.items[0]?.modifiedAt, timestamp.toISOString());
 	} finally {
@@ -397,7 +397,7 @@ describe("read and unread", () => {
 		// tracking it would mean this host inventing durable state of its own —
 		// and without archiving to pair with it, a list where everything is
 		// permanently unread is worse than one that stays quiet.
-		const list = await fixture.client.request("listSessions", { channel: "ahp-root://" } as never);
+		const list = await fixture.client.request("listSessions", { channel: "ahp-root://" });
 		assert.ok((must(list.items[0]).status & SessionStatus.IsRead) !== 0);
 	});
 
@@ -416,18 +416,18 @@ describe("read and unread", () => {
 		assert.ok((before & SessionStatus.IsRead) !== 0);
 
 		fixture.client.dispatch(chat, {
-			type: "chat/turnStarted",
+			type: ActionType.ChatTurnStarted,
 			turnId: "t-unread",
 			startedAt: new Date().toISOString(),
-			message: { text: "hi", origin: { kind: "user" } },
-		} as never);
+			message: { text: "hi", origin: { kind: MessageKind.User } },
+		});
 		await fixture.client.ping();
 
 		assert.equal((fixture.host.store.get(chat) as ChatState).status & SessionStatus.IsRead, 0);
 		// Session flags stay session-owned: we do not implement a read/unread lifecycle.
 		const session = fixture.host.store.get(sessionUri(fixture.sessionId)) as SessionState;
 		assert.notEqual(session.status & SessionStatus.IsRead, 0);
-		const list = await fixture.client.request("listSessions", { channel: ROOT_CHANNEL } as never);
+		const list = await fixture.client.request("listSessions", { channel: ROOT_CHANNEL });
 		assert.notEqual(
 			must(list.items.find((item) => item.resource === sessionUri(fixture.sessionId))).status & SessionStatus.IsRead,
 			0,
@@ -530,7 +530,7 @@ describe("session URI classification", () => {
 				"an uncreated terminal must not open a matching session",
 			);
 			await assert.rejects(
-				client.request("disposeSession", { channel } as never),
+				client.request("disposeSession", { channel }),
 				RpcError,
 				"a terminal URI must not delete a matching session",
 			);
@@ -544,14 +544,11 @@ describe("session URI classification", () => {
 	it("accepts the provider scheme but rejects an undeclared session scheme", async () => {
 		const fixture = await startFixture();
 		try {
-			await assert.rejects(
-				fixture.client.request("createSession", { channel: `custom:/${randomUUID()}` } as never),
-				RpcError,
-			);
+			await assert.rejects(fixture.client.request("createSession", { channel: `custom:/${randomUUID()}` }), RpcError);
 
 			const id = randomUUID().toUpperCase();
 			const uri = `pi:/${id}`;
-			await fixture.client.request("createSession", { channel: uri } as never);
+			await fixture.client.request("createSession", { channel: uri });
 
 			const { result } = await fixture.client.subscribe(uri);
 			assert.ok(result.snapshot, "the session must exist at the URI the client chose");
@@ -560,7 +557,7 @@ describe("session URI classification", () => {
 			assert.equal(fixture.host.store.has(sessionUri(id)), true, "core state stays canonical");
 			assert.equal(fixture.host.store.has(uri), false);
 
-			await fixture.client.request("disposeSession", { channel: uri } as never);
+			await fixture.client.request("disposeSession", { channel: uri });
 			assert.equal(fixture.host.store.has(sessionUri(id)), false);
 		} finally {
 			await fixture.close();
@@ -577,12 +574,12 @@ describe("disposing a session that was never live here", () => {
 		try {
 			const uri = sessionUri(fixture.sessionId);
 			await fixture.client.subscribe(uri);
-			await fixture.client.request("disposeSession", { channel: uri } as never);
+			await fixture.client.request("disposeSession", { channel: uri });
 
 			assert.equal(fixture.host.store.has(uri), false);
 			assert.deepEqual(fixture.deletedFiles.length, 1);
 
-			const list = await fixture.client.request("listSessions", { channel: "ahp-root://" } as never);
+			const list = await fixture.client.request("listSessions", { channel: "ahp-root://" });
 			assert.equal(list.items.length, 0, "a disposed session must not come back on the next listing");
 		} finally {
 			await fixture.close();
@@ -606,7 +603,7 @@ describe("resuming a hydrated session", () => {
 				turnId: "t-resume",
 				startedAt: new Date().toISOString(),
 				message: { text: "continue please", origin: { kind: MessageKind.User } },
-			} as never);
+			});
 
 			await waitFor(() => fixture.backend.prompts.length === 1);
 			assert.deepEqual(fixture.backend.prompts, ["continue please"]);
@@ -633,7 +630,7 @@ describe("resuming a hydrated session", () => {
 				turnId: "t-append",
 				startedAt: new Date().toISOString(),
 				message: { text: "and again", origin: { kind: MessageKind.User } },
-			} as never);
+			});
 			await waitFor(() => fixture.backend.prompts.length === 1);
 			await waitFor(() => (fixture.host.store.get(chat) as ChatState).turns.length === before + 1);
 
@@ -684,7 +681,7 @@ describe("renaming a session loaded from disk", () => {
 		try {
 			const uri = sessionUri(fixture.sessionId);
 			await fixture.client.subscribe(uri);
-			fixture.client.dispatch(uri, { type: "session/titleChanged", title: "Archived work" } as never);
+			fixture.client.dispatch(uri, { type: ActionType.SessionTitleChanged, title: "Archived work" });
 			await fixture.client.ping();
 			assert.equal((fixture.host.store.get(uri) as { title?: string }).title, "Archived work");
 

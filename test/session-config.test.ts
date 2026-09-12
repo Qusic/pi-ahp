@@ -140,7 +140,7 @@ describe("model selection", () => {
 		});
 		host.serve({
 			sessions: {
-				create: (params) => sessions.create(params as never),
+				create: (params) => sessions.create(params),
 				dispose: (channel) => sessions.dispose(channel),
 			},
 		});
@@ -152,7 +152,7 @@ describe("model selection", () => {
 
 		const id = randomUUID();
 		chat = chatUri(id);
-		await client.request("createSession", { channel: sessionUri(id) } as never);
+		await client.request("createSession", { channel: sessionUri(id) });
 		await client.subscribe(chat);
 		await waitFor(() => (host.store.get(chat) as ChatState).draft?.model?.id === "default-model");
 	});
@@ -199,7 +199,7 @@ describe("model selection", () => {
 				origin: { kind: MessageKind.User },
 				model: { id: "picked-model", config: { [THINKING_CONFIG_KEY]: "high" } },
 			},
-		} as never);
+		});
 		await waitFor(() => backend.prompts.length === promptsBefore + 1);
 
 		assert.equal(backend.selections.length, selectionsBefore + 1);
@@ -220,7 +220,7 @@ describe("model selection", () => {
 			turnId: "t-plain",
 			startedAt: new Date().toISOString(),
 			message: { text: "again", origin: { kind: MessageKind.User } },
-		} as never);
+		});
 		await waitFor(() => backend.prompts.length === promptsBefore + 1);
 
 		assert.equal(backend.selections.length, selectionsBefore, "no selection means no switch");

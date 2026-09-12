@@ -285,7 +285,7 @@ describe("listSessions over the wire", () => {
 		const client = await harness.connect();
 		await client.initialize({ clientId: nextClientId(), protocolVersions: SUPPORTED_PROTOCOL_VERSIONS });
 
-		const result = await client.request("listSessions", { channel: "ahp-root://" } as never);
+		const result = await client.request("listSessions", { channel: "ahp-root://" });
 
 		assert.equal(result.items.length, 1);
 		assert.equal(result.items[0]?.title, "Explain this repository");

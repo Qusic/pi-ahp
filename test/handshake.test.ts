@@ -139,7 +139,7 @@ describe("handshake", () => {
 				client.request("initialize", {
 					channel: ROOT_CHANNEL,
 					clientId: nextClientId(),
-					protocolVersions: SUPPORTED_PROTOCOL_VERSIONS,
+					protocolVersions: [...SUPPORTED_PROTOCOL_VERSIONS],
 					...invalid,
 				} as never),
 				JsonRpcErrorCodes.InvalidParams,
@@ -170,10 +170,7 @@ describe("handshake", () => {
 
 	it("requires initialize or reconnect before other requests", async () => {
 		const client = await harness.connect();
-		await expectRpcError(
-			client.request("listSessions", { channel: ROOT_CHANNEL } as never),
-			JsonRpcErrorCodes.InvalidRequest,
-		);
+		await expectRpcError(client.request("listSessions", { channel: ROOT_CHANNEL }), JsonRpcErrorCodes.InvalidRequest);
 	});
 
 	it("rejects a second handshake on an initialized connection", async () => {
@@ -183,8 +180,8 @@ describe("handshake", () => {
 			client.request("initialize", {
 				channel: ROOT_CHANNEL,
 				clientId: nextClientId(),
-				protocolVersions: SUPPORTED_PROTOCOL_VERSIONS,
-			} as never),
+				protocolVersions: [...SUPPORTED_PROTOCOL_VERSIONS],
+			}),
 			JsonRpcErrorCodes.InvalidRequest,
 		);
 	});

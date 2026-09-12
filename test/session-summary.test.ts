@@ -173,7 +173,7 @@ async function fixture(t: TestContext, createBackend?: BackendFactory) {
 	const session = sessionUri(id);
 	const alias = `pi:/${id}`;
 	const chat = chatUri(id);
-	await client.request("createSession", { channel: alias } as never);
+	await client.request("createSession", { channel: alias });
 	const initial = (await client.subscribe(alias)).result.snapshot;
 	await client.subscribe(chat);
 	await client.ping();
@@ -193,7 +193,7 @@ async function fixture(t: TestContext, createBackend?: BackendFactory) {
 		await client.ping();
 	};
 	const list = async () => {
-		const result = await client.request("listSessions", { channel: ROOT_CHANNEL } as never);
+		const result = await client.request("listSessions", { channel: ROOT_CHANNEL });
 		assert.equal(result.items.length, 1);
 		return must(result.items[0]);
 	};
@@ -257,7 +257,7 @@ describe("session summary over the wire", () => {
 		assert.equal("activity" in live, false);
 		const other = await f.harness.connect();
 		await other.initialize({ clientId: nextClientId(), protocolVersions: SUPPORTED_PROTOCOL_VERSIONS });
-		const result = await other.request("listSessions", { channel: ROOT_CHANNEL } as never);
+		const result = await other.request("listSessions", { channel: ROOT_CHANNEL });
 		assert.deepEqual(result.items, [{ ...live, resource: f.session }]);
 	});
 
@@ -403,7 +403,7 @@ describe("session summary over the wire", () => {
 			assert.equal(mirror.chats[0]?.modifiedAt, running ? START : END);
 			assert.equal(mirror.chats[0]?.activity, running ? "Working" : undefined);
 			// Root notifications are not replayed: a fresh list supplies the final status.
-			const result = await fresh.request("listSessions", { channel: ROOT_CHANNEL } as never);
+			const result = await fresh.request("listSessions", { channel: ROOT_CHANNEL });
 			assert.equal(result.items[0]?.status, running ? SessionStatus.InProgress : SessionStatus.Idle);
 		});
 	}

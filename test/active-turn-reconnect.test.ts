@@ -9,6 +9,7 @@ import {
 	type ActionEnvelope,
 	ActionType,
 	type ChatState,
+	MessageKind,
 	PendingMessageKind,
 	type ReconnectReplayResult,
 	ReconnectResultType,
@@ -136,15 +137,15 @@ async function startActiveTurn(replayBufferCapacity = 64): Promise<ActiveTurnFix
 	const id = randomUUID();
 	const session = sessionUri(id);
 	const chat = chatUri(id);
-	await client.request("createSession", { channel: session } as never);
+	await client.request("createSession", { channel: session });
 	await client.subscribe(session);
 	await client.subscribe(chat);
 	client.dispatch(chat, {
 		type: ActionType.ChatTurnStarted,
 		turnId: TURN_ID,
 		startedAt: new Date().toISOString(),
-		message: { text: "keep working", origin: { kind: "user" } },
-	} as never);
+		message: { text: "keep working", origin: { kind: MessageKind.User } },
+	});
 	await waitFor(() => backend.prompts.length === 1);
 	assert.equal((harness.host.store.get(chat) as ChatState).activeTurn?.id, TURN_ID);
 
@@ -194,14 +195,14 @@ describe("active-turn reconnect", () => {
 				type: ActionType.ChatPendingMessageSet,
 				kind: PendingMessageKind.Steering,
 				id: "after-reconnect",
-				message: { text: "focus here", origin: { kind: "user" } },
-			} as never);
+				message: { text: "focus here", origin: { kind: MessageKind.User } },
+			});
 			await waitFor(() => fixture.backend.steers.length === 1);
 			resumed.dispatch(fixture.chat, {
 				type: ActionType.ChatTurnCancelled,
 				turnId: TURN_ID,
 				duration: 0,
-			} as never);
+			});
 			await waitFor(() => fixture.backend.aborts === 1);
 
 			const state = fixture.harness.host.store.get(fixture.chat) as ChatState;

@@ -80,7 +80,7 @@ describe("pi client-action policy", () => {
 		const id = randomUUID();
 		const session = sessionUri(id);
 		const chat = chatUri(id);
-		await client.request("createSession", { channel: session } as never);
+		await client.request("createSession", { channel: session });
 		await Promise.all([
 			client.subscribe(session),
 			client.subscribe(chat),
@@ -94,7 +94,7 @@ describe("pi client-action policy", () => {
 		const beforeState = structuredClone(harness.host.store.get(channel));
 		const senderEvents = client.attachSubscription(channel);
 		const observerEvents = observer.attachSubscription(channel);
-		const dispatched = client.dispatch(channel, action as never);
+		const dispatched = client.dispatch(channel, action);
 		const [sender, seenByObserver] = await Promise.all([
 			nextAction(senderEvents, dispatched.clientSeq),
 			nextAction(observerEvents, dispatched.clientSeq),
