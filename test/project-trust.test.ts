@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { after, before, describe, it } from "node:test";
+import { after, before, beforeEach, describe, it } from "node:test";
 import { ProjectTrustStore, SessionManager } from "@earendil-works/pi-coding-agent";
 import { InProcessPiBackend } from "../src/pi/in-process-backend.ts";
 import { resolveProjectTrust } from "../src/pi/project-trust.ts";
@@ -28,6 +28,12 @@ describe("project trust", () => {
 		// executes code from the directory.
 		mkdirSync(join(withResources, ".pi", "extensions"), { recursive: true });
 		writeFileSync(join(withResources, ".pi", "extensions", "ext.ts"), "export default () => {};\n");
+	});
+
+	beforeEach(() => {
+		// Every policy case starts without a decision written by another test.
+		rmSync(agentDir, { recursive: true, force: true });
+		mkdirSync(agentDir, { recursive: true });
 	});
 
 	after(() => {

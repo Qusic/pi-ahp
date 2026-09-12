@@ -10,7 +10,7 @@ import { eventually } from "./support/async.ts";
 
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { after, before, describe, it } from "node:test";
+import { afterEach, beforeEach, describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 import type { AgentSessionEvent } from "@earendil-works/pi-coding-agent";
 import {
@@ -24,7 +24,7 @@ import {
 	SUPPORTED_PROTOCOL_VERSIONS,
 	TurnState,
 } from "@microsoft/agent-host-protocol";
-import type { AhpClient, Subscription } from "@microsoft/agent-host-protocol/client";
+import type { AhpClient } from "@microsoft/agent-host-protocol/client";
 import { AhpClient as Client } from "@microsoft/agent-host-protocol/client";
 import { WebSocketTransport } from "@microsoft/agent-host-protocol/ws";
 import { installRootChannel } from "../src/channels/root.ts";
@@ -32,7 +32,7 @@ import { chatUri, sessionUri } from "../src/core/channels.ts";
 import { AhpHost } from "../src/core/host.ts";
 import type { PiBackend } from "../src/pi/chat-driver.ts";
 import { SessionRegistry } from "../src/pi/session-registry.ts";
-import { type RunningServer, serveWebSocket } from "../src/transport/websocket.ts";
+import { serveWebSocket } from "../src/transport/websocket.ts";
 
 /**
  * A backend that records prompts and replays a scripted event sequence for each
@@ -102,49 +102,62 @@ function say(text: string): AgentSessionEvent[] {
 }
 
 interface Fixture {
-	client: AhpClient;
-	host: AhpHost;
-	backend: ScriptedBackend;
-	sessionChannel: string;
-	chatChannel: string;
-	subscription: Subscription;
-	server: RunningServer;
+	readonly client: AhpClient;
+	readonly host: AhpHost;
+	readonly backend: ScriptedBackend;
+	readonly sessionChannel: string;
+	readonly chatChannel: string;
+	close(): Promise<void>;
+}
+
+async function startFixture(): Promise<Fixture> {
+	const host = new AhpHost({ serverInfo: { name: "pi-ahp", version: "test" } });
+	installRootChannel(host, []);
+	const backend = new ScriptedBackend((text) => (text === "long running" ? [] : say(`echo: ${text}`)));
+	const sessions = new SessionRegistry({ host, createBackend: () => backend });
+	host.serve({
+		sessions: {
+			create: (params) => sessions.create(params),
+			dispose: (channel) => sessions.dispose(channel),
+		},
+	});
+
+	const server = await serveWebSocket(host, { host: "127.0.0.1", port: 0 });
+	const client = new Client(await WebSocketTransport.connect(`ws://127.0.0.1:${server.port}`));
+	client.connect();
+	await client.initialize({ clientId: "driver-client", protocolVersions: SUPPORTED_PROTOCOL_VERSIONS });
+
+	const id = randomUUID();
+	const sessionChannel = sessionUri(id);
+	const chatChannel = chatUri(id);
+	await client.request("createSession", { channel: sessionChannel });
+	await client.subscribe(sessionChannel);
+	await client.subscribe(chatChannel);
+
+	return {
+		client,
+		host,
+		backend,
+		sessionChannel,
+		chatChannel,
+		async close() {
+			await client.shutdown();
+			await server.close();
+		},
+	};
 }
 
 describe("chat driver", () => {
 	let fixture: Fixture;
 	let backend: ScriptedBackend;
 
-	before(async () => {
-		const host = new AhpHost({ serverInfo: { name: "pi-ahp", version: "test" } });
-		installRootChannel(host, []);
-		backend = new ScriptedBackend((text) => (text === "long running" ? [] : say(`echo: ${text}`)));
-		const sessions = new SessionRegistry({ host, createBackend: () => backend });
-		host.serve({
-			sessions: {
-				create: (params) => sessions.create(params),
-				dispose: (channel) => sessions.dispose(channel),
-			},
-		});
-
-		const server = await serveWebSocket(host, { host: "127.0.0.1", port: 0 });
-		const client = new Client(await WebSocketTransport.connect(`ws://127.0.0.1:${server.port}`));
-		client.connect();
-		await client.initialize({ clientId: "driver-client", protocolVersions: SUPPORTED_PROTOCOL_VERSIONS });
-
-		const id = randomUUID();
-		const sessionChannel = sessionUri(id);
-		const chatChannel = chatUri(id);
-		await client.request("createSession", { channel: sessionChannel });
-		await client.subscribe(sessionChannel);
-		const { subscription } = await client.subscribe(chatChannel);
-
-		fixture = { client, host, backend, sessionChannel, chatChannel, subscription, server };
+	beforeEach(async () => {
+		fixture = await startFixture();
+		backend = fixture.backend;
 	});
 
-	after(async () => {
-		await fixture.client.shutdown();
-		await fixture.server.close();
+	afterEach(async () => {
+		await fixture.close();
 	});
 
 	it("creates the session's default chat and points defaultChat at it", async () => {
@@ -198,11 +211,19 @@ describe("chat driver", () => {
 	});
 
 	it("keeps the session catalog's chat summary in step", async () => {
+		fixture.client.dispatch(fixture.chatChannel, {
+			type: ActionType.ChatTurnStarted,
+			turnId: "t-summary",
+			startedAt: new Date().toISOString(),
+			message: { text: "update the summary", origin: { kind: MessageKind.User } },
+		});
+		await eventually(
+			"the summary-driving turn to complete",
+			() => (fixture.host.store.get(fixture.chatChannel) as ChatState).turns.length === 1,
+		);
+
 		const session = fixture.host.store.get(fixture.sessionChannel) as SessionState;
 		const chat = fixture.host.store.get(fixture.chatChannel) as ChatState;
-
-		// `ChatState` denormalises every summary field, so the two drift unless
-		// the host republishes them.
 		assert.equal(session.chats[0]?.status, chat.status);
 		assert.equal(session.chats[0]?.modifiedAt, chat.modifiedAt);
 	});
@@ -226,8 +247,6 @@ describe("chat driver", () => {
 	});
 
 	it("consumes a queued message as its own turn once the chat goes idle", async () => {
-		const promptsBefore = backend.prompts.length;
-
 		// Queued messages never reach pi: the protocol's own state is the queue,
 		// and the host starts a fresh turn for the head entry when idle.
 		fixture.client.dispatch(fixture.chatChannel, {
@@ -241,7 +260,7 @@ describe("chat driver", () => {
 			},
 		});
 
-		await eventually("the prompt to reach the backend", () => backend.prompts.length === promptsBefore + 1);
+		await eventually("the queued prompt to reach the backend", () => backend.prompts.length === 1);
 
 		const state = fixture.host.store.get(fixture.chatChannel) as ChatState;
 		assert.equal(backend.prompts.at(-1), "then do this\n\nqueued context");
@@ -252,14 +271,13 @@ describe("chat driver", () => {
 	});
 
 	it("holds a queued message until the active turn settles", async () => {
-		const promptsBefore = backend.prompts.length;
 		fixture.client.dispatch(fixture.chatChannel, {
 			type: ActionType.ChatTurnStarted,
 			turnId: "t-blocking",
 			startedAt: new Date().toISOString(),
 			message: { text: "long running", origin: { kind: MessageKind.User } },
 		});
-		await eventually("the prompt to reach the backend", () => backend.prompts.length === promptsBefore + 1);
+		await eventually("the active prompt to reach the backend", () => backend.prompts.length === 1);
 
 		fixture.client.dispatch(fixture.chatChannel, {
 			type: ActionType.ChatPendingMessageSet,
@@ -270,15 +288,12 @@ describe("chat driver", () => {
 		await fixture.client.ping();
 
 		const waiting = fixture.host.store.get(fixture.chatChannel) as ChatState;
-		assert.equal(backend.prompts.length, promptsBefore + 1, "queued message prompted before the active turn settled");
+		assert.equal(backend.prompts.length, 1, "queued message prompted before the active turn settled");
 		assert.equal(waiting.activeTurn?.id, "t-blocking");
 		assert.equal(waiting.queuedMessages?.[0]?.id, "q-after-active");
 
 		backend.emit({ type: "agent_settled" } as AgentSessionEvent);
-		await eventually(
-			"the queued message to start after settlement",
-			() => backend.prompts.length === promptsBefore + 2,
-		);
+		await eventually("the queued message to start after settlement", () => backend.prompts.length === 2);
 
 		const completed = fixture.host.store.get(fixture.chatChannel) as ChatState;
 		assert.equal(backend.prompts.at(-1), "run after");
@@ -288,15 +303,13 @@ describe("chat driver", () => {
 	});
 
 	it("aborts the backend when a client cancels the active turn", async () => {
-		const abortsBefore = backend.aborts;
-		const promptsBefore = backend.prompts.length;
 		fixture.client.dispatch(fixture.chatChannel, {
 			type: ActionType.ChatTurnStarted,
 			turnId: "t-cancel",
 			startedAt: new Date().toISOString(),
 			message: { text: "long running", origin: { kind: MessageKind.User } },
 		});
-		await eventually("the prompt to reach the backend", () => backend.prompts.length === promptsBefore + 1);
+		await eventually("the cancellable prompt to reach the backend", () => backend.prompts.length === 1);
 		assert.equal((fixture.host.store.get(fixture.chatChannel) as ChatState).activeTurn?.id, "t-cancel");
 
 		fixture.client.dispatch(fixture.chatChannel, {
@@ -305,7 +318,7 @@ describe("chat driver", () => {
 			duration: 0,
 		});
 
-		await eventually("cancellation to reach the backend", () => backend.aborts === abortsBefore + 1);
+		await eventually("cancellation to reach the backend", () => backend.aborts === 1);
 		const chat = fixture.host.store.get(fixture.chatChannel) as ChatState;
 		const session = fixture.host.store.get(fixture.sessionChannel) as SessionState;
 		assert.equal(chat.turns.at(-1)?.state, TurnState.Cancelled);
