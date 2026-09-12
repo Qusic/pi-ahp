@@ -141,17 +141,8 @@ function validateReconnect(params: ReconnectParams | undefined): asserts params 
 }
 
 /**
- * The optional halves of the protocol a host chooses to serve.
- *
- * One object rather than a setter per feature: the surface grew a setter each
- * time a command was implemented, and the router ended up with a nullable field
- * and an "unconfigured" branch for each. Collecting them makes what a host does
- * and does not serve readable in one place, and keeps the degradation for a
- * missing capability in one place too.
- *
- * Every field is optional, and the router answers a request for an absent one
- * the way the protocol expects — an empty result where that is meaningful,
- * `MethodNotFound` where it is not.
+ * Optional protocol surfaces. Requests for an absent surface receive an empty
+ * result where meaningful and `MethodNotFound` otherwise.
  */
 export interface HostCapabilities {
 	/** The session catalogue behind `listSessions`. */
@@ -271,12 +262,7 @@ export interface ResourceWatchHandler {
 	create(params: CreateResourceWatchParams): Promise<CreateResourceWatchResult>;
 }
 
-/**
- * Serves the connection-level `resource*` family.
- *
- * Kept behind an interface because the family is symmetrical: the same shape
- * will back server → client requests when this host starts issuing them.
- */
+/** Serves the host side of the connection-level `resource*` family. */
 export interface ResourceHandler {
 	read(params: ResourceReadParams): Promise<ResourceReadResult>;
 	write(params: ResourceWriteParams): Promise<Record<string, never>>;

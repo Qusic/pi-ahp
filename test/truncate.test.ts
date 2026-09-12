@@ -1,13 +1,7 @@
 /**
- * Truncating a conversation.
- *
- * The failure this replaces was silent: the reducer dropped turns from the
- * client's view while pi kept the whole history, so every later turn ran on
- * context the user believed was gone — and nothing reported the mismatch.
- *
- * pi's sessions are append-only trees, so truncation is a leaf move rather
- * than a delete: `navigateTree` repoints the leaf and later messages form a new
- * branch, which is exactly what the protocol means.
+ * Truncating a conversation must move both the protocol view and pi's session
+ * leaf. Sessions are append-only trees, so later messages form a new branch
+ * instead of deleting the abandoned entries.
  */
 
 import assert from "node:assert/strict";

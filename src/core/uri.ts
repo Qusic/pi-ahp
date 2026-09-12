@@ -1,13 +1,7 @@
 /**
- * URI helpers shared across channels and backends.
- *
- * The protocol carries filesystem locations as `file:` URIs. Converting them
- * lives here rather than in whichever module happened to need it first, because
- * having two conversions is how they drift: a hand-rolled
- * `decodeURIComponent(new URL(uri).pathname)` silently turns the UNC URI
- * `file://host/share/x` into the local path `/share/x`, while `node:url`
- * rejects it — so the same input was accepted in one command and refused in
- * another.
+ * URI helpers shared across channels and backends. Filesystem conversion uses
+ * `node:url` consistently so platform and remote-authority semantics cannot
+ * diverge between commands.
  */
 
 import { fileURLToPath, pathToFileURL } from "node:url";

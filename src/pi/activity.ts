@@ -142,7 +142,6 @@ function searchInput(input: Record<string, unknown>): string | undefined {
 	return parts.join(" ");
 }
 
-/** What to show between tool calls, while the model is producing output. */
 /**
  * The same description, phrased for a call that has finished.
  *

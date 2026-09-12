@@ -360,9 +360,9 @@ describe("renaming a session", () => {
 		await client.request("createSession", { channel: uri });
 		await renamed(uri, "Never answered");
 
-		// pi withholds the file until a session has an assistant message
-		// (`SessionManager._persist`), so an empty conversation leaves nothing
-		// behind. The name is held in memory and flushed with everything else
+		// pi withholds the file until a session has an assistant message, so an
+		// empty conversation leaves nothing behind. The name is held in memory
+		// and flushed with everything else
 		// once the first reply arrives — renaming does not change that policy,
 		// and forcing a write here would litter the disk with empty sessions.
 		const file = harness.sessions?.get(uri)?.sessionManager.getSessionFile();

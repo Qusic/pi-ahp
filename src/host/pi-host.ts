@@ -56,12 +56,9 @@ export interface PiHost {
 }
 
 /**
- * Builds the host and registers every channel a client can reach at this
- * milestone.
- *
- * The model list is read once at startup. Refreshing it later means dispatching
- * `root/agentsChanged`, which is what makes the agent list a state channel
- * rather than a one-shot handshake field.
+ * Builds the host and registers every supported channel. The model list is a
+ * startup snapshot; dynamic refresh would require publishing
+ * `root/agentsChanged` and is not implemented.
  */
 export async function createPiHost(options: PiHostOptions = {}): Promise<PiHost> {
 	const workingDirectory = options.workingDirectory ?? process.cwd();

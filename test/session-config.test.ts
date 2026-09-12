@@ -1,11 +1,4 @@
-/**
- * Session configuration and model selection.
- *
- * Both exist because a client asked for them and got nothing back: a missing
- * `resolveSessionConfig` is a hard error before a session can even be created,
- * and a model chosen in the client had no effect because `Message.model` was
- * being dropped.
- */
+/** Pre-creation session configuration and per-message model selection. */
 
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";

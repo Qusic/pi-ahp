@@ -1,11 +1,9 @@
 /**
  * Replays recorded pi event streams through the mapper, offline.
  *
- * These fixtures were captured from a real model (`scripts/capture-fixtures.ts`) and
- * scrubbed of machine- and tenant-specific values. They exist because scripted
- * backends only ever prove that the mapper handles the event stream *I imagined*;
- * two real bugs — a reasoning block delivered with no deltas, and usage fields
- * with nowhere to go — only showed up against a genuine capture.
+ * These fixtures were captured from a real model (`scripts/capture-fixtures.ts`)
+ * and scrubbed of machine- and tenant-specific values. They cover provider
+ * event shapes that synthetic mapper fixtures may omit.
  *
  * The assertions are deliberately structural rather than exact-output: the model
  * is free to phrase things differently on a re-capture, but the *shape* of the

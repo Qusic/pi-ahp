@@ -6,9 +6,9 @@
  *
  *     nix develop -c pnpm exec node scripts/capture-fixtures.ts
  *
- * Each scenario drives a real model, captures the raw `AgentSessionEvent[]`,
- * scrubs anything machine- or tenant-specific, and writes
- * `test/fixtures/<name>.json`. `test/mapper-fixtures.test.ts` then replays them
+ * Each scenario drives a real model, captures its provider stream and the
+ * resulting `AgentSessionEvent[]`, scrubs machine- and tenant-specific data,
+ * and writes `test/fixtures/<name>.json`. `test/mapper-fixtures.test.ts` then replays them
  * through the mapper offline.
  *
  * Recording at the *event* layer rather than the HTTP layer is deliberate: the
@@ -50,28 +50,18 @@ function waitForUpdates(backend: InProcessPiBackend, count: number): Promise<voi
 }
 
 /**
- * Replaces machine- and tenant-specific values.
- *
- * Tool call ids matter most: Copilot's are long signed blobs that may carry
- * tenant information, and they change on every run, so they are rewritten to
- * stable `toolcall_N` handles.
- *
- * The OS username is deliberately **not** substituted blindly. An early version
- * did, and on a machine where the account is literally `user` it rewrote every
- * `"role": "user"` in the capture into `"role": "${user}"` — silently
- * corrupting every fixture. Paths are already covered by the `homedir`
- * substitution; anything left over is reported by {@link auditFixture} for a
- * human to look at rather than mangled automatically.
- */
-/**
  * Fields the provider fills with an opaque blob that changes every run.
- *
- * Emptied rather than removed: their presence is part of the event shape the
- * mapper is handed, their contents are not.
+ * Emptied rather than removed: field presence is part of the event shape, but
+ * the mapper does not consume the value.
  */
 const OPAQUE_SIGNATURES = new Set(["thinkingSignature", "textSignature", "responseId"]);
 
-function createScrubber(_workspace: string) {
+/**
+ * Replaces machine- and tenant-specific values. Opaque tool call ids become
+ * stable `toolcall_N` handles. Usernames are only audited: common account names
+ * such as `user` also occur as protocol values and cannot be replaced safely.
+ */
+function createScrubber() {
 	const home = homedir();
 	const toolCallIds = new Map<string, string>();
 
@@ -154,8 +144,6 @@ function createScrubber(_workspace: string) {
  *   the mapper reads `partial.content[contentIndex]` to recover a tool call's
  *   id and name. For text and reasoning it is fully reconstructible from the
  *   deltas, and `toolcall_end` carries its own resolved `toolCall`.
- *
- * Before this, a 60-line count captured at 5.6 MB.
  */
 function pruneAccumulated(events: AgentSessionEvent[]): AgentSessionEvent[] {
 	return events.map((event) => {
@@ -186,14 +174,9 @@ function pruneAccumulated(events: AgentSessionEvent[]): AgentSessionEvent[] {
  * Every streamed event carries the message accumulated so far, and pi reads it:
  * dropping the field stops `message_update` from being emitted at all.
  *
- * Within one turn those are not snapshots but repeated references to a single
- * object pi mutates in place, so by the time the capture is serialised they all
- * hold the finished message. The intermediate states are therefore never
- * recorded — not because of this table, but because they no longer exist once
- * the stream ends. What the table removes is only writing that one object out
- * once per event, which is 1.5 MB across the corpus against 23 KB.
- *
- * A turn contributes one entry, and `replayTurns` puts them back.
+ * Within a turn these are repeated references to one object that pi mutates in
+ * place, so serialization would write the same finished message on every event.
+ * The table stores each distinct value once, and `replayTurns` restores it.
  */
 function dedupePartials(turns: unknown[][]): { turns: unknown[][]; partials: unknown[] } {
 	const partials: unknown[] = [];
@@ -262,9 +245,8 @@ async function runScenario(
 			sessionManager: SessionManager.create(workspace, undefined, { id: `capture-${scenario.name}` }),
 		});
 
-		// pi ships seven tools but activates four; the rest are in the registry
-		// and have to be asked for. A fixture that only ever saw the default set
-		// is why `grep`/`find`/`ls` results were never mapped.
+		// Some built-in tools are registered but inactive by default. Enable the
+		// complete set so captures exercise every tool-result shape.
 		backend.session.setActiveToolsByName(backend.session.getAllTools().map((tool) => tool.name));
 		if (scenario.model) {
 			await backend.selectModel({ id: scenario.model });
@@ -334,7 +316,7 @@ async function runScenario(
 		}
 
 		backend.dispose();
-		const scrubber = createScrubber(workspace);
+		const scrubber = createScrubber();
 		scrubber.collect(events);
 		scrubber.collect(turns);
 		const deduped = dedupePartials(scrubber.apply(turns) as unknown[][]);
@@ -349,12 +331,11 @@ async function runScenario(
 }
 
 /**
- * Points pi at a throwaway agent directory holding only credentials.
+ * Points pi at a throwaway agent directory containing only capture essentials.
  *
- * Extensions are loaded from the *user's* `~/.pi/agent`, not the project, so
- * project trust does not keep them out. Without this a fixture records whoever
- * happens to be capturing it: an earlier run picked up a personal plugin's
- * `workflow` tools and would have baked them into the corpus.
+ * User-level extensions are outside project-trust gating. Isolating the agent
+ * directory prevents a maintainer's personal tools from contaminating the
+ * recorded corpus.
  */
 function isolateAgentDir(): void {
 	// Fixed rather than `mkdtemp`: the path reaches the capture through session
@@ -363,21 +344,16 @@ function isolateAgentDir(): void {
 	const dir = join(tmpdir(), "pi-ahp-capture-agent");
 	rmSync(dir, { recursive: true, force: true });
 	mkdirSync(dir, { recursive: true });
-	// The model catalogue travels with the credentials. `models-store.json` is
-	// the refreshed provider listing and carries each model's base URL; without
-	// it pi falls back to its built-in catalogue, which points Copilot at the
-	// individual endpoint and answers an enterprise key with a bare
-	// `421 Misdirected Request`.
+	// Copy the model catalogue with the credentials because refreshed provider
+	// entries may carry endpoints that differ from pi's built-in defaults.
 	for (const file of ["auth.json", "models.json", "models-store.json"]) {
 		const source = join(homedir(), ".pi", "agent", file);
 		if (existsSync(source)) {
 			copyFileSync(source, join(dir, file));
 		}
 	}
-	// `compact()` cuts at `keepRecentTokens` and refuses a session that never
-	// reaches it. The default 20k would need a conversation far larger than any
-	// scenario here; what the fixture is for is the *shape* of the compaction
-	// events, so the threshold is lowered instead of the transcript inflated.
+	// The default compaction threshold exceeds these small scenarios. Lower it
+	// so the fixture captures event shape without inflating the transcript.
 	writeFileSync(join(dir, "settings.json"), `${JSON.stringify({ compaction: { keepRecentTokens: 200 } }, null, 2)}\n`);
 	process.env.PI_CODING_AGENT_DIR = dir;
 }

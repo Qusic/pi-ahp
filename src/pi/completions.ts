@@ -31,10 +31,7 @@ import {
 /** The character that opens a resource mention. */
 export const MENTION_TRIGGER = "@";
 
-/**
- * An intentionally small, arbitrary guard for this temporary glob-based
- * implementation. Revisit it when completions gain a real file index.
- */
+/** Prunes high-volume implementation directories from the workspace walk. */
 const SKIPPED_DIRECTORIES = new Set([".git", "node_modules"]);
 
 /** Upper bound on returned items. The client renders a picker, not a file tree. */

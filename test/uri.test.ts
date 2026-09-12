@@ -1,11 +1,4 @@
-/**
- * `file:` URI conversion.
- *
- * This exists because there used to be two conversions — a hand-rolled one in
- * the session channel and `node:url` everywhere else — which disagreed on UNC
- * URIs. The same input was accepted by `createSession` and refused by
- * `resourceRead`.
- */
+/** Consistent `file:` URI conversion, including remote-authority rejection. */
 
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
@@ -26,7 +19,6 @@ describe("file URI conversion", () => {
 	});
 
 	it("refuses a URI naming a remote host", () => {
-		// The old hand-rolled version silently turned this into `/share/x`.
 		assert.throws(() => fileUriToPath("file://host/share/x"));
 	});
 });
