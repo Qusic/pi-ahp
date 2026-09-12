@@ -25,26 +25,13 @@ import { fileURLToPath } from "node:url";
 import { createAssistantMessageEventStream } from "@earendil-works/pi-ai";
 import { type AgentSessionEvent, SessionManager } from "@earendil-works/pi-coding-agent";
 import { InProcessPiBackend } from "../src/pi/in-process-backend.ts";
+import { RECORDED_SCENARIOS, type RecordedScenario } from "../test/support/recorded-scenarios.ts";
 
 const ROOT_DIR = join(dirname(fileURLToPath(import.meta.url)), "..");
 const FIXTURE_DIR = join(ROOT_DIR, "test", "fixtures");
 
 /** How long to wait for `agent_settled` before giving up on a scenario. */
 const SETTLE_TIMEOUT_MS = 120_000;
-
-interface Scenario {
-	readonly name: string;
-	readonly description: string;
-	/** Files to create in the scenario's workspace. */
-	readonly files?: Record<string, string>;
-	readonly prompt: string;
-	/** Model to run on, when the default cannot serve the scenario. */
-	readonly model?: string;
-	/** Optional interaction while the turn is in flight. */
-	readonly during?: (backend: InProcessPiBackend) => Promise<void>;
-	/** Optional interaction once the turn has settled, for events a prompt cannot provoke. */
-	readonly after?: (backend: InProcessPiBackend) => Promise<void>;
-}
 
 /** Resolves once the running turn has streamed `count` updates, or it ends. */
 function waitForUpdates(backend: InProcessPiBackend, count: number): Promise<void> {
@@ -61,117 +48,6 @@ function waitForUpdates(backend: InProcessPiBackend, count: number): Promise<voi
 		});
 	});
 }
-
-const SCENARIOS: Scenario[] = [
-	{
-		name: "plain-text",
-		description: "A reply with no tool calls — the simplest possible turn.",
-		prompt: "Reply with exactly the word PONG and nothing else.",
-	},
-	{
-		name: "single-tool",
-		description: "One tool call, then an answer derived from its result.",
-		files: { "note.txt": "ALPHA BETA GAMMA\n" },
-		prompt: "Read note.txt and reply with its exact contents only.",
-	},
-	{
-		name: "parallel-tools",
-		description: "Several tool calls in one assistant message — exercises contentIndex fan-out.",
-		files: { "a.txt": "FIRST\n", "b.txt": "SECOND\n" },
-		prompt: "Read both a.txt and b.txt, then reply with their contents separated by a comma.",
-	},
-	{
-		name: "tool-loop",
-		description:
-			"Two or more assistant messages in one turn — the case where contentIndex restarts and partIds must not collide.",
-		files: { "data/values.txt": "42\n" },
-		prompt:
-			"First list the files under the data directory, then read the file you find there, then reply with its contents only.",
-	},
-	{
-		name: "tool-error",
-		description: "A failing tool call the agent has to recover from.",
-		prompt: "Read a file called does-not-exist.txt and tell me plainly whether it exists.",
-	},
-	{
-		name: "abort",
-		description: "A turn cancelled while it is running.",
-		prompt: "Count slowly from 1 to 60, one number per line, with no other text.",
-		during: async (backend) => {
-			// Cancelled once the reply is demonstrably under way, rather than after
-			// a fixed wait: the same 1.5s produced anywhere from 9 to 119 events
-			// across runs, and the short ones cut the turn before there was any
-			// streamed content for the cancellation to interrupt.
-			await waitForUpdates(backend, 25);
-			await backend.abort();
-		},
-	},
-	{
-		name: "steering",
-		description: "A steering message injected into a running turn.",
-		prompt: "Count slowly from 1 to 60, one number per line.",
-		during: async (backend) => {
-			await waitForUpdates(backend, 25);
-			await backend.steer("Stop counting. Reply with the word STOPPED and nothing else.");
-		},
-	},
-	{
-		name: "tool-edit",
-		description: "An `edit` call — the one tool whose result carries a diff and a patch.",
-		files: { "greet.ts": 'export function greet(name: string) {\n\treturn "Hi " + name;\n}\n' },
-		prompt: "In greet.ts, change the greeting from `Hi` to `Hello`. Use the edit tool. Then reply DONE.",
-	},
-	{
-		name: "tool-write",
-		description: "A `write` call — a whole new file rather than an edit to one.",
-		prompt: "Create a file called haiku.txt containing exactly three short lines. Then reply DONE.",
-	},
-	{
-		name: "tool-bash",
-		description: "A `bash` call — stdout, exit status, and pi's truncation metadata.",
-		files: { "data.txt": "one\ntwo\nthree\n" },
-		prompt: "Use bash to count the lines in data.txt. Reply with just the number.",
-	},
-	{
-		name: "tool-ls",
-		description: "An `ls` call — a directory listing, which reports its own entry limit.",
-		files: { "a.txt": "a\n", "b.txt": "b\n", "sub/c.txt": "c\n" },
-		prompt: "Use the ls tool to list this directory. Reply with the entry names separated by commas.",
-	},
-	{
-		name: "tool-grep",
-		description: "A `grep` call — match counts and line truncation live in its details.",
-		files: {
-			"one.txt": "alpha\nBEACON here\ngamma\n",
-			"two.txt": "delta\nnothing\n",
-			"three.txt": "BEACON again\n",
-		},
-		prompt: "Use the grep tool to search for BEACON here. Reply with the matching file names only.",
-	},
-	{
-		name: "tool-find",
-		description: "A `find` call — path globbing, with its own result limit.",
-		files: { "src/x.ts": "//x\n", "src/y.ts": "//y\n", "docs/z.md": "# z\n" },
-		prompt: "Use the find tool to locate every .ts file under src. Reply with their paths only.",
-	},
-	{
-		name: "compaction",
-		description:
-			"A manual compaction — `buildContextEntries` starts from the newest one, so this is the boundary history rebuilding and turn paging are built around.",
-		files: { "note.txt": "ALPHA\n" },
-		prompt: "Read note.txt and reply with its contents only.",
-		after: async (backend) => {
-			await backend.prompt("Use bash to run `seq 1 400`. Reply DONE.");
-			await backend.prompt("Reply with the word TWO.");
-			await backend.session.compact();
-		},
-	},
-	{
-		name: "bash-long-output",
-		description: "A bash call whose output is large enough for pi to stream updates and report truncation.",
-		prompt: "Use bash to run `seq 1 20000`. Then reply with the word DONE.",
-	},
-];
 
 /**
  * Replaces machine- and tenant-specific values.
@@ -367,7 +243,7 @@ function auditFixture(name: string, serialised: string): void {
 }
 
 async function runScenario(
-	scenario: Scenario,
+	scenario: RecordedScenario,
 ): Promise<{ turns: unknown[][]; partials: unknown[]; events: AgentSessionEvent[] }> {
 	// Fixed path and session id, for the same reason as the agent directory:
 	// what is deterministic at the source needs no scrubbing afterwards.
@@ -425,9 +301,14 @@ async function runScenario(
 			}
 		});
 
+		const interactionReady = scenario.interaction
+			? waitForUpdates(backend, scenario.interaction.afterUpdates)
+			: undefined;
 		const prompting = backend.prompt(scenario.prompt);
-		if (scenario.during) {
-			await scenario.during(backend);
+		if (scenario.interaction && interactionReady) {
+			await interactionReady;
+			if (scenario.interaction.kind === "abort") await backend.abort();
+			else await backend.steer(scenario.interaction.text);
 		}
 		await prompting;
 
@@ -439,13 +320,16 @@ async function runScenario(
 			throw new Error(`${scenario.name}: never settled`);
 		}
 
-		if (scenario.after) {
+		if (scenario.followUp) {
 			settled = false;
-			await scenario.after(backend);
-			// `compact()` resolves before the session settles again.
-			const secondDeadline = Date.now() + SETTLE_TIMEOUT_MS;
-			while (!settled && Date.now() < secondDeadline) {
-				await new Promise((resolve) => setTimeout(resolve, 50));
+			for (const prompt of scenario.followUp.prompts) await backend.prompt(prompt);
+			if (scenario.followUp.compact) await backend.session.compact();
+			if (scenario.followUp.prompts.length > 0) {
+				const secondDeadline = Date.now() + SETTLE_TIMEOUT_MS;
+				while (!settled && Date.now() < secondDeadline) {
+					await new Promise((resolve) => setTimeout(resolve, 50));
+				}
+				if (!settled) throw new Error(`${scenario.name}: follow-up never settled`);
 			}
 		}
 
@@ -501,7 +385,8 @@ function isolateAgentDir(): void {
 async function main(): Promise<void> {
 	isolateAgentDir();
 	const only = process.argv.slice(2).filter((arg) => !arg.startsWith("--"));
-	const selected = only.length > 0 ? SCENARIOS.filter((s) => only.includes(s.name)) : SCENARIOS;
+	const selected =
+		only.length > 0 ? RECORDED_SCENARIOS.filter((scenario) => only.includes(scenario.name)) : RECORDED_SCENARIOS;
 	mkdirSync(FIXTURE_DIR, { recursive: true });
 
 	const written: string[] = [];

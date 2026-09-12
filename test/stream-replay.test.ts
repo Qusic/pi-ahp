@@ -5,10 +5,7 @@
  */
 
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { describe, it } from "node:test";
-import { fileURLToPath } from "node:url";
+import { after, before, describe, it } from "node:test";
 import type { AgentSessionEvent } from "@earendil-works/pi-coding-agent";
 import {
 	type ChatState,
@@ -19,32 +16,11 @@ import {
 } from "@microsoft/agent-host-protocol";
 import { initialChatState } from "../src/channels/chat.ts";
 import { TurnMapper, userTurnStarted } from "../src/pi/event-mapper.ts";
-import { type RecordedFixture, replayTurns } from "./support/replay.ts";
+import { loadRecordedFixtures } from "./support/recorded-fixtures.ts";
+import { createReplayEnvironment, type ReplayEnvironment, replayTurns } from "./support/replay.ts";
 import { checkSchema } from "./support/schema.ts";
 
-const FIXTURE_DIR = join(dirname(fileURLToPath(import.meta.url)), "fixtures");
-
-/** Files required for recorded tool calls to have the same outcome on replay. */
-const WORKSPACE_FILES: Readonly<Record<string, Readonly<Record<string, string>>>> = {
-	"single-tool": { "note.txt": "ALPHA BETA GAMMA\n" },
-	"parallel-tools": { "a.txt": "FIRST\n", "b.txt": "SECOND\n" },
-	"tool-loop": { "data/values.txt": "42\n" },
-	"tool-edit": { "greet.ts": 'export function greet(name: string) {\n\treturn "Hi " + name;\n}\n' },
-	"tool-bash": { "data.txt": "one\ntwo\nthree\n" },
-	"tool-ls": { "a.txt": "a\n", "b.txt": "b\n", "sub/c.txt": "c\n" },
-	"tool-grep": {
-		"one.txt": "alpha\nBEACON here\ngamma\n",
-		"two.txt": "delta\nnothing\n",
-		"three.txt": "BEACON again\n",
-	},
-	"tool-find": { "src/x.ts": "//x\n", "src/y.ts": "//y\n", "docs/z.md": "# z\n" },
-	compaction: { "note.txt": "ALPHA\n" },
-};
-
-const fixtures = readdirSync(FIXTURE_DIR)
-	.filter((file) => file.endsWith(".json"))
-	.sort()
-	.map((file) => JSON.parse(readFileSync(join(FIXTURE_DIR, file), "utf8")) as RecordedFixture);
+const fixtures = loadRecordedFixtures();
 
 function settledRuns(events: readonly AgentSessionEvent[]): AgentSessionEvent[][] {
 	const runs: AgentSessionEvent[][] = [];
@@ -140,12 +116,21 @@ function ahpBehavior(events: readonly AgentSessionEvent[], prompt: string): unkn
 	});
 }
 
-describe("recorded provider streams preserve AHP-visible behavior", () => {
-	for (const fixture of fixtures) {
+describe("recorded provider streams preserve AHP-visible behavior", { concurrency: false }, () => {
+	let environment: ReplayEnvironment;
+
+	before(() => {
+		environment = createReplayEnvironment();
+	});
+
+	after(() => {
+		environment.close();
+	});
+
+	for (const { scenario, fixture } of fixtures) {
 		it(fixture.name, async () => {
 			assert.ok(fixture.turns.length > 0, `${fixture.name}: no recorded provider turns`);
-			const files = WORKSPACE_FILES[fixture.name];
-			const replayed = await replayTurns(fixture, files ? { files } : {});
+			const replayed = await replayTurns(fixture, scenario, environment);
 			assert.deepEqual(
 				ahpBehavior(replayed, fixture.prompt),
 				ahpBehavior(fixture.events, fixture.prompt),

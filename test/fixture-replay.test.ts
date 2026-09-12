@@ -13,11 +13,7 @@
  */
 
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
-import { fileURLToPath } from "node:url";
-import type { AgentSessionEvent } from "@earendil-works/pi-coding-agent";
 import {
 	ActionType,
 	type ChatState,
@@ -30,33 +26,19 @@ import {
 import { initialChatState } from "../src/channels/chat.ts";
 import { TurnMapper, userTurnStarted } from "../src/pi/event-mapper.ts";
 import { must } from "./harness.ts";
+import { loadRecordedFixtures, type RecordedFixture } from "./support/recorded-fixtures.ts";
 import { checkSchema } from "./support/schema.ts";
 
-const FIXTURE_DIR = join(dirname(fileURLToPath(import.meta.url)), "fixtures");
 const CHAT_URI = "ahp-chat:/replay";
 const TURN_ID = "replay-turn";
 
-interface Fixture {
-	readonly name: string;
-	readonly description: string;
-	readonly prompt: string;
-	readonly events: AgentSessionEvent[];
-}
-
 interface Replayed {
-	readonly fixture: Fixture;
+	readonly fixture: RecordedFixture;
 	readonly actions: StateAction[];
 	readonly state: ChatState;
 }
 
-function loadFixtures(): Fixture[] {
-	return readdirSync(FIXTURE_DIR)
-		.filter((name) => name.endsWith(".json"))
-		.sort()
-		.map((name) => JSON.parse(readFileSync(join(FIXTURE_DIR, name), "utf8")) as Fixture);
-}
-
-function replay(fixture: Fixture): Replayed {
+function replay(fixture: RecordedFixture): Replayed {
 	const mapper = new TurnMapper(TURN_ID, 0);
 	const actions: StateAction[] = [userTurnStarted(TURN_ID, fixture.prompt, "1970-01-01T00:00:00.000Z")];
 	for (const event of fixture.events) {
@@ -70,7 +52,7 @@ function replay(fixture: Fixture): Replayed {
 	return { fixture, actions, state };
 }
 
-const fixtures = loadFixtures();
+const fixtures = loadRecordedFixtures().map(({ fixture }) => fixture);
 const byName = new Map(fixtures.map((fixture) => [fixture.name, replay(fixture)]));
 
 function get(name: string): Replayed {
