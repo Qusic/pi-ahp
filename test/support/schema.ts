@@ -7,8 +7,8 @@
  * error — it is a no-op. Content simply never appears, with nothing logged.
  * Schema validation turns that into a loud test failure.
  *
- * The schemas are not published to npm, so they come from the `ahp` flake
- * input; see `test/support/upstream.ts` for how that is located.
+ * The schemas are not included in the npm package, so Nix supplies the matching
+ * spec checkout through `AHP_SPEC_PATH`; see `test/support/upstream.ts`.
  */
 
 import { readFileSync } from "node:fs";

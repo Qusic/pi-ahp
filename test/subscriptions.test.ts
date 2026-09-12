@@ -160,10 +160,9 @@ describe("action dispatch", () => {
 	});
 
 	it("treats root/configChanged as a no-op until the host declares a config schema", async () => {
-		// Matches the upstream reducer case
-		// `128-root-configchanged-noops-when-config-undefined`: config values can
-		// only be merged into a schema the host has already published. The action
-		// is still sequenced and echoed — it just does not change state.
+		// AHP only merges config values into a schema the host has already
+		// published. The action is still sequenced and echoed; it just does not
+		// change state.
 		const client = await initialized(harness);
 		const { subscription } = await client.subscribe(ROOT_CHANNEL);
 

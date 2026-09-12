@@ -2,11 +2,9 @@
  * Self-expiring guards for the upstream workarounds in `test/support/schema.ts`.
  *
  * A comment saying "remove this when upstream fixes it" is never read again.
- * These tests fail the moment a `nix flake update ahp` pulls in schemas that no
- * longer need the workaround, so the cleanup is forced rather than remembered.
- * Each failure message says exactly what to delete.
- *
- * The pinned commit lives in `flake.lock`.
+ * These tests fail when the AHP version and matching schema source in
+ * `flake.nix` no longer need a workaround, so cleanup is forced rather than
+ * remembered. Each failure says exactly what to delete.
  */
 
 import assert from "node:assert/strict";
