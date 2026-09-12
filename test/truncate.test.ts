@@ -1,5 +1,3 @@
-import { must } from "./support/assertions.ts";
-import { eventually } from "./support/async.ts";
 /**
  * Truncating a conversation.
  *
@@ -31,6 +29,8 @@ import { PiSessionCatalogue } from "../src/pi/session-catalogue.ts";
 import { SessionHydrator } from "../src/pi/session-hydrator.ts";
 import { SessionRegistry } from "../src/pi/session-registry.ts";
 import { type RunningServer, serveWebSocket } from "../src/transport/websocket.ts";
+import { must } from "./support/assertions.ts";
+import { eventually } from "./support/async.ts";
 
 /** Two complete turns, so there is something to truncate back to. */
 function writeSession(root: string, id: string, cwd: string): void {

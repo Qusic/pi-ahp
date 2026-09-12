@@ -4,11 +4,11 @@
  * A maintenance task, not part of the daily loop, so it has no `package.json`
  * script — node runs the file directly. Needs credentials present:
  *
- *     nix develop -c node scripts/capture-fixtures.ts
+ *     nix develop -c pnpm exec node scripts/capture-fixtures.ts
  *
  * Each scenario drives a real model, captures the raw `AgentSessionEvent[]`,
  * scrubs anything machine- or tenant-specific, and writes
- * `test/fixtures/<name>.json`. `test/fixture-replay.test.ts` then replays them
+ * `test/fixtures/<name>.json`. `test/mapper-fixtures.test.ts` then replays them
  * through the mapper offline.
  *
  * Recording at the *event* layer rather than the HTTP layer is deliberate: the

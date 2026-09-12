@@ -1,5 +1,3 @@
-import { must, turnError } from "./support/assertions.ts";
-import { eventually } from "./support/async.ts";
 /**
  * The chat driver end-to-end: a client turn reaching a backend, streamed output
  * coming back as actions, and queued-message consumption.
@@ -33,6 +31,8 @@ import { AhpHost } from "../src/core/host.ts";
 import type { PiBackend } from "../src/pi/chat-driver.ts";
 import { SessionRegistry } from "../src/pi/session-registry.ts";
 import { serveWebSocket } from "../src/transport/websocket.ts";
+import { must, turnError } from "./support/assertions.ts";
+import { eventually } from "./support/async.ts";
 
 /**
  * A backend that records prompts and replays a scripted event sequence for each

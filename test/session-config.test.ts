@@ -1,5 +1,3 @@
-import { must } from "./support/assertions.ts";
-import { eventually } from "./support/async.ts";
 /**
  * Session configuration and model selection.
  *
@@ -33,6 +31,8 @@ import { THINKING_CONFIG_KEY } from "../src/pi/models.ts";
 import { PROJECT_TRUST_KEY, SessionConfigService } from "../src/pi/session-config.ts";
 import { SessionRegistry } from "../src/pi/session-registry.ts";
 import { type RunningServer, serveWebSocket } from "../src/transport/websocket.ts";
+import { must } from "./support/assertions.ts";
+import { eventually } from "./support/async.ts";
 import { assertValid } from "./support/schema.ts";
 
 describe("resolveSessionConfig", () => {

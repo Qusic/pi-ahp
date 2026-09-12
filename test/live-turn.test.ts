@@ -1,11 +1,9 @@
-import { must, turnError } from "./support/assertions.ts";
-import { eventually } from "./support/async.ts";
 /**
  * Live end-to-end smoke: a real client, a real model, the whole stack.
  *
  * Opt-in — needs credentials in `~/.pi/agent/auth.json` and network. Run with:
  *
- *     nix develop -c env PI_AHP_LIVE=1 node --test test/live-turn.test.ts
+ *     nix develop -c env PI_AHP_LIVE=1 pnpm exec node --test test/live-turn.test.ts
  *
  * Everything else in the suite is deterministic and offline; this exists to
  * catch the one thing scripted backends cannot: that pi's *actual* event
@@ -44,6 +42,8 @@ import { WebSocketTransport } from "@microsoft/agent-host-protocol/ws";
 import { chatUri, sessionUri } from "../src/core/channels.ts";
 import { createPiHost } from "../src/host/pi-host.ts";
 import { type RunningServer, serveWebSocket } from "../src/transport/websocket.ts";
+import { must, turnError } from "./support/assertions.ts";
+import { eventually } from "./support/async.ts";
 import { assertValid } from "./support/schema.ts";
 
 const LIVE = process.env.PI_AHP_LIVE === "1";
@@ -56,7 +56,8 @@ const TURN_TIMEOUT_MS = 180_000;
  * skipped test that says how to unskip itself is discoverable at the moment it
  * is relevant, which a note in a file nobody opens is not.
  */
-const SKIP_REASON = "needs a real model — run: PI_AHP_LIVE=1 node --test test/live-turn.test.ts";
+const SKIP_REASON =
+	"needs a real model — run: nix develop -c env PI_AHP_LIVE=1 pnpm exec node --test test/live-turn.test.ts";
 
 describe("live turn", { skip: LIVE ? false : SKIP_REASON }, () => {
 	let root: string;

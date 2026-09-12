@@ -1,4 +1,3 @@
-import { must } from "./support/assertions.ts";
 /**
  * Paging older turns into a chat.
  *
@@ -24,6 +23,7 @@ import { PiSessionCatalogue } from "../src/pi/session-catalogue.ts";
 import { SessionHydrator } from "../src/pi/session-hydrator.ts";
 import { SessionRegistry } from "../src/pi/session-registry.ts";
 import { type RunningServer, serveWebSocket } from "../src/transport/websocket.ts";
+import { must } from "./support/assertions.ts";
 import { assertValid } from "./support/schema.ts";
 
 /**

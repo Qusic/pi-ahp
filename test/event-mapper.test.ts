@@ -1,4 +1,3 @@
-import { must, turnError } from "./support/assertions.ts";
 /**
  * The event mapper, exercised as a pure function.
  *
@@ -22,6 +21,7 @@ import {
 } from "@microsoft/agent-host-protocol";
 import { initialChatState } from "../src/channels/chat.ts";
 import { TurnMapper, userTurnStarted } from "../src/pi/event-mapper.ts";
+import { must, turnError } from "./support/assertions.ts";
 import { assertValid } from "./support/schema.ts";
 
 const CHAT_URI = "ahp-chat:/c1";
