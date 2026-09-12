@@ -81,6 +81,8 @@
                 makeWrapper
                 jq
                 python3
+                fd
+                ripgrep
               ]
               ++ lib.optionals stdenv.hostPlatform.isLinux [
                 autoPatchelfHook
