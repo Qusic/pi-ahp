@@ -102,6 +102,13 @@ const pi = {
 				toolCall: { id, name, arguments: args },
 			},
 		}),
+	execUpdate: (toolCallId: string, toolName: string, text: string) =>
+		event({
+			type: "tool_execution_update",
+			toolCallId,
+			toolName,
+			partialResult: { content: [{ type: "text", text }] },
+		}),
 	execEnd: (toolCallId: string, toolName: string, text: string, isError = false) =>
 		event({
 			type: "tool_execution_end",
@@ -367,6 +374,21 @@ describe("event mapper — tool calls", () => {
 		const toolCall = (part as { toolCall: { status: string; toolName: string } }).toolCall;
 		assert.equal(toolCall.status, ToolCallStatus.Completed);
 		assert.equal(toolCall.toolName, "bash");
+	});
+
+	it("publishes partial output while a tool is still running", () => {
+		const { state } = runTurn([
+			pi.agentStart(),
+			pi.assistantStart(),
+			pi.toolStart(0, "tc-1", "bash"),
+			pi.toolEnd(0, "tc-1", "bash", { command: "long-command" }),
+			pi.execUpdate("tc-1", "bash", "partial output"),
+		]);
+
+		const part = must(state.activeTurn).responseParts.find((candidate) => candidate.kind === ResponsePartKind.ToolCall);
+		const call = (must(part) as { toolCall: { status: string; content?: unknown } }).toolCall;
+		assert.equal(call.status, ToolCallStatus.Running);
+		assert.deepEqual(call.content, [{ type: "text", text: "partial output" }]);
 	});
 
 	it("never enters pending-confirmation", () => {

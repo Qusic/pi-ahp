@@ -53,16 +53,16 @@ class ScriptedBackend implements PiBackend {
 		return () => this.#listeners.delete(listener);
 	}
 
+	emit(event: AgentSessionEvent): void {
+		for (const listener of this.#listeners) listener(event);
+	}
+
 	async prompt(text: string): Promise<void> {
 		this.prompts.push(text);
 		// Deliver asynchronously, like a real agent: the driver must not depend
 		// on events arriving inside the prompt() call.
 		await Promise.resolve();
-		for (const event of this.#script(text)) {
-			for (const listener of this.#listeners) {
-				listener(event);
-			}
-		}
+		for (const event of this.#script(text)) this.emit(event);
 	}
 
 	async steer(text: string): Promise<void> {
@@ -262,15 +262,49 @@ describe("chat driver", () => {
 		assert.equal(state.turns.at(-1)?.state, TurnState.Complete);
 	});
 
+	it("holds a queued message until the active turn settles", async () => {
+		const promptsBefore = backend.prompts.length;
+		fixture.client.dispatch(fixture.chatChannel, {
+			type: ActionType.ChatTurnStarted,
+			turnId: "t-blocking",
+			startedAt: new Date().toISOString(),
+			message: { text: "long running", origin: { kind: "user" } },
+		} as never);
+		await waitFor(() => backend.prompts.length === promptsBefore + 1);
+
+		fixture.client.dispatch(fixture.chatChannel, {
+			type: ActionType.ChatPendingMessageSet,
+			kind: PendingMessageKind.Queued,
+			id: "q-after-active",
+			message: { text: "run after", origin: { kind: "user" } },
+		} as never);
+		await fixture.client.ping();
+
+		const waiting = fixture.host.store.get(fixture.chatChannel) as ChatState;
+		assert.equal(backend.prompts.length, promptsBefore + 1, "queued message prompted before the active turn settled");
+		assert.equal(waiting.activeTurn?.id, "t-blocking");
+		assert.equal(waiting.queuedMessages?.[0]?.id, "q-after-active");
+
+		backend.emit({ type: "agent_settled" } as AgentSessionEvent);
+		await waitFor(() => backend.prompts.length === promptsBefore + 2);
+
+		const completed = fixture.host.store.get(fixture.chatChannel) as ChatState;
+		assert.equal(backend.prompts.at(-1), "run after");
+		assert.equal(completed.queuedMessages, undefined);
+		assert.equal(completed.turns.at(-1)?.message.text, "run after");
+		assert.equal(completed.turns.at(-1)?.state, TurnState.Complete);
+	});
+
 	it("aborts the backend when a client cancels the active turn", async () => {
 		const abortsBefore = backend.aborts;
+		const promptsBefore = backend.prompts.length;
 		fixture.client.dispatch(fixture.chatChannel, {
 			type: ActionType.ChatTurnStarted,
 			turnId: "t-cancel",
 			startedAt: new Date().toISOString(),
 			message: { text: "long running", origin: { kind: "user" } },
 		} as never);
-		await waitFor(() => backend.prompts.includes("long running"));
+		await waitFor(() => backend.prompts.length === promptsBefore + 1);
 		assert.equal((fixture.host.store.get(fixture.chatChannel) as ChatState).activeTurn?.id, "t-cancel");
 
 		fixture.client.dispatch(fixture.chatChannel, {
