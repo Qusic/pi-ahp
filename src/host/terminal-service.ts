@@ -77,7 +77,12 @@ function defaultShell(): string {
 	}
 }
 
-/** Bridges terminal channel actions to independent pseudoterminal processes. */
+/**
+ * Bridges terminal actions to independent pseudoterminal processes. `StateStore`
+ * owns every protocol-visible `TerminalState`; the runtime map holds only PTY
+ * handles and output awaiting publication. Terminals are currently client-owned,
+ * so claim transfer is rejected rather than represented in a second state store.
+ */
 export class TerminalService implements TerminalHandler {
 	readonly #host: AhpHost;
 	readonly #options: TerminalServiceOptions;

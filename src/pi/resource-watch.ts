@@ -114,6 +114,11 @@ function waitUntilReady(watcher: FSWatcher): Promise<void> {
 	});
 }
 
+/**
+ * Owns native watcher handles and their lifetime. `StateStore` remains the
+ * authority for protocol watch resources; this service retains only OS handles,
+ * filters, and unpublished event batches.
+ */
 export class ResourceWatchService {
 	readonly #host: AhpHost;
 	readonly #options: ResourceWatchOptions;
@@ -197,6 +202,9 @@ export class ResourceWatchService {
 		// prevents siblings from entering chokidar's watched tree.
 		const watchRoot = dirname(watchedRoot);
 		const depth = !directory ? 0 : recursive ? undefined : watchRoot === watchedRoot ? 0 : 1;
+		// Keep native event delivery and coalesce it below. Polling or
+		// `awaitWriteFinish` would change delivery timing rather than add protocol
+		// state guarantees.
 		const watcher = watch(watchRoot, {
 			atomic: true,
 			followSymlinks: false,

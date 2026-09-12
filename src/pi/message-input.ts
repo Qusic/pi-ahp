@@ -1,3 +1,10 @@
+/**
+ * Converts supported AHP user-message attachments into a text prompt for pi.
+ * Resource references become paths or URIs, simple attachments contribute their
+ * model representation, and embedded resources must contain UTF-8 text. Other
+ * attachment kinds, including images, are rejected by this text-only boundary.
+ */
+
 import { fileURLToPath } from "node:url";
 import {
 	type Message,
