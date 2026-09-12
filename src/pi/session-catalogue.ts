@@ -18,13 +18,12 @@ import { sessionUri } from "../core/channels.ts";
 import { pathToFileUri } from "../core/uri.ts";
 import { ProtocolError } from "../protocol/errors.ts";
 import { PI_PROVIDER } from "./provider.ts";
+import { sessionDisplayTitle } from "./session-title.ts";
 
 /** Page size when the client does not ask for one. */
 const DEFAULT_PAGE_SIZE = 30;
 /** Upper bound regardless of what the client asks for; each entry costs a file parse. */
 const MAX_PAGE_SIZE = 100;
-/** How much of the first user message to use when a session has no name. */
-const TITLE_FALLBACK_LENGTH = 60;
 /** Enough for pi's session header line, which is written first. */
 const HEADER_SCAN_BYTES = 8192;
 
@@ -144,24 +143,6 @@ function readSessionId(path: string): string | undefined {
 	}
 }
 
-function firstLine(text: string, limit: number): string {
-	const collapsed = text.replace(/\s+/gu, " ").trim();
-	return collapsed.length > limit ? `${collapsed.slice(0, limit - 1)}…` : collapsed;
-}
-
-/**
- * Title, using the same rule as pi's session picker: the user-assigned name,
- * otherwise the first user message.
- */
-function deriveTitle(name: string | undefined, firstUserMessage: string | undefined): string {
-	const trimmed = name?.trim();
-	if (trimmed) {
-		return trimmed;
-	}
-	const fallback = firstUserMessage ? firstLine(firstUserMessage, TITLE_FALLBACK_LENGTH) : "";
-	return fallback || "Untitled session";
-}
-
 function extractText(content: unknown): string {
 	if (typeof content === "string") {
 		return content;
@@ -216,7 +197,7 @@ function readSessionSummary(file: SessionFile): SessionSummary | undefined {
 	return {
 		resource: sessionUri(sessionId),
 		provider: PI_PROVIDER,
-		title: deriveTitle(manager.getSessionName(), firstUserMessage),
+		title: sessionDisplayTitle(manager.getSessionName(), firstUserMessage),
 		// Idle by definition, and reported as read.
 		//
 		// Read/unread is not modelled: pi has no such concept, so tracking it

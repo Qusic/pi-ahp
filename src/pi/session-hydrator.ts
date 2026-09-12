@@ -27,6 +27,7 @@ import { rebuildTurnsFromSession } from "./history.ts";
 import { modelSelectionId, THINKING_CONFIG_KEY } from "./models.ts";
 import { PI_PROVIDER } from "./provider.ts";
 import type { PiSessionCatalogue } from "./session-catalogue.ts";
+import { sessionDisplayTitle } from "./session-title.ts";
 import { initialTurnsCursor } from "./turn-paging.ts";
 
 export interface SessionHydratorOptions {
@@ -116,7 +117,7 @@ export class SessionHydrator implements ChannelHydrator {
 			// transcript timestamp remains a valid fallback for this snapshot.
 		}
 		const workingDirectory = manager.getCwd();
-		const title = manager.getSessionName()?.trim() || firstUserText(turns) || "Untitled session";
+		const title = sessionDisplayTitle(manager.getSessionName(), firstUserText(turns));
 
 		// Disposal may have started during file lookup or stat. From this check
 		// through adoption there is no await, so the pair is created atomically
@@ -192,9 +193,8 @@ export class SessionHydrator implements ChannelHydrator {
 
 function firstUserText(turns: readonly { message: { text: string } }[]): string | undefined {
 	for (const turn of turns) {
-		const text = turn.message.text.trim();
-		if (text) {
-			return text.length > 60 ? `${text.slice(0, 59)}…` : text;
+		if (turn.message.text.trim()) {
+			return turn.message.text;
 		}
 	}
 	return undefined;

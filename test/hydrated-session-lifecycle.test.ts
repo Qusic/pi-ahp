@@ -38,6 +38,7 @@ describe("read state after hydration", () => {
 		const { result } = await fixture.client.subscribe(sessionUri(fixture.sessionId));
 		const state = result.snapshot?.state as SessionState;
 		assert.ok((state.status & SessionStatus.IsRead) !== 0);
+		assert.equal(state.title, "Read note.txt");
 	});
 
 	it("keeps session-owned read state when a starting turn marks the chat unread", async () => {

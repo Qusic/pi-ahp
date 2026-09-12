@@ -16,6 +16,7 @@ import {
 	ActionType,
 	type ChatState,
 	JsonRpcErrorCodes,
+	MessageKind,
 	SessionLifecycle,
 	type SessionState,
 	SUPPORTED_PROTOCOL_VERSIONS,
@@ -90,6 +91,40 @@ describe("session lifecycle", () => {
 		assert.equal(state.chats.length, 1);
 		assert.equal(state.defaultChat, state.chats[0]?.resource);
 		assertValid("state", "SessionState", state);
+	});
+
+	it("uses the first user message as an unnamed session's display title", async () => {
+		const client = await initialized();
+		const id = randomUUID();
+		const uri = sessionUri(id);
+		const chat = chatUri(id);
+		await client.request("createSession", { channel: uri });
+		await client.subscribe(uri);
+		await client.subscribe(chat);
+		const events = client.attachSubscription(uri);
+
+		client.dispatch(chat, {
+			type: ActionType.ChatTurnStarted,
+			turnId: "title-turn",
+			startedAt: new Date().toISOString(),
+			message: { text: "  Review\n   auth handling  ", origin: { kind: MessageKind.User } },
+		});
+		const event = await nextEvent(events, (candidate) => {
+			if (candidate.type !== "action") return false;
+			return (candidate as { params?: ActionEnvelope }).params?.action.type === ActionType.SessionTitleChanged;
+		});
+		await client.ping();
+
+		const envelope = event.params as ActionEnvelope;
+		assert.deepEqual(envelope.action, { type: ActionType.SessionTitleChanged, title: "Review auth handling" });
+		assert.equal(envelope.origin, undefined);
+		const session = harness.host.store.get(uri) as SessionState;
+		assert.equal(session.title, "Review auth handling");
+		assert.equal(session.chats[0]?.title, "Review auth handling");
+		assert.equal((harness.host.store.get(chat) as ChatState).title, "Review auth handling");
+		assert.equal(harness.sessions?.get(uri)?.sessionManager.getSessionName(), undefined);
+		const listed = await client.request("listSessions", { channel: ROOT_CHANNEL });
+		assert.equal(listed.items.find((item) => item.resource === uri)?.title, "Review auth handling");
 	});
 
 	it("uses pi's session id as the URI's uuid", async () => {
@@ -356,5 +391,14 @@ describe("renaming a session", () => {
 		// have to move together or a client watching only the session drifts.
 		assert.equal(chat.title, "Ship the release");
 		assert.equal(session.chats[0]?.title, "Ship the release");
+
+		client.dispatch(chatUri(id), {
+			type: ActionType.ChatTurnStarted,
+			turnId: "after-rename",
+			startedAt: new Date().toISOString(),
+			message: { text: "This must not replace the explicit name", origin: { kind: MessageKind.User } },
+		});
+		await client.ping();
+		assert.equal((harness.host.store.get(uri) as SessionState).title, "Ship the release");
 	});
 });

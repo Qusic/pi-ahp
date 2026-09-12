@@ -36,10 +36,11 @@ import type { AhpHost } from "../core/host.ts";
 import { fileUriToPath } from "../core/uri.ts";
 import { ProtocolError } from "../protocol/errors.ts";
 import { ChatDriver, type PiBackend } from "./chat-driver.ts";
-import { messageRejectionReason } from "./message-input.ts";
+import { messageRejectionReason, messageTextForPi } from "./message-input.ts";
 import { PI_PROVIDER } from "./provider.ts";
 import type { LiveSessionCatalogueEntry } from "./session-catalogue.ts";
 import { dispatchOlderTurns, truncationAnchor } from "./session-history.ts";
+import { fallbackSessionTitle, NEW_SESSION_TITLE } from "./session-title.ts";
 
 /** Everything the host tracks for a live session. */
 export interface LiveSession {
@@ -163,9 +164,12 @@ export class SessionRegistry {
 
 		// Client actions are routed to whichever channel owns them; the host
 		// core stays agnostic of chats and backends.
-		this.#host.onActionCommitted((channel) => {
+		this.#host.onActionCommitted((channel, action) => {
 			const owner = this.#byChat.get(channel);
 			if (owner) {
+				if (action.type === ActionType.ChatTurnStarted) {
+					this.#applyFallbackTitle(owner, messageTextForPi(action.message));
+				}
 				this.#syncChatProjection(owner);
 				return;
 			}
@@ -240,7 +244,7 @@ export class SessionRegistry {
 			? fileUriToPath(requested)
 			: (this.#options.defaultWorkingDirectory ?? process.cwd());
 
-		const title = "New Session";
+		const title = NEW_SESSION_TITLE;
 		const createdAt = new Date().toISOString();
 		// A provider-alias URI still needs the session reducer.
 		this.#host.store.create(uri, initialSessionState(PI_PROVIDER, title, workingDirectory), "session");
@@ -629,14 +633,34 @@ export class SessionRegistry {
 		this.#renameChat(session, action.title);
 	}
 
-	#renameChat(session: LiveSession, title: string): void {
+	#applyFallbackTitle(session: LiveSession, firstUserMessage: string): void {
+		const state = this.#host.store.get(session.uri) as SessionState | undefined;
+		if (state?.title !== NEW_SESSION_TITLE || session.sessionManager.getSessionName()) {
+			return;
+		}
+		const title = fallbackSessionTitle(firstUserMessage);
+		if (!title) {
+			return;
+		}
+
+		// This is pi's unnamed-session fallback, not an explicit session name:
+		// publish it to AHP without adding a `session_info` entry.
+		this.#host.dispatchServerAction(session.uri, { type: ActionType.SessionTitleChanged, title });
+		this.#renameChat(session, title, false);
+	}
+
+	#renameChat(session: LiveSession, title: string, touch = true): void {
 		const chat = this.#host.store.get(session.chatChannel) as ChatState | undefined;
 		if (!chat || chat.title === title) {
 			return;
 		}
 		// There is no chat title action in AHP 0.9. Replace the authoritative
 		// chat state, then run the same projection used after ordinary actions.
-		this.#host.store.create(session.chatChannel, { ...chat, title, modifiedAt: new Date().toISOString() }, "chat");
+		this.#host.store.create(
+			session.chatChannel,
+			{ ...chat, title, ...(touch ? { modifiedAt: new Date().toISOString() } : {}) },
+			"chat",
+		);
 		this.#syncChatProjection(session);
 	}
 

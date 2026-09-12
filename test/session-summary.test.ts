@@ -237,22 +237,29 @@ describe("session summary over the wire", () => {
 		const f = await fixture(t);
 		await f.start();
 		assert.deepEqual(f.changes(), [
+			{ channel: ROOT_CHANNEL, session: f.alias, changes: { title: "go" } },
 			{ channel: ROOT_CHANNEL, session: f.alias, changes: { status: SessionStatus.InProgress, modifiedAt: START } },
 		]);
 		const actions = f.envelopes();
-		assert.equal(actions.length, 2);
+		assert.equal(actions.length, 3);
 		assert.equal(actions[0]?.action.type, ActionType.ChatTurnStarted);
-		const update = must(actions[1]);
+		const title = must(actions[1]);
+		assert.equal(title.channel, f.alias);
+		assert.deepEqual(title.action, { type: ActionType.SessionTitleChanged, title: "go" });
+		assert.equal(title.origin, undefined);
+		const update = must(actions[2]);
 		assert.equal(update.channel, f.alias);
 		const { resource: _resource, ...expected } = chatSummaryOf(f.harness.host.store.get(f.chat) as ChatState);
 		assert.deepEqual(update.action, { type: ActionType.SessionChatUpdated, chat: f.chat, changes: expected });
 		assert.equal(update.rejectionReason, undefined);
 		assert.equal(update.origin, undefined);
-		assert.equal(update.serverSeq, must(actions[0]).serverSeq + 1);
+		assert.equal(title.serverSeq, must(actions[0]).serverSeq + 1);
+		assert.equal(update.serverSeq, title.serverSeq + 1);
 		assert.equal((f.harness.host.store.get(f.session) as SessionState).status, SessionStatus.Idle);
 		assert.equal(existsSync(must(f.harness.sessions?.get(f.session)?.sessionManager.getSessionFile())), false);
 		const live = await f.list();
 		assert.equal(live.resource, f.alias);
+		assert.equal(live.title, "go");
 		assert.equal(live.status, SessionStatus.InProgress);
 		assert.equal(live.modifiedAt, START);
 		assert.equal("activity" in live, false);
