@@ -104,3 +104,57 @@ it("advertises extension models and uses pi's configured default", async () => {
 		rmSync(root, { recursive: true, force: true });
 	}
 });
+
+it("switches between providers that expose the same model id", async () => {
+	const root = mkdtempSync(join(tmpdir(), "pi-ahp-model-identity-"));
+	const workspace = join(root, "workspace");
+	const agentDir = join(root, "agent");
+	mkdirSync(join(agentDir, "extensions"), { recursive: true });
+	mkdirSync(workspace);
+	writeFileSync(
+		join(agentDir, "settings.json"),
+		JSON.stringify({ defaultProvider: "fixture-one", defaultModel: "shared-model" }),
+	);
+	writeFileSync(
+		join(agentDir, "extensions", "providers.js"),
+		`export default function (pi) {
+	for (const name of ["fixture-one", "fixture-two"]) {
+		pi.registerProvider(name, {
+			name,
+			baseUrl: "https://example.invalid",
+			apiKey: "fixture-key",
+			api: "openai-completions",
+			models: [{
+				id: "shared-model",
+				name: "Shared Model",
+				reasoning: false,
+				input: ["text"],
+				cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+				contextWindow: 1000,
+				maxTokens: 100,
+			}],
+		});
+	}
+}
+`,
+	);
+
+	const previousAgentDir = process.env.PI_CODING_AGENT_DIR;
+	process.env.PI_CODING_AGENT_DIR = agentDir;
+	let backend: InProcessPiBackend | undefined;
+	try {
+		backend = await InProcessPiBackend.create({
+			cwd: workspace,
+			sessionManager: SessionManager.inMemory(workspace),
+		});
+		assert.equal(backend.session.model?.provider, "fixture-one");
+
+		await backend.selectModel({ id: modelSelectionId({ provider: "fixture-two", id: "shared-model" }) });
+		assert.equal(backend.session.model?.provider, "fixture-two");
+	} finally {
+		backend?.dispose();
+		if (previousAgentDir === undefined) delete process.env.PI_CODING_AGENT_DIR;
+		else process.env.PI_CODING_AGENT_DIR = previousAgentDir;
+		rmSync(root, { recursive: true, force: true });
+	}
+});

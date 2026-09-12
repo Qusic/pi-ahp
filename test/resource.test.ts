@@ -437,8 +437,17 @@ describe("resource roots", () => {
 		assert.equal(result.data, "INSIDE\n");
 	});
 
-	it("denies a path outside the configured roots", async () => {
+	it("denies paths outside the configured roots, including prefix lookalikes", async () => {
 		await expectRpcError(fixture.client.resourceRead({ uri: uri(join(outside, "secret.txt")) }), -32009);
+
+		const lookalike = `${root}-other`;
+		mkdirSync(lookalike);
+		writeFileSync(join(lookalike, "secret.txt"), "PREFIX ESCAPE\n");
+		try {
+			await expectRpcError(fixture.client.resourceRead({ uri: uri(join(lookalike, "secret.txt")) }), -32009);
+		} finally {
+			rmSync(lookalike, { recursive: true, force: true });
+		}
 	});
 });
 
