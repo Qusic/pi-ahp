@@ -18,7 +18,7 @@ import { initialChatState } from "../src/channels/chat.ts";
 import { TurnMapper, userTurnStarted } from "../src/pi/event-mapper.ts";
 import { loadRecordedFixtures } from "./support/recorded-fixtures.ts";
 import { createReplayEnvironment, type ReplayEnvironment, replayTurns } from "./support/replay.ts";
-import { checkSchema } from "./support/schema.ts";
+import { assertValid } from "./support/schema.ts";
 
 const fixtures = loadRecordedFixtures();
 
@@ -106,7 +106,7 @@ function ahpBehavior(events: readonly AgentSessionEvent[], prompt: string): unkn
 		for (const event of run) actions.push(...mapper.handle(event));
 		assert.equal(mapper.finished, true, `run ${index} never finished`);
 		for (const action of actions) {
-			assert.equal(checkSchema("actions", "StateAction", action), undefined, `non-conforming ${action.type}`);
+			assertValid("actions", "StateAction", action, `non-conforming ${action.type}`);
 		}
 
 		let state = initialChatState(`ahp-chat:/replay-${index}`, "Replay");

@@ -12,7 +12,7 @@ import {
 } from "@microsoft/agent-host-protocol";
 import { ROOT_CHANNEL } from "../src/core/channels.ts";
 import { type Harness, nextClientId, startHarness } from "./harness.ts";
-import { checkSchema } from "./support/schema.ts";
+import { assertValid, checkSchema } from "./support/schema.ts";
 
 describe("wire schema", () => {
 	let harness: Harness;
@@ -33,7 +33,7 @@ describe("wire schema", () => {
 			initialSubscriptions: [ROOT_CHANNEL],
 		});
 
-		assert.equal(checkSchema("commands", "InitializeResult", result), undefined);
+		assertValid("commands", "InitializeResult", result);
 	});
 
 	it("emits a conforming RootState snapshot", async () => {
@@ -43,8 +43,8 @@ describe("wire schema", () => {
 			.then(() => client.subscribe(ROOT_CHANNEL));
 
 		assert.ok(result.snapshot);
-		assert.equal(checkSchema("commands", "Snapshot", result.snapshot), undefined);
-		assert.equal(checkSchema("state", "RootState", result.snapshot.state), undefined);
+		assertValid("commands", "Snapshot", result.snapshot);
+		assertValid("state", "RootState", result.snapshot.state);
 	});
 
 	it("emits conforming ActionEnvelopes", async () => {
@@ -70,8 +70,8 @@ describe("wire schema", () => {
 		}
 
 		assert.ok(envelope);
-		assert.equal(checkSchema("actions", "ActionEnvelope", envelope), undefined);
-		assert.equal(checkSchema("actions", "StateAction", envelope.action), undefined);
+		assertValid("actions", "ActionEnvelope", envelope);
+		assertValid("actions", "StateAction", envelope.action);
 	});
 
 	it("fails validation for a structurally wrong action", () => {

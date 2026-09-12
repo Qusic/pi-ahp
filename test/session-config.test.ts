@@ -1,4 +1,4 @@
-import { must } from "./harness.ts";
+import { must } from "./support/assertions.ts";
 /**
  * Session configuration and model selection.
  *
@@ -32,7 +32,7 @@ import { THINKING_CONFIG_KEY } from "../src/pi/models.ts";
 import { PROJECT_TRUST_KEY, SessionConfigService } from "../src/pi/session-config.ts";
 import { SessionRegistry } from "../src/pi/session-registry.ts";
 import { type RunningServer, serveWebSocket } from "../src/transport/websocket.ts";
-import { checkSchema } from "./support/schema.ts";
+import { assertValid } from "./support/schema.ts";
 
 async function waitFor(predicate: () => boolean, timeoutMs = 2_000): Promise<void> {
 	const deadline = Date.now() + timeoutMs;
@@ -62,7 +62,7 @@ describe("resolveSessionConfig", () => {
 
 	it("returns a schema-conforming result", () => {
 		const result = service.resolve({ channel: "ahp-root://" });
-		assert.equal(checkSchema("commands", "ResolveSessionConfigResult", result), undefined);
+		assertValid("commands", "ResolveSessionConfigResult", result);
 	});
 
 	it("reports what a directory with no project resources would do", () => {

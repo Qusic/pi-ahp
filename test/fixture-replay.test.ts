@@ -25,9 +25,9 @@ import {
 } from "@microsoft/agent-host-protocol";
 import { initialChatState } from "../src/channels/chat.ts";
 import { TurnMapper, userTurnStarted } from "../src/pi/event-mapper.ts";
-import { must } from "./harness.ts";
+import { must } from "./support/assertions.ts";
 import { loadRecordedFixtures, type RecordedFixture } from "./support/recorded-fixtures.ts";
-import { checkSchema } from "./support/schema.ts";
+import { assertValid } from "./support/schema.ts";
 
 const CHAT_URI = "ahp-chat:/replay";
 const TURN_ID = "replay-turn";
@@ -121,7 +121,7 @@ describe("recorded stream replay — invariants", () => {
 
 			it("emits only schema-conforming actions", () => {
 				for (const action of actions) {
-					assert.equal(checkSchema("actions", "StateAction", action), undefined, `non-conforming ${action.type}`);
+					assertValid("actions", "StateAction", action, `non-conforming ${action.type}`);
 				}
 			});
 

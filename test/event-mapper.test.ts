@@ -1,4 +1,4 @@
-import { must, turnError } from "./harness.ts";
+import { must, turnError } from "./support/assertions.ts";
 /**
  * The event mapper, exercised as a pure function.
  *
@@ -22,7 +22,7 @@ import {
 } from "@microsoft/agent-host-protocol";
 import { initialChatState } from "../src/channels/chat.ts";
 import { TurnMapper, userTurnStarted } from "../src/pi/event-mapper.ts";
-import { checkSchema } from "./support/schema.ts";
+import { assertValid } from "./support/schema.ts";
 
 const CHAT_URI = "ahp-chat:/c1";
 const TURN = "turn-1";
@@ -218,7 +218,7 @@ describe("event mapper — turn boundary", () => {
 			kind: ResponsePartKind.Error,
 			error: { errorType: "agentRunFailed", message: "overloaded_error" },
 		});
-		assert.equal(checkSchema("actions", "StateAction", errorAction), undefined);
+		assertValid("actions", "StateAction", errorAction);
 		assert.equal(state.turns[0]?.state, TurnState.Error);
 		assert.equal(turnError(state.turns[0])?.message, "overloaded_error");
 		assert.ok(state.status & SessionStatus.Error);
@@ -505,7 +505,7 @@ describe("event mapper — usage and schema", () => {
 		]);
 
 		for (const action of actions) {
-			assert.equal(checkSchema("actions", "StateAction", action), undefined, `bad action: ${action.type}`);
+			assertValid("actions", "StateAction", action, `bad action: ${action.type}`);
 		}
 	});
 });

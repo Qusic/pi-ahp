@@ -1,4 +1,3 @@
-import assert from "node:assert/strict";
 /**
  * Test harness: a live host over a real WebSocket, driven by the official
  * `@microsoft/agent-host-protocol` client.
@@ -7,7 +6,7 @@ import assert from "node:assert/strict";
  * exercise the same code path a real consumer — VS Code, AHPX — would.
  */
 
-import { type AgentInfo, type ErrorInfo, ResponsePartKind, type Turn } from "@microsoft/agent-host-protocol";
+import type { AgentInfo } from "@microsoft/agent-host-protocol";
 import { AhpClient } from "@microsoft/agent-host-protocol/client";
 import { WebSocketTransport } from "@microsoft/agent-host-protocol/ws";
 import { installRootChannel } from "../src/channels/root.ts";
@@ -130,26 +129,4 @@ let clientCounter = 0;
 
 export function nextClientId(): string {
 	return `test-client-${++clientCounter}`;
-}
-
-/**
- * Narrows away `undefined` the way a test means it: as an assertion.
- *
- * `noUncheckedIndexedAccess` makes every `turns[0]` optional, and the protocol
- * marks plenty of fields optional that are certain in a given scenario. Writing
- * `turns[0]!` silences the type error but not the failure: when the value is
- * missing the test dies on a TypeError several lines later, naming a property
- * rather than the missing thing. This reports the missing thing.
- */
-export function must<T>(value: T | undefined | null, what = "value"): T {
-	if (value === undefined || value === null) {
-		assert.fail(`expected ${what} to be present`);
-	}
-	return value;
-}
-
-/** Returns the durable final error part of an errored turn. */
-export function turnError(turn: Turn | undefined): ErrorInfo | undefined {
-	const part = turn?.responseParts.at(-1);
-	return part?.kind === ResponsePartKind.Error ? part.error : undefined;
 }

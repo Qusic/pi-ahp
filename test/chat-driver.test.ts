@@ -1,4 +1,4 @@
-import { must, turnError } from "./harness.ts";
+import { must, turnError } from "./support/assertions.ts";
 /**
  * The chat driver end-to-end: a client turn reaching a backend, streamed output
  * coming back as actions, and queued-message consumption.

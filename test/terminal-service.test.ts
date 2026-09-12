@@ -25,7 +25,7 @@ import { AhpHost } from "../src/core/host.ts";
 import { pathToFileUri } from "../src/core/uri.ts";
 import { TerminalService } from "../src/host/terminal-service.ts";
 import { serveWebSocket } from "../src/transport/websocket.ts";
-import { checkSchema } from "./support/schema.ts";
+import { assertValid } from "./support/schema.ts";
 
 const EXPECTED_SCROLLBACK_CHARS = 1_000_000;
 
@@ -231,7 +231,7 @@ describe("terminal service", () => {
 			claim: { kind: TerminalClaimKind.Client, clientId: ownerId },
 			isPty: true,
 		});
-		assert.equal(checkSchema("state", "TerminalState", state), undefined);
+		assertValid("state", "TerminalState", state);
 		const root = rootState(fixture);
 		assert.deepEqual(root.terminals, [
 			{
@@ -241,7 +241,7 @@ describe("terminal service", () => {
 				lifecycle: state.lifecycle,
 			},
 		]);
-		assert.equal(checkSchema("state", "RootState", root), undefined);
+		assertValid("state", "RootState", root);
 
 		const { result } = await owner.subscribe(channel);
 		assert.equal(result.snapshot?.resource, channel);

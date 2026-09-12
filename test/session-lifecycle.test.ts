@@ -26,7 +26,7 @@ import { pathToFileUri } from "../src/core/uri.ts";
 import type { PiBackend } from "../src/pi/chat-driver.ts";
 import { PI_PROVIDER } from "../src/pi/provider.ts";
 import { type Harness, nextClientId, startHarness } from "./harness.ts";
-import { checkSchema } from "./support/schema.ts";
+import { assertValid } from "./support/schema.ts";
 
 async function nextEvent(
 	subscription: Subscription,
@@ -91,7 +91,7 @@ describe("session lifecycle", () => {
 		// to call `createChat`.
 		assert.equal(state.chats.length, 1);
 		assert.equal(state.defaultChat, state.chats[0]?.resource);
-		assert.equal(checkSchema("state", "SessionState", state), undefined);
+		assertValid("state", "SessionState", state);
 	});
 
 	it("uses pi's session id as the URI's uuid", async () => {
@@ -116,7 +116,7 @@ describe("session lifecycle", () => {
 		const event = await nextEvent(rootSubscription, (candidate) => candidate.type === "sessionAdded");
 		const params = event.params as { summary: { resource: string } };
 		assert.equal(params.summary.resource, uri);
-		assert.equal(checkSchema("state", "SessionSummary", params.summary), undefined);
+		assertValid("state", "SessionSummary", params.summary);
 	});
 
 	it("rejects a duplicate session URI with SessionAlreadyExists", async () => {

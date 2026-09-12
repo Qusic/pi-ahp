@@ -34,13 +34,10 @@ import { installRootChannel } from "../src/channels/root.ts";
 import { AhpHost } from "../src/core/host.ts";
 import { ResourceService } from "../src/pi/resource-service.ts";
 import { type RunningServer, serveWebSocket } from "../src/transport/websocket.ts";
-import { checkSchema } from "./support/schema.ts";
+import { expectRpcError } from "./support/assertions.ts";
+import { assertValid } from "./support/schema.ts";
 
 const uri = (path: string): string => pathToFileURL(path).toString();
-
-async function expectRpcError(request: Promise<unknown>, code: number, message?: string): Promise<void> {
-	await assert.rejects(request, (error: unknown) => error instanceof RpcError && error.code === code, message);
-}
 
 interface Fixture {
 	client: AhpClient;
@@ -89,7 +86,7 @@ describe("resource operations", () => {
 		assert.equal(result.encoding, ContentEncoding.Utf8);
 		assert.equal(result.data, "ALPHA BETA GAMMA\n");
 		assert.equal(result.contentType, "text/plain");
-		assert.equal(checkSchema("commands", "ResourceReadResult", result), undefined);
+		assertValid("commands", "ResourceReadResult", result);
 	});
 
 	it("detects valid UTF-8 independently of the extension and reports known MIME types", async () => {
@@ -137,7 +134,7 @@ describe("resource operations", () => {
 		assert.equal(result.entries[0]?.name, "nested");
 		assert.ok(result.entries.some((entry) => entry.name === "note.txt" && entry.type === "file"));
 		assert.ok(result.entries.some((entry) => entry.name === "nested-link" && entry.type === "directory"));
-		assert.equal(checkSchema("commands", "ResourceListResult", result), undefined);
+		assertValid("commands", "ResourceListResult", result);
 	});
 
 	it("resolves files and symlinks with canonical metadata", async () => {
@@ -146,7 +143,7 @@ describe("resource operations", () => {
 		assert.equal(result.size, 17);
 		assert.equal(result.contentType, "text/plain");
 		assert.ok(result.etag);
-		assert.equal(checkSchema("commands", "ResourceResolveResult", result), undefined);
+		assertValid("commands", "ResourceResolveResult", result);
 
 		const image = await fixture.client.resourceResolve({ uri: uri(join(fixture.workspace, "image.png")) });
 		assert.equal(image.contentType, "image/png");

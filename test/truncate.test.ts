@@ -1,4 +1,4 @@
-import { must } from "./harness.ts";
+import { must } from "./support/assertions.ts";
 /**
  * Truncating a conversation.
  *

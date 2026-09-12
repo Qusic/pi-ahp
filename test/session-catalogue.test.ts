@@ -21,7 +21,7 @@ import { sessionUri } from "../src/core/channels.ts";
 import { pathToFileUri } from "../src/core/uri.ts";
 import { PiSessionCatalogue } from "../src/pi/session-catalogue.ts";
 import { type Harness, nextClientId, startHarness } from "./harness.ts";
-import { checkSchema } from "./support/schema.ts";
+import { assertValid } from "./support/schema.ts";
 
 interface FakeSessionOptions {
 	readonly cwd: string;
@@ -289,6 +289,6 @@ describe("listSessions over the wire", () => {
 
 		assert.equal(result.items.length, 1);
 		assert.equal(result.items[0]?.title, "Explain this repository");
-		assert.equal(checkSchema("commands", "ListSessionsResult", result), undefined);
+		assertValid("commands", "ListSessionsResult", result);
 	});
 });

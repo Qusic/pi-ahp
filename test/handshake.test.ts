@@ -17,20 +17,10 @@ import {
 	PROTOCOL_VERSION,
 	SUPPORTED_PROTOCOL_VERSIONS,
 } from "@microsoft/agent-host-protocol";
-import { RpcError } from "@microsoft/agent-host-protocol/client";
 import { initialSessionState } from "../src/channels/session.ts";
 import { ROOT_CHANNEL, sessionUri } from "../src/core/channels.ts";
-import { type Harness, must, nextClientId, startHarness, TEST_AGENT } from "./harness.ts";
-
-async function expectRpcError(promise: Promise<unknown>, code: number): Promise<RpcError> {
-	const error = await promise.then(
-		() => undefined,
-		(reason: unknown) => reason,
-	);
-	assert.ok(error instanceof RpcError);
-	assert.equal(error.code, code);
-	return error;
-}
+import { type Harness, nextClientId, startHarness, TEST_AGENT } from "./harness.ts";
+import { expectRpcError, must } from "./support/assertions.ts";
 
 describe("handshake", () => {
 	let harness: Harness;

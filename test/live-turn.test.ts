@@ -1,4 +1,4 @@
-import { must, turnError } from "./harness.ts";
+import { must, turnError } from "./support/assertions.ts";
 /**
  * Live end-to-end smoke: a real client, a real model, the whole stack.
  *
@@ -43,7 +43,7 @@ import { WebSocketTransport } from "@microsoft/agent-host-protocol/ws";
 import { chatUri, sessionUri } from "../src/core/channels.ts";
 import { createPiHost } from "../src/host/pi-host.ts";
 import { type RunningServer, serveWebSocket } from "../src/transport/websocket.ts";
-import { checkSchema } from "./support/schema.ts";
+import { assertValid } from "./support/schema.ts";
 
 const LIVE = process.env.PI_AHP_LIVE === "1";
 const TURN_TIMEOUT_MS = 180_000;
@@ -131,15 +131,15 @@ describe("live turn", { skip: LIVE ? false : SKIP_REASON }, () => {
 	});
 
 	function assertSessionState(sessionChannel: string, chatChannel: string): void {
-		assert.equal(checkSchema("state", "SessionState", host.store.get(sessionChannel)), undefined);
-		assert.equal(checkSchema("state", "ChatState", host.store.get(chatChannel)), undefined);
+		assertValid("state", "SessionState", host.store.get(sessionChannel));
+		assertValid("state", "ChatState", host.store.get(chatChannel));
 	}
 
 	it("advertises the models pi actually has credentials for", () => {
 		const state = host.store.get("ahp-root://") as { agents: { models: unknown[] }[] };
 		assert.equal(state.agents.length, 1);
 		assert.ok(must(state.agents[0]).models.length > 0, "no models available — is ~/.pi/agent/auth.json populated?");
-		assert.equal(checkSchema("state", "RootState", state), undefined);
+		assertValid("state", "RootState", state);
 	});
 
 	it("streams a real assistant reply into chat state", async () => {

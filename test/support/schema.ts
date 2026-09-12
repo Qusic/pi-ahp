@@ -216,11 +216,11 @@ export function checkSchema(schema: SchemaName, def: string, value: unknown): Va
 	};
 }
 
-export function assertValid(schema: SchemaName, def: string, value: unknown): void {
+export function assertValid(schema: SchemaName, def: string, value: unknown, context?: string): void {
 	const failure = checkSchema(schema, def, value);
 	if (failure) {
 		throw new Error(
-			`${failure.ref} validation failed:\n  ${failure.errors}\n\npayload: ${JSON.stringify(failure.value, null, 2)}`,
+			`${context ? `${context}: ` : ""}${failure.ref} validation failed:\n  ${failure.errors}\n\npayload: ${JSON.stringify(failure.value, null, 2)}`,
 		);
 	}
 }

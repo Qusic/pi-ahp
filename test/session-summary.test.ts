@@ -26,7 +26,8 @@ import { aggregateSessionChats, sessionSummaryOf } from "../src/channels/session
 import { chatUri, ROOT_CHANNEL, sessionUri } from "../src/core/channels.ts";
 import type { PiBackend } from "../src/pi/chat-driver.ts";
 import type { BackendFactory } from "../src/pi/session-registry.ts";
-import { must, nextClientId, startHarness } from "./harness.ts";
+import { nextClientId, startHarness } from "./harness.ts";
+import { must } from "./support/assertions.ts";
 
 const START = "2025-01-01T00:00:00.000Z";
 const END = "2025-01-01T00:00:01.000Z";

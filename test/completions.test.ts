@@ -27,7 +27,7 @@ import { installRootChannel } from "../src/channels/root.ts";
 import { AhpHost } from "../src/core/host.ts";
 import { CompletionService, findMention, MENTION_TRIGGER } from "../src/pi/completions.ts";
 import { type RunningServer, serveWebSocket } from "../src/transport/websocket.ts";
-import { checkSchema } from "./support/schema.ts";
+import { assertValid } from "./support/schema.ts";
 
 const CHAT = "ahp-chat:/completions";
 
@@ -100,7 +100,7 @@ describe("completions", () => {
 		assert.equal(item.attachment.type, MessageAttachmentKind.Resource);
 		assert.equal(item.attachment.label, "readme.md");
 		assert.match((item.attachment as { uri: string }).uri, /readme\.md$/);
-		assert.equal(checkSchema("commands", "CompletionItem", item), undefined);
+		assertValid("commands", "CompletionItem", item);
 	});
 
 	it("marks the range the client should replace", async () => {
@@ -244,7 +244,7 @@ describe("completions over the wire", () => {
 		// `/` is deliberately absent: pi's slash commands attach nothing, and
 		// every completion item must carry an attachment.
 		assert.deepEqual(initialization.completionTriggerCharacters, ["@"]);
-		assert.equal(checkSchema("commands", "InitializeResult", initialization), undefined);
+		assertValid("commands", "InitializeResult", initialization);
 	});
 
 	it("serves a schema-conforming result", async () => {
@@ -257,7 +257,7 @@ describe("completions over the wire", () => {
 
 		assert.equal(result.items.length, 1);
 		assert.equal(result.items[0]?.insertText, "@notes.md");
-		assert.equal(checkSchema("commands", "CompletionsResult", result), undefined);
+		assertValid("commands", "CompletionsResult", result);
 	});
 
 	it("rejects non-chat completion targets", async () => {

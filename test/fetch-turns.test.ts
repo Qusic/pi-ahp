@@ -1,4 +1,4 @@
-import { must } from "./harness.ts";
+import { must } from "./support/assertions.ts";
 /**
  * Paging older turns into a chat.
  *
@@ -24,7 +24,7 @@ import { PiSessionCatalogue } from "../src/pi/session-catalogue.ts";
 import { SessionHydrator } from "../src/pi/session-hydrator.ts";
 import { SessionRegistry } from "../src/pi/session-registry.ts";
 import { type RunningServer, serveWebSocket } from "../src/transport/websocket.ts";
-import { checkSchema } from "./support/schema.ts";
+import { assertValid } from "./support/schema.ts";
 
 /**
  * Writes a session with `before` exchanges, then a compaction, then `after`.
@@ -141,7 +141,7 @@ describe("fetchTurns", () => {
 
 		// Its presence is the protocol's signal that `turns` is a tail window.
 		assert.ok(initial.turnsNextCursor, "a compacted session must offer more history");
-		assert.equal(checkSchema("state", "ChatState", initial), undefined);
+		assertValid("state", "ChatState", initial);
 		const newestTurn = initial.turns.at(-1)?.id;
 		const initialCount = initial.turns.length;
 

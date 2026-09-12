@@ -1,11 +1,11 @@
 /** Exhaustive contract for the AHP 0.9 command surface this product exposes. */
 
-import assert from "node:assert/strict";
 import { after, before, describe, it } from "node:test";
 import { type CommandMap, JsonRpcErrorCodes, SUPPORTED_PROTOCOL_VERSIONS } from "@microsoft/agent-host-protocol";
-import { type AhpClient, RpcError } from "@microsoft/agent-host-protocol/client";
+import type { AhpClient } from "@microsoft/agent-host-protocol/client";
 import { ROOT_CHANNEL } from "../src/core/channels.ts";
 import { type Harness, nextClientId, startHarness } from "./harness.ts";
+import { expectRpcError } from "./support/assertions.ts";
 
 type Route = "root" | "dynamic" | "session" | "chat" | "terminal" | "changeset" | "automations";
 type CommandPolicy = { readonly support: "implemented" | "unsupported"; readonly route: Route };
@@ -64,16 +64,6 @@ const UNSUPPORTED_REQUESTS: { [M in UnsupportedMethod]: CommandMap[M]["params"] 
 const ROOT_METHODS = Object.entries(COMMAND_POLICY)
 	.filter(([, policy]) => policy.route === "root")
 	.map(([method]) => method as keyof CommandMap);
-
-async function expectRpcError(promise: Promise<unknown>, code: number, context: string): Promise<RpcError> {
-	const error = await promise.then(
-		() => undefined,
-		(reason: unknown) => reason,
-	);
-	assert.ok(error instanceof RpcError, context);
-	assert.equal(error.code, code, context);
-	return error;
-}
 
 describe("AHP command surface", () => {
 	let harness: Harness;

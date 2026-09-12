@@ -26,7 +26,8 @@ import {
 import { initialSessionState } from "../src/channels/session.ts";
 import { chatUri, ROOT_CHANNEL, sessionUri } from "../src/core/channels.ts";
 import type { PiBackend } from "../src/pi/chat-driver.ts";
-import { type Harness, must, startHarness } from "./harness.ts";
+import { type Harness, startHarness } from "./harness.ts";
+import { must } from "./support/assertions.ts";
 
 const CLIENT_ID = "reconnecting-client";
 

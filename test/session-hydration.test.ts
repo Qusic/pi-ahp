@@ -1,4 +1,4 @@
-import { must } from "./harness.ts";
+import { must } from "./support/assertions.ts";
 /**
  * Opening a session that only exists on disk.
  *
@@ -42,7 +42,7 @@ import { PiSessionCatalogue } from "../src/pi/session-catalogue.ts";
 import { SessionHydrator } from "../src/pi/session-hydrator.ts";
 import { SessionRegistry } from "../src/pi/session-registry.ts";
 import { type RunningServer, serveWebSocket } from "../src/transport/websocket.ts";
-import { checkSchema } from "./support/schema.ts";
+import { assertValid } from "./support/schema.ts";
 
 /** Writes a pi session file containing one full turn with a tool call. */
 function writeSession(root: string, id: string, cwd: string): string {
@@ -264,7 +264,7 @@ describe("opening a session from the catalogue", () => {
 		assert.equal(state.chats.length, 1);
 		assert.equal(state.defaultChat, chatUri(fixture.sessionId));
 		assert.deepEqual(state.workingDirectories, [pathToFileUri(fixture.workspace)]);
-		assert.equal(checkSchema("state", "SessionState", state), undefined);
+		assertValid("state", "SessionState", state);
 		assert.equal((fixture.host.store.get(ROOT_CHANNEL) as RootState).activeSessions, 1);
 	});
 
@@ -285,7 +285,7 @@ describe("opening a session from the catalogue", () => {
 		const state = result.snapshot?.state as ChatState;
 		assert.equal(result.snapshot?.resource, derived, "the snapshot answers on the URI the client used");
 		assert.ok(state.turns.length > 0, "the transcript must come back, not an empty chat");
-		assert.equal(checkSchema("state", "ChatState", state), undefined);
+		assertValid("state", "ChatState", state);
 	});
 
 	for (const [name, clientInfo, usesDerivedChat] of [
@@ -314,7 +314,7 @@ describe("opening a session from the catalogue", () => {
 		assert.equal(chat.turns.length, 2);
 		assert.equal(chat.turns[0]?.message.text, "Read note.txt");
 		assert.equal(chat.turns[0]?.state, TurnState.Complete);
-		assert.equal(checkSchema("state", "ChatState", chat), undefined);
+		assertValid("state", "ChatState", chat);
 	});
 
 	it("pairs each tool call with the result that followed it", async () => {

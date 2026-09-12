@@ -13,7 +13,7 @@ import { ActionType, type ChatState, chatReducer, type StateAction } from "@micr
 import { initialChatState } from "../src/channels/chat.ts";
 import { describeToolCall, RESPONDING_ACTIVITY, THINKING_ACTIVITY, toolInputFor } from "../src/pi/activity.ts";
 import { TurnMapper, userTurnStarted } from "../src/pi/event-mapper.ts";
-import { checkSchema } from "./support/schema.ts";
+import { assertValid } from "./support/schema.ts";
 
 const event = (value: object): AgentSessionEvent => value as unknown as AgentSessionEvent;
 
@@ -139,7 +139,7 @@ describe("activity over a turn", () => {
 		]);
 
 		for (const action of actions.filter((a) => a.type === ActionType.ChatActivityChanged)) {
-			assert.equal(checkSchema("actions", "StateAction", action), undefined);
+			assertValid("actions", "StateAction", action);
 		}
 	});
 

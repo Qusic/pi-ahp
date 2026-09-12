@@ -14,7 +14,7 @@ import {
 	toSessionModelInfo,
 } from "../src/pi/models.ts";
 import { PI_PROVIDER } from "../src/pi/provider.ts";
-import { checkSchema } from "./support/schema.ts";
+import { assertValid } from "./support/schema.ts";
 
 function model(overrides: Partial<Model<never>> = {}): Model<never> {
 	return {
@@ -102,6 +102,6 @@ describe("model mapping", () => {
 		assert.equal(agent.capabilities, undefined);
 		assert.equal(agent.protectedResources, undefined);
 		assert.equal(agent.customizations, undefined);
-		assert.equal(checkSchema("state", "AgentInfo", agent), undefined);
+		assertValid("state", "AgentInfo", agent);
 	});
 });

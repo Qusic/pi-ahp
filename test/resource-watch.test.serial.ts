@@ -10,7 +10,7 @@ import {
 	type ResourceWatchState,
 	SUPPORTED_PROTOCOL_VERSIONS,
 } from "@microsoft/agent-host-protocol";
-import { AhpClient, RpcError } from "@microsoft/agent-host-protocol/client";
+import { AhpClient } from "@microsoft/agent-host-protocol/client";
 import { WebSocketTransport } from "@microsoft/agent-host-protocol/ws";
 import { FSWatcher } from "chokidar";
 import { installRootChannel } from "../src/channels/root.ts";
@@ -18,7 +18,8 @@ import { AhpHost } from "../src/core/host.ts";
 import { ResourcePathPolicy } from "../src/pi/resource-paths.ts";
 import { ResourceWatchService } from "../src/pi/resource-watch.ts";
 import { type RunningServer, serveWebSocket } from "../src/transport/websocket.ts";
-import { checkSchema } from "./support/schema.ts";
+import { expectRpcError } from "./support/assertions.ts";
+import { assertValid } from "./support/schema.ts";
 import { WatchEvents } from "./support/watch-events.ts";
 
 const uri = (path: string): string => pathToFileURL(path).toString();
@@ -86,10 +87,6 @@ async function expectChange(events: WatchEvents, path: string, type: ResourceCha
 	return change;
 }
 
-async function expectRpcError(promise: Promise<unknown>, code: number): Promise<void> {
-	await assert.rejects(promise, (error: unknown) => error instanceof RpcError && error.code === code);
-}
-
 async function settle(ms: number): Promise<void> {
 	await new Promise<void>((resolve) => {
 		const timer = setTimeout(resolve, ms);
@@ -123,7 +120,7 @@ describe("resource watch", () => {
 			excludes: { items: ["**/.git/**"] },
 			includes: { items: ["**/*.ts"] },
 		});
-		assert.equal(checkSchema("state", "ResourceWatchState", state), undefined);
+		assertValid("state", "ResourceWatchState", state);
 	});
 
 	it("classifies newly created paths as added", async () => {
@@ -131,10 +128,7 @@ describe("resource watch", () => {
 		const events = await fixture.observe(channel);
 		const target = join(fixture.workspace, "created.txt");
 		writeFileSync(target, "hi");
-		assert.equal(
-			checkSchema("state", "ResourceChange", await expectChange(events, target, ResourceChangeType.Added)),
-			undefined,
-		);
+		assertValid("state", "ResourceChange", await expectChange(events, target, ResourceChangeType.Added));
 	});
 
 	it("classifies changes to existing paths as updated", async () => {
