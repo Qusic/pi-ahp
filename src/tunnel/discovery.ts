@@ -1,6 +1,6 @@
-/** VS Code's Dev Tunnel discovery contract plus pi-ahp's private labels. */
+/** Shared Agent Host Dev Tunnel discovery contract plus pi-ahp's private labels. */
 
-/** Required for VS Code to consider a tunnel a server host. */
+/** Required for clients using the VS Code-compatible discovery convention. */
 export const LAUNCHER_LABEL = "vscode-server-launcher";
 
 /**
@@ -13,21 +13,21 @@ export const LAUNCHER_LABEL = "vscode-server-launcher";
  */
 export const PROTOCOL_LABEL = "protocolv5";
 
-/** The only forwarded port VS Code checks for an agent-host tunnel. */
+/** The fixed forwarded port used by the discovery convention. */
 export const TUNNEL_PORT = 31546;
 
 /**
  * Finds this host's tunnel on later runs without becoming its display name.
- * VS Code excludes underscore-prefixed labels from that name.
+ * Compatible clients exclude underscore-prefixed labels from that name.
  */
 export const IDENTITY_LABEL = "_pi_ahp";
 
-/** Returns the label VS Code presents as the tunnel name, when one exists. */
+/** Returns the client-facing tunnel name, when one exists. */
 export function displayLabel(labels: readonly string[]): string | undefined {
 	return labels.find((label) => !label.startsWith("_") && label !== LAUNCHER_LABEL && !label.startsWith("protocolv"));
 }
 
-/** Applies VS Code's normalization for a user-supplied tunnel name. */
+/** Applies the discovery convention's normalization to a user-supplied name. */
 export function nameLabel(name: string): string | undefined {
 	const slug = name
 		.replace(/^-+/g, "")

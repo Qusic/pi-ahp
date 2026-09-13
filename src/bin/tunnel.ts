@@ -6,8 +6,8 @@
 
 import { spawn } from "node:child_process";
 import { startHost, VERSION } from "../host/serve.ts";
-import { createTunnel, ensurePort, findTunnel, rename, requireLogin, TunnelError } from "../tunnel/devtunnel.ts";
-import { displayLabel, nameLabel, TUNNEL_PORT } from "../tunnel/vscode.ts";
+import { DevTunnelCli, TunnelError } from "../tunnel/devtunnel.ts";
+import { displayLabel, nameLabel, TUNNEL_PORT } from "../tunnel/discovery.ts";
 
 function log(message: string): void {
 	process.stderr.write(`${message}\n`);
@@ -23,11 +23,11 @@ async function main(): Promise<void> {
 				"Usage: pi-ahp-tunnel [--name <label>] [--cwd <path>] [--verbose]",
 				"",
 				"Reuses this host's tunnel, creating one on the first run. `--name`",
-				"sets what VS Code shows in its list; without it, a name given here",
-				"or in VS Code earlier is left alone.",
+				"sets the display label shown by clients; without it, an existing",
+				"label is left alone.",
 				"",
-				"Serves the host over a dev tunnel that VS Code discovers. Needs a",
-				"`devtunnel` on PATH, already logged in:",
+				"Serves the host over a dev tunnel that compatible AHP clients can",
+				"discover. It requires `devtunnel` on PATH and an existing login:",
 				"",
 				"    devtunnel user login -g      GitHub account",
 				"    devtunnel user login         Microsoft account (the default)",
@@ -36,7 +36,7 @@ async function main(): Promise<void> {
 				"`devtunnel user login --help` for the rest.",
 				"",
 				"Does not read or modify pi-ahp's direct-listener settings. The",
-				`port is fixed by VS Code (${TUNNEL_PORT}); remote access is controlled`,
+				`discovery port is fixed at ${TUNNEL_PORT}; remote access is controlled`,
 				"by Microsoft Dev Tunnels rather than an additional URL token.",
 			].join("\n"),
 		);
@@ -50,27 +50,28 @@ async function main(): Promise<void> {
 	const verbose = args.includes("--verbose");
 	const workingDirectory = flag("--cwd") ?? process.cwd();
 
-	requireLogin();
+	const devtunnel = new DevTunnelCli();
+	devtunnel.requireLogin();
 	const requested = flag("--name");
 	const name = requested ? nameLabel(requested) : undefined;
 	if (requested && !name) {
 		log(`ignoring --name ${requested}: nothing left after removing characters a label cannot hold`);
 	}
 
-	const existing = findTunnel();
+	const existing = devtunnel.findTunnel();
 	let qualifiedId: string;
 	if (existing) {
 		qualifiedId = existing.tunnelId;
 		const current = displayLabel(existing.labels);
 		if (name && name !== current) {
-			rename(qualifiedId, current, name);
+			devtunnel.rename(qualifiedId, current, name);
 		}
 		log(`tunnel: ${qualifiedId} (reused${name && name !== current ? `, renamed to ${name}` : ""})`);
 	} else {
-		qualifiedId = createTunnel(name);
+		qualifiedId = devtunnel.createTunnel(name);
 		log(`tunnel: ${qualifiedId} (new${name ? `, named ${name}` : ""})`);
 	}
-	ensurePort(qualifiedId);
+	devtunnel.ensurePort(qualifiedId);
 
 	// The host must be up before the tunnel forwards to it, or the first client
 	// through the relay hits a closed port.
@@ -85,17 +86,19 @@ async function main(): Promise<void> {
 
 	const host = spawn("devtunnel", ["host", qualifiedId], { stdio: "inherit" });
 	let stopping = false;
+	let hostFinished = false;
 
-	// Shutting down goes through the child's `exit`, not alongside it. Killing
-	// the child and exiting in the same tick raced: `devtunnel host` outlives
-	// us, keeps the relay connection, and the tunnel looks hosted by a process
-	// that is gone.
-	host.on("exit", (code) => {
-		if (!stopping) {
-			log(`devtunnel host exited (${code}); shutting down`);
-		}
-		void server.close().then(() => process.exit(stopping ? 0 : (code ?? 1)));
-	});
+	// Shutting down goes through the child, not alongside it. Killing the child
+	// and exiting in the same tick raced: `devtunnel host` outlives us, keeps the
+	// relay connection, and the tunnel looks hosted by a process that is gone.
+	const finish = (code: number, failure?: string): void => {
+		if (hostFinished) return;
+		hostFinished = true;
+		if (!stopping && failure) log(failure);
+		void server.close().then(() => process.exit(stopping ? 0 : code));
+	};
+	host.on("exit", (code) => finish(code ?? 1, `devtunnel host exited (${code}); shutting down`));
+	host.on("error", (error) => finish(1, `devtunnel host failed: ${error.message}`));
 
 	const stop = (): void => {
 		if (stopping) {
@@ -111,8 +114,7 @@ async function main(): Promise<void> {
 	process.on("SIGINT", stop);
 	process.on("SIGTERM", stop);
 	log("");
-	log("In VS Code, enable `chat.remoteAgentHostsEnabled` and sign in to the");
-	log("same account; the tunnel appears in the agent host list.");
+	log("Connect from a Dev Tunnel-capable AHP client signed in to the same account.");
 }
 
 try {
