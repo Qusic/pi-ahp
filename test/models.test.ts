@@ -100,7 +100,7 @@ describe("model mapping", () => {
 		// No capabilities declared: one chat, one working directory. Their
 		// absence is what tells a client not to attempt those calls.
 		assert.equal(agent.capabilities, undefined);
-		assert.equal(agent.protectedResources, undefined);
+		assert.deepEqual(agent.protectedResources, []);
 		assert.equal(agent.customizations, undefined);
 		assertValid("state", "AgentInfo", agent);
 	});

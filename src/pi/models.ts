@@ -102,9 +102,10 @@ export function toSessionModelInfo(model: Model<never>): SessionModelInfo {
 /**
  * Builds the single `AgentInfo` this host advertises.
  *
- * No `protectedResources`: pi resolves model-provider credentials itself, so
- * there is nothing for the client to authenticate against at the protocol
- * level.
+ * Empty `protectedResources`: pi resolves model-provider credentials itself,
+ * so there is nothing for the client to authenticate against at the protocol
+ * level. Keeping the empty list explicit also distinguishes that settled state
+ * for clients that conservatively treat an omitted field as unresolved.
  *
  * No `capabilities`: this host serves one chat per session and one working
  * directory, so neither `multipleChats` nor `multipleWorkingDirectories` is
@@ -118,5 +119,6 @@ export function buildAgentInfo(models: readonly Model<never>[]): AgentInfo {
 		displayName: "pi",
 		description: "pi coding agent",
 		models: models.map(toSessionModelInfo),
+		protectedResources: [],
 	};
 }
