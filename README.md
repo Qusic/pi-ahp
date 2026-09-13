@@ -45,18 +45,34 @@ The token is optional and may be set to `null`. The host and port can also be ov
 pi-ahp --host 127.0.0.1 --port 31546
 ```
 
-Enter the printed URL in an AHP client. In VS Code, run **Sessions: Add Remote Agent Host...** from the Command Palette.
+Enter the printed URL in any AHP client. The direct listener is bring-your-own-network: reach it through Tailscale, SSH port forwarding, a reverse proxy, or any other network you manage. Keep the connection token enabled whenever the listener is reachable beyond localhost.
 
-`pi-ahp-tunnel` instead creates or reuses a Microsoft Dev Tunnel that VS Code can discover. It requires the [`devtunnel` CLI](https://aka.ms/devtunnels/download) and does not use the direct-listener settings:
+`pi-ahp-tunnel` instead creates or reuses a Microsoft Dev Tunnel for clients that support it, including VS Code and Agent Console. It requires the [`devtunnel` CLI](https://aka.ms/devtunnels/download) and does not use the direct-listener settings:
 
 ```sh
 devtunnel user login
 pi-ahp-tunnel
 ```
 
-Sign in to the same account in VS Code, then run **Sessions: Connect to Remote Agent Host via Dev Tunnel**. If the remote-host commands are unavailable, set `"chat.remoteAgentHostsEnabled": true` in VS Code's `settings.json`.
-
 Run either command with `--help` for all available options.
+
+### Visual Studio Code
+
+VS Code exposes remote Agent Host setup only in its dedicated Agents window, not in a regular editor window. From a regular window, run **Chat: Open Agents Window**.
+
+If the remote-host commands are unavailable, or if you want to use a direct connection without signing in to GitHub, add these settings to VS Code's user `settings.json` before opening the Agents window:
+
+```json
+{
+  "chat.remoteAgentHostsEnabled": true,
+  "chat.agentHost.allowSignedOutWhenUsable": true
+}
+```
+
+The signed-out option is currently experimental and desktop-only. When prompted, choose **Continue Without Signing In**; you do not need to preconfigure a host manually.
+
+- **Direct WebSocket:** run **Agents: Add Remote Agent Host...** and paste the URL printed by `pi-ahp`.
+- **Dev Tunnel:** sign in to the same account in VS Code, then run **Agents: Connect to Remote Agent Host via Dev Tunnel**. Tunnel discovery requires sign-in.
 
 ## AHP support
 
