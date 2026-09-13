@@ -229,7 +229,7 @@ describe("session URI classification", () => {
 		const workarounds = new ClientWorkarounds();
 		workarounds.identify({ name: "vscode-editor-window" });
 
-		const removed = workarounds.applyToMessage({
+		const removed = workarounds.applyToOutgoing({
 			jsonrpc: "2.0",
 			method: "root/sessionRemoved",
 			params: { channel: ROOT_CHANNEL, session },
@@ -240,7 +240,7 @@ describe("session URI classification", () => {
 			params: { channel: ROOT_CHANNEL, session: providerSession },
 		});
 
-		const updated = workarounds.applyToMessage({
+		const updated = workarounds.applyToOutgoing({
 			jsonrpc: "2.0",
 			method: "action",
 			params: {
@@ -270,7 +270,7 @@ describe("session URI classification", () => {
 		workarounds.identify({ name: "vscode-editor-window" });
 
 		const message = { jsonrpc: "2.0" as const, method: "action", params: { channel } };
-		assert.deepEqual(workarounds.applyToMessage(message), message);
+		assert.deepEqual(workarounds.applyToOutgoing(message), message);
 	});
 
 	it("does not hydrate or dispose a durable session through VS Code's terminal URI", async () => {

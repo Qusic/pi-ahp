@@ -160,17 +160,23 @@ describe("handshake", () => {
 		await expectRpcError(client.request("listSessions", { channel: ROOT_CHANNEL }), JsonRpcErrorCodes.InvalidRequest);
 	});
 
-	it("rejects a second handshake on an initialized connection", async () => {
+	it("rejects a second handshake without changing client compatibility mode", async () => {
 		const client = await harness.connect();
 		await client.initialize({ clientId: nextClientId(), protocolVersions: SUPPORTED_PROTOCOL_VERSIONS });
+		const session = sessionUri("rejected-second-handshake");
+		harness.host.store.create(session, initialSessionState("pi", "Still canonical", "/tmp"), "session");
+
 		await expectRpcError(
 			client.request("initialize", {
 				channel: ROOT_CHANNEL,
 				clientId: nextClientId(),
 				protocolVersions: [...SUPPORTED_PROTOCOL_VERSIONS],
+				clientInfo: { name: "vscode-editor-window" },
 			}),
 			JsonRpcErrorCodes.InvalidRequest,
 		);
+
+		assert.equal((await client.subscribe(session)).result.snapshot?.resource, session);
 	});
 
 	it("rejects malformed reconnect state without binding the connection", async () => {

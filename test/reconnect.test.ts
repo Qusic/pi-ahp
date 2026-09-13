@@ -15,11 +15,13 @@ import { type AgentSessionEvent, SessionManager } from "@earendil-works/pi-codin
 import {
 	ActionType,
 	type ChatState,
+	JsonRpcErrorCodes,
 	MessageKind,
 	type ReconnectReplayResult,
 	ReconnectResultType,
 	type ReconnectSnapshotResult,
 	ResponsePartKind,
+	type SessionState,
 	SUPPORTED_PROTOCOL_VERSIONS,
 	TurnState,
 } from "@microsoft/agent-host-protocol";
@@ -27,7 +29,7 @@ import { initialSessionState } from "../src/channels/session.ts";
 import { chatUri, ROOT_CHANNEL, sessionUri } from "../src/core/channels.ts";
 import type { PiBackend } from "../src/pi/chat-driver.ts";
 import { type Harness, startHarness } from "./harness.ts";
-import { must } from "./support/assertions.ts";
+import { expectRpcError, must } from "./support/assertions.ts";
 import { eventually } from "./support/async.ts";
 
 const CLIENT_ID = "reconnecting-client";
@@ -80,6 +82,37 @@ describe("reconnect", () => {
 
 	after(async () => {
 		await harness.dispose();
+	});
+
+	it("keeps non-VS Code and explicitly misrouted reconnects strict", async () => {
+		const client = await harness.connect();
+		for (const [context, params] of [
+			[
+				"non-VS Code reconnect without a channel",
+				{
+					clientId: `${CLIENT_ID}-missing-channel`,
+					lastSeenServerSeq: 0,
+					subscriptions: [ROOT_CHANNEL],
+				},
+			],
+			[
+				"VS Code reconnect with the wrong channel",
+				{
+					channel: sessionUri("wrong-channel"),
+					clientId: `${CLIENT_ID}-wrong-channel`,
+					lastSeenServerSeq: 0,
+					subscriptions: [ROOT_CHANNEL],
+					_meta: { "vscode.telemetryLevel": "off" },
+				},
+			],
+		] as const) {
+			const error = await expectRpcError(
+				client.request("reconnect", params as never),
+				JsonRpcErrorCodes.InvalidParams,
+				context,
+			);
+			assert.match(error.message, /reconnect requires channel ahp-root:\/\/$/u, context);
+		}
 	});
 
 	it("replays only the actions the client missed", async () => {
@@ -281,7 +314,7 @@ describe("reconnect", () => {
 });
 
 describe("reconnect after host restart", () => {
-	it("hydrates a VS Code session, returns snapshots, and accepts a new turn", async () => {
+	it("repairs VS Code's channel-less reconnect and restores a durable session", async () => {
 		const root = mkdtempSync(join(tmpdir(), "pi-ahp-restart-sessions-"));
 		const workspace = mkdtempSync(join(tmpdir(), "pi-ahp-restart-cwd-"));
 		const id = randomUUID();
@@ -298,19 +331,33 @@ describe("reconnect after host restart", () => {
 			const clientSession = `pi:/${id}`;
 			const clientChat = `ahp-chat://default/${Buffer.from(clientSession).toString("base64url")}`;
 			const client = await harness.connect();
-			const result = (await client.reconnect({
+			const result = (await client.request("reconnect", {
 				clientId: "vscode-from-previous-host",
 				lastSeenServerSeq: 42,
-				subscriptions: [clientSession, clientChat],
-			})) as ReconnectSnapshotResult;
+				subscriptions: [ROOT_CHANNEL, clientSession],
+				_meta: { "vscode.telemetryLevel": "off" },
+			} as never)) as ReconnectSnapshotResult;
 
 			assert.equal(result.type, ReconnectResultType.Snapshot);
 			assert.deepEqual(
 				result.snapshots.map((snapshot) => snapshot.resource).sort(),
-				[clientSession, clientChat].sort(),
+				[ROOT_CHANNEL, clientSession].sort(),
 			);
-			const chatSnapshot = result.snapshots.find((snapshot) => snapshot.resource === clientChat);
-			assert.ok(chatSnapshot);
+			const sessionSnapshot = must(
+				result.snapshots.find((snapshot) => snapshot.resource === clientSession),
+				"VS Code session snapshot",
+			);
+			assert.equal((sessionSnapshot.state as SessionState).defaultChat, clientChat);
+
+			const disposalError = await expectRpcError(
+				client.request("disposeSession", { channel: clientSession }),
+				JsonRpcErrorCodes.InvalidRequest,
+			);
+			assert.match(disposalError.message, /VS Code provisional-session lifecycle bug/u);
+			assert.equal(harness.host.store.has(sessionUri(id)), true);
+
+			const subscribed = await client.subscribe(clientChat);
+			const chatSnapshot = must(subscribed.result.snapshot);
 			const restoredTurn = (chatSnapshot.state as ChatState).turns[0];
 			assert.equal(restoredTurn?.message.text, "before restart");
 			assert.equal(

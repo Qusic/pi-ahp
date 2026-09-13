@@ -109,7 +109,7 @@ const ROOT_COMMANDS = new Set<keyof CommandMap>([
 	"listAutomationTriggerDefinitions",
 ]);
 
-function validateInitialize(params: InitializeParams | undefined): string {
+function validateInitialize(params: InitializeParams | undefined): asserts params is InitializeParams {
 	if (typeof params?.clientId !== "string" || params.clientId.length === 0) {
 		throw ProtocolError.invalidParams("initialize requires a clientId");
 	}
@@ -125,7 +125,6 @@ function validateInitialize(params: InitializeParams | undefined): string {
 	if (params.capabilities !== undefined && !isRecord(params.capabilities)) {
 		throw ProtocolError.invalidParams("capabilities must be an object");
 	}
-	return negotiateProtocolVersion(params.protocolVersions);
 }
 
 function validateReconnect(params: ReconnectParams | undefined): asserts params is ReconnectParams {
@@ -375,9 +374,6 @@ export class AhpHost {
 	}
 
 	async #dispatchRequest(connection: ClientConnection, request: JsonRpcRequest): Promise<unknown> {
-		if (ROOT_COMMANDS.has(request.method as keyof CommandMap) && readChannel(request.params) !== ROOT_CHANNEL) {
-			throw ProtocolError.invalidParams(`${request.method} requires channel ${ROOT_CHANNEL}`);
-		}
 		const handshake = request.method === "initialize" || request.method === "reconnect";
 		if (handshake && connection.clientId) {
 			throw new ProtocolError(JsonRpcErrorCodes.InvalidRequest, "Connection is already initialized");
@@ -389,14 +385,18 @@ export class AhpHost {
 		let protocolVersion = "";
 		if (request.method === "initialize") {
 			const params = request.params as InitializeParams | undefined;
-			protocolVersion = validateInitialize(params);
-			connection.workarounds.identify(params?.clientInfo);
+			validateInitialize(params);
+			protocolVersion = negotiateProtocolVersion(params.protocolVersions);
+			connection.workarounds.identify(params.clientInfo ?? this.#clientInfoById.get(params.clientId));
 		} else if (request.method === "reconnect") {
 			const params = request.params as ReconnectParams | undefined;
 			validateReconnect(params);
 			connection.workarounds.identify(this.#clientInfoById.get(params.clientId));
 		}
 		connection.workarounds.applyToIncoming(request);
+		if (ROOT_COMMANDS.has(request.method as keyof CommandMap) && readChannel(request.params) !== ROOT_CHANNEL) {
+			throw ProtocolError.invalidParams(`${request.method} requires channel ${ROOT_CHANNEL}`);
+		}
 		switch (request.method) {
 			// `ping` must be answered whether or not the client has completed
 			// `initialize` or holds any subscription.
@@ -575,7 +575,6 @@ export class AhpHost {
 
 		const identifiedClient = params.clientInfo ?? this.#clientInfoById.get(params.clientId);
 		this.#clientInfoById.set(params.clientId, identifiedClient);
-		connection.workarounds.identify(identifiedClient);
 
 		const snapshots: Snapshot[] = [];
 		for (const uri of params.initialSubscriptions ?? []) {

@@ -90,12 +90,32 @@ describe("AHP command surface", () => {
 	});
 
 	it("requires the root routing channel on every connection-level command", async () => {
-		for (const method of ROOT_METHODS) {
-			await expectRpcError(
-				client.request(method, { channel: "ahp-session:/wrong-channel" }),
-				JsonRpcErrorCodes.InvalidParams,
-				method,
-			);
+		const wrongChannel = "ahp-session:/wrong-channel";
+		for (const method of ROOT_METHODS.filter((candidate) => candidate !== "initialize" && candidate !== "reconnect")) {
+			await expectRpcError(client.request(method, { channel: wrongChannel }), JsonRpcErrorCodes.InvalidParams, method);
 		}
+
+		const initializing = await harness.connect();
+		await expectRpcError(
+			initializing.request("initialize", {
+				channel: wrongChannel,
+				clientId: nextClientId(),
+				protocolVersions: [...SUPPORTED_PROTOCOL_VERSIONS],
+			} as never),
+			JsonRpcErrorCodes.InvalidParams,
+			"initialize",
+		);
+
+		const reconnecting = await harness.connect();
+		await expectRpcError(
+			reconnecting.request("reconnect", {
+				channel: wrongChannel,
+				clientId: nextClientId(),
+				lastSeenServerSeq: 0,
+				subscriptions: [],
+			} as never),
+			JsonRpcErrorCodes.InvalidParams,
+			"reconnect",
+		);
 	});
 });

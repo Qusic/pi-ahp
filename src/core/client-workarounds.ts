@@ -6,7 +6,7 @@
 import { ActionType, JsonRpcErrorCodes, type URI } from "@microsoft/agent-host-protocol";
 import { ProtocolError } from "../protocol/errors.ts";
 import type { JsonRpcMessage, JsonRpcNotification, JsonRpcRequest, JsonRpcResponse } from "../protocol/jsonrpc.ts";
-import { chatIdFromUri, chatUri, sessionIdFromUri, sessionUri } from "./channels.ts";
+import { chatIdFromUri, chatUri, ROOT_CHANNEL, sessionIdFromUri, sessionUri } from "./channels.ts";
 
 /**
  * Field names that carry session or chat URIs in state, actions, and catalogue
@@ -35,7 +35,7 @@ const MATERIALIZING_ACTIONS = new Set<string>([
  * client-specific routing does not leak into canonical host APIs.
  */
 const PROVIDER_SESSION_SCHEME = "pi";
-type SessionDialect = "canonical" | "provider" | "vscode";
+type SessionUriDialect = "canonical" | "provider" | "vscode";
 
 /** Methods where a direct `pi:/...` target can only mean a session. */
 const PROVIDER_SESSION_METHODS = new Set([
@@ -68,6 +68,7 @@ function owningSessionUri(uri: URI): URI | undefined {
 }
 
 interface MessageParams {
+	_meta?: unknown;
 	action?: unknown;
 	channel?: unknown;
 	importConversation?: unknown;
@@ -88,6 +89,14 @@ function typeOfAction(value: unknown): string | undefined {
 	return typeof value === "object" && value !== null && "type" in value && typeof value.type === "string"
 		? value.type
 		: undefined;
+}
+
+function hasVscodeClientMeta(value: unknown): boolean {
+	return (
+		typeof value === "object" &&
+		value !== null &&
+		("vscode.telemetryLevel" in value || "vscode.clientConnectionKind" in value)
+	);
 }
 
 /**
@@ -192,33 +201,38 @@ class VscodeSessionDisposalGuard {
  * those shapes globally would impose one client's dialect on every client, so
  * translation remains per connection and core services see canonical URIs.
  *
- * `initialize.clientInfo` identifies VS Code before snapshots are sent. A raw
- * `pi:/...` target identifies only the provider-session dialect used by the iOS
- * client, while observing a derived chat enables the full VS Code dialect.
- * Reconnect subscriptions provide the same fingerprints after a host restart.
+ * `initialize.clientInfo`, VS Code's namespaced request metadata, and derived
+ * chat URIs identify VS Code and gate its workarounds. Independently, a raw
+ * `pi:/...` target selects the provider-session URI dialect used by the iOS
+ * client. Both observations remain per connection; core services stay canonical.
  *
- * Remove this layer when VS Code consistently addresses the resources a host
- * publishes.
+ * Remove each compatibility branch when its clients emit canonical AHP traffic.
  */
 export class ClientWorkarounds {
-	#dialect: SessionDialect = "canonical";
+	#isVscode = false;
+	#usesProviderSessionUris = false;
 	readonly #vscodeSessionDisposal = new VscodeSessionDisposalGuard();
 
-	/** Reads implementation identity without erasing a dialect inferred from URIs. */
+	/** Reads implementation identity without erasing observations from wire traffic. */
 	identify(clientInfo: { name?: string } | undefined): void {
-		if (VSCODE_CLIENT_NAMES.has(clientInfo?.name ?? "")) this.#dialect = "vscode";
+		if (VSCODE_CLIENT_NAMES.has(clientInfo?.name ?? "")) this.#isVscode = true;
 	}
 
 	/** Rewrites this connection's parsed request or notification in place. */
 	applyToIncoming(message: JsonRpcRequest | JsonRpcNotification): void {
 		const params = message.params as MessageParams | undefined;
 		if (!params) return;
-		this.#observeDialect(message.method, params);
+		this.#observeTraffic(message.method, params);
+		// Remove when VS Code includes the AHP 0.9 root-channel discriminant in reconnect.
+		if ("id" in message && this.#isVscode && message.method === "reconnect" && params.channel === undefined) {
+			params.channel = ROOT_CHANNEL;
+		}
 
-		const rewrite = (uri: URI) => inbound(uri, this.#dialect);
+		const dialect = this.#uriDialect();
+		const rewrite = (uri: URI) => inbound(uri, dialect);
 		if (typeof params.channel === "string") {
 			let channel = rewrite(params.channel);
-			if (message.method === "completions" && this.#dialect !== "canonical") {
+			if (message.method === "completions" && dialect !== "canonical") {
 				// Both VS Code and the iOS client currently target completions at the
 				// provider-style session URI.
 				const sessionId = providerSessionId(channel);
@@ -228,7 +242,7 @@ export class ClientWorkarounds {
 			// `session/titleChanged` only on the owning session.
 			if (
 				message.method === "dispatchAction" &&
-				this.#dialect === "vscode" &&
+				this.#isVscode &&
 				typeOfAction(params.action) === ActionType.SessionTitleChanged
 			) {
 				const chatId = chatIdFromUri(channel);
@@ -244,39 +258,52 @@ export class ClientWorkarounds {
 				params[field] = subscriptions.map((uri) => (typeof uri === "string" ? rewrite(uri) : uri));
 			}
 		}
-		if (this.#dialect === "vscode") {
+		if (this.#isVscode) {
 			this.#vscodeSessionDisposal.applyToIncoming(message, params);
 		}
 	}
 
-	/** Returns the message to send, rewritten if this client needs it. */
-	applyToMessage(message: JsonRpcMessage): JsonRpcMessage {
-		if (this.#dialect === "vscode") {
+	/** Returns the outgoing message, rewritten if this client needs it. */
+	applyToOutgoing(message: JsonRpcMessage): JsonRpcMessage {
+		if (this.#isVscode) {
 			this.#vscodeSessionDisposal.applyToOutgoing(message);
 		}
-		const dialect = this.#dialect;
+		const dialect = this.#uriDialect();
 		return dialect === "canonical"
 			? message
 			: (rewriteFields(message, (uri) => outbound(uri, dialect)) as JsonRpcMessage);
 	}
 
-	#observeDialect(method: string, params: MessageParams): void {
+	#observeTraffic(method: string, params: MessageParams): void {
 		const direct = typeof params.channel === "string" ? params.channel : undefined;
 		const listed = [
 			...(Array.isArray(params.initialSubscriptions) ? params.initialSubscriptions : []),
 			...(Array.isArray(params.subscriptions) ? params.subscriptions : []),
 		];
 		const observed = direct ? [direct, ...listed] : listed;
-		if (observed.some((uri) => typeof uri === "string" && sessionFromDerivedChat(uri) !== undefined)) {
-			this.#dialect = "vscode";
-		} else if (
-			this.#dialect === "canonical" &&
+		this.#observeVscode(params, observed);
+		if (
+			!this.#usesProviderSessionUris &&
 			(PROVIDER_SESSION_METHODS.has(method) ? observed : listed).some(
 				(uri) => typeof uri === "string" && isProviderSession(uri),
 			)
 		) {
-			this.#dialect = "provider";
+			this.#usesProviderSessionUris = true;
 		}
+	}
+
+	#observeVscode(params: MessageParams, observed: readonly unknown[]): void {
+		if (
+			hasVscodeClientMeta(params._meta) ||
+			observed.some((uri) => typeof uri === "string" && sessionFromDerivedChat(uri) !== undefined)
+		) {
+			this.#isVscode = true;
+		}
+	}
+
+	#uriDialect(): SessionUriDialect {
+		if (this.#isVscode) return "vscode";
+		return this.#usesProviderSessionUris ? "provider" : "canonical";
 	}
 }
 
@@ -293,7 +320,7 @@ function sessionFromDerivedChat(uri: URI): URI | undefined {
 	return isProviderSession(session) ? session : undefined;
 }
 
-function inbound(uri: URI, dialect: SessionDialect): URI {
+function inbound(uri: URI, dialect: SessionUriDialect): URI {
 	const derivedSession = sessionFromDerivedChat(uri);
 	const derivedSessionId = derivedSession ? providerSessionId(derivedSession) : undefined;
 	if (derivedSessionId) return chatUri(derivedSessionId);
@@ -303,7 +330,7 @@ function inbound(uri: URI, dialect: SessionDialect): URI {
 }
 
 /** Translates a URI this host minted into the dialect this client expects. */
-function outbound(uri: URI, dialect: Exclude<SessionDialect, "canonical">): URI {
+function outbound(uri: URI, dialect: Exclude<SessionUriDialect, "canonical">): URI {
 	const chatId = chatIdFromUri(uri);
 	if (chatId) {
 		return dialect === "vscode"
