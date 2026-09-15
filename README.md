@@ -74,6 +74,12 @@ The signed-out option is currently experimental and desktop-only. When prompted,
 - **Direct WebSocket:** run **Agents: Add Remote Agent Host...** and paste the URL printed by `pi-ahp`.
 - **Dev Tunnel:** sign in to the same account in VS Code, then run **Agents: Connect to Remote Agent Host via Dev Tunnel**. Tunnel discovery requires sign-in.
 
+### iPhone and iPad
+
+I also make [Agent Console](https://qusic.github.io/agent-console/), a paid native AHP client for iPhone and iPad. Purchasing it helps support continued work on both Agent Console and `pi-ahp`.
+
+Agent Console connects with the direct URL printed by `pi-ahp`, or through a tunnel created by `pi-ahp-tunnel` when signed in to the same Dev Tunnels account. pi and its model credentials remain on the host, and Agent Console has no hosted backend. See the [Agent Console setup guide for Pi Coding Agent](https://qusic.github.io/agent-console/docs/pi-coding-agent/) for details.
+
 ## AHP support
 
 The following is a high-level mapping to the [official AHP specification](https://microsoft.github.io/agent-host-protocol/specification/overview).
