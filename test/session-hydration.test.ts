@@ -13,6 +13,7 @@ import { utimesSync } from "node:fs";
 import { after, before, describe, it } from "node:test";
 import {
 	type ChatState,
+	MessageAttachmentKind,
 	ResponsePartKind,
 	type RootState,
 	SessionLifecycle,
@@ -26,6 +27,7 @@ import { pathToFileUri } from "../src/core/uri.ts";
 import { PiSessionCatalogue } from "../src/pi/session-catalogue.ts";
 import { must } from "./support/assertions.ts";
 import { type HydratedSessionFixture, startHydratedSessionFixture } from "./support/hydrated-session.ts";
+import { ONE_PIXEL_PNG } from "./support/images.ts";
 import { assertValid } from "./support/schema.ts";
 
 describe("opening a session from the catalogue", () => {
@@ -87,6 +89,27 @@ describe("opening a session from the catalogue", () => {
 
 		assert.ok(error instanceof RpcError);
 		assert.equal(error.code, -32008);
+	});
+
+	it("restores images stored in pi user messages", async () => {
+		const fresh = await startHydratedSessionFixture({ includeImage: true });
+		try {
+			const { result } = await fresh.client.subscribe(chatUri(fresh.sessionId));
+			const chat = must(result.snapshot).state as ChatState;
+
+			assert.deepEqual(chat.turns[0]?.message.attachments, [
+				{
+					type: MessageAttachmentKind.EmbeddedResource,
+					label: "Image 1",
+					displayKind: "image",
+					data: ONE_PIXEL_PNG,
+					contentType: "image/png",
+				},
+			]);
+			assertValid("state", "ChatState", chat);
+		} finally {
+			await fresh.close();
+		}
 	});
 
 	it("hydrates from either half of the pair", async () => {

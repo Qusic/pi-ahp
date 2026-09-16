@@ -81,10 +81,12 @@ describe("model mapping", () => {
 		assert.deepEqual(property.enum, ["off", "minimal", "low", "medium", "high"]);
 		assert.equal(info.id, "anthropic/claude-sonnet-4");
 		assert.equal(info.provider, PI_PROVIDER);
-		// Do not advertise the underlying model's vision support until this host
-		// can pass AHP image attachments through to pi.
-		assert.equal(info.supportsVision, undefined);
 		assert.equal(info.maxContextWindow, 200_000);
+	});
+
+	it("maps pi input modalities onto the vision capability", () => {
+		assert.equal(toSessionModelInfo(model()).supportsVision, true);
+		assert.equal(toSessionModelInfo(model({ input: ["text"] })).supportsVision, false);
 	});
 
 	it("omits the configSchema when there is nothing to choose", () => {

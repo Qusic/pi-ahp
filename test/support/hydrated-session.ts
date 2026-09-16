@@ -14,9 +14,10 @@ import { PiSessionCatalogue } from "../../src/pi/session-catalogue.ts";
 import { SessionHydrator } from "../../src/pi/session-hydrator.ts";
 import { type SessionFileDeletionResult, SessionRegistry } from "../../src/pi/session-registry.ts";
 import { type RunningServer, serveWebSocket } from "../../src/transport/websocket.ts";
+import { ONE_PIXEL_PNG } from "./images.ts";
 
 /** Writes a pi session file containing one full turn with a tool call. */
-function writeSession(root: string, id: string, cwd: string): void {
+function writeSession(root: string, id: string, cwd: string, includeImage: boolean): void {
 	const directory = join(root, `--${cwd.replace(/^[/\\]/, "").replace(/[/\\:]/g, "-")}--`);
 	mkdirSync(directory, { recursive: true });
 
@@ -29,7 +30,19 @@ function writeSession(root: string, id: string, cwd: string): void {
 		parentId = entryId;
 	};
 
-	push({ type: "message", message: { role: "user", content: "Read note.txt", timestamp: 0 } });
+	push({
+		type: "message",
+		message: {
+			role: "user",
+			content: includeImage
+				? [
+						{ type: "text", text: "Read note.txt" },
+						{ type: "image", data: ONE_PIXEL_PNG, mimeType: "image/png" },
+					]
+				: "Read note.txt",
+			timestamp: 0,
+		},
+	});
 	push({
 		type: "message",
 		message: {
@@ -105,12 +118,15 @@ export interface HydratedSessionFixture {
 }
 
 export async function startHydratedSessionFixture(
-	options: { deleteFile?: (path: string) => SessionFileDeletionResult | Promise<SessionFileDeletionResult> } = {},
+	options: {
+		deleteFile?: (path: string) => SessionFileDeletionResult | Promise<SessionFileDeletionResult>;
+		includeImage?: boolean;
+	} = {},
 ): Promise<HydratedSessionFixture> {
 	const root = mkdtempSync(join(tmpdir(), "pi-ahp-hydrate-"));
 	const workspace = mkdtempSync(join(tmpdir(), "pi ahp hydrate cwd-"));
 	const sessionId = randomUUID();
-	writeSession(root, sessionId, workspace);
+	writeSession(root, sessionId, workspace, options.includeImage ?? false);
 
 	const host = new AhpHost();
 	installRootChannel(host, []);

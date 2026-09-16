@@ -10,6 +10,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
+import { fauxAssistantMessage, type ImageContent } from "@earendil-works/pi-ai";
 import type { AgentSessionEvent } from "@earendil-works/pi-coding-agent";
 import {
 	ActionType,
@@ -33,6 +34,7 @@ import { SessionRegistry } from "../src/pi/session-registry.ts";
 import { serveWebSocket } from "../src/transport/websocket.ts";
 import { must, turnError } from "./support/assertions.ts";
 import { eventually } from "./support/async.ts";
+import { ONE_PIXEL_PNG } from "./support/images.ts";
 
 /**
  * A backend that records prompts and replays a scripted event sequence for each
@@ -40,8 +42,14 @@ import { eventually } from "./support/async.ts";
  */
 class ScriptedBackend implements PiBackend {
 	readonly prompts: string[] = [];
+	readonly promptImages: Array<ImageContent[] | undefined> = [];
 	readonly steers: string[] = [];
+	readonly steeringImages: Array<ImageContent[] | undefined> = [];
+	promptCalls = 0;
+	promptGate: Promise<void> | undefined;
 	aborts = 0;
+	selections = 0;
+	selectionGate: Promise<void> | undefined;
 
 	#listeners = new Set<(event: AgentSessionEvent) => void>();
 	#script: (text: string) => AgentSessionEvent[];
@@ -59,20 +67,30 @@ class ScriptedBackend implements PiBackend {
 		for (const listener of this.#listeners) listener(event);
 	}
 
-	async prompt(text: string): Promise<void> {
+	async prompt(text: string, images?: ImageContent[], signal?: AbortSignal): Promise<void> {
+		this.promptCalls += 1;
+		if (this.promptGate) await this.promptGate;
+		if (signal?.aborted) return;
 		this.prompts.push(text);
+		this.promptImages.push(images);
 		// Deliver asynchronously, like a real agent: the driver must not depend
 		// on events arriving inside the prompt() call.
 		await Promise.resolve();
 		for (const event of this.#script(text)) this.emit(event);
 	}
 
-	async steer(text: string): Promise<void> {
+	async steer(text: string, images?: ImageContent[]): Promise<void> {
 		this.steers.push(text);
+		this.steeringImages.push(images);
 	}
 
 	async abort(): Promise<void> {
 		this.aborts += 1;
+	}
+
+	async selectModel(): Promise<void> {
+		this.selections += 1;
+		await this.selectionGate;
 	}
 }
 
@@ -83,6 +101,20 @@ function embeddedText(text: string, label = "context.txt") {
 		contentType: "text/plain",
 		data: Buffer.from(text).toString("base64"),
 	} as const;
+}
+
+function embeddedImage(label = "screenshot.png") {
+	return {
+		type: MessageAttachmentKind.EmbeddedResource,
+		label,
+		displayKind: "image",
+		contentType: "image/png",
+		data: ONE_PIXEL_PNG,
+	} as const;
+}
+
+function turnShape(turn: ChatState["turns"][number]) {
+	return { id: turn.id, text: turn.message.text, state: turn.state };
 }
 
 function say(text: string): AgentSessionEvent[] {
@@ -104,6 +136,7 @@ function say(text: string): AgentSessionEvent[] {
 interface Fixture {
 	readonly client: AhpClient;
 	readonly host: AhpHost;
+	readonly sessions: SessionRegistry;
 	readonly backend: ScriptedBackend;
 	readonly sessionChannel: string;
 	readonly chatChannel: string;
@@ -137,6 +170,7 @@ async function startFixture(): Promise<Fixture> {
 	return {
 		client,
 		host,
+		sessions,
 		backend,
 		sessionChannel,
 		chatChannel,
@@ -202,12 +236,14 @@ describe("chat driver", () => {
 					{ type: MessageAttachmentKind.Resource, label: "outside.ts", uri: "file:///outside.ts" },
 					{ type: MessageAttachmentKind.Simple, label: "selection", modelRepresentation: "selected context" },
 					embeddedText("embedded context", "note.txt"),
+					embeddedImage(),
 				],
 			},
 		});
 
 		await eventually("the attachment-expanded prompt to reach the backend", () => backend.prompts.includes(expected));
 		assert.equal(backend.prompts.at(-1), expected);
+		assert.deepEqual(backend.promptImages.at(-1), [{ type: "image", data: ONE_PIXEL_PNG, mimeType: "image/png" }]);
 	});
 
 	it("keeps the session catalog's chat summary in step", async () => {
@@ -228,7 +264,15 @@ describe("chat driver", () => {
 		assert.equal(session.chats[0]?.modifiedAt, chat.modifiedAt);
 	});
 
-	it("forwards a steering message to the backend but keeps queued ones in state", async () => {
+	it("forwards steering text and images to the active backend", async () => {
+		fixture.client.dispatch(fixture.chatChannel, {
+			type: ActionType.ChatTurnStarted,
+			turnId: "t-steering",
+			startedAt: new Date().toISOString(),
+			message: { text: "long running", origin: { kind: MessageKind.User } },
+		});
+		await eventually("the steerable prompt to reach the backend", () => backend.prompts.length === 1);
+
 		fixture.client.dispatch(fixture.chatChannel, {
 			type: ActionType.ChatPendingMessageSet,
 			kind: PendingMessageKind.Steering,
@@ -238,12 +282,14 @@ describe("chat driver", () => {
 				origin: { kind: MessageKind.User },
 				attachments: [
 					{ type: MessageAttachmentKind.Simple, label: "context", modelRepresentation: "steering context" },
+					embeddedImage("steering.png"),
 				],
 			},
 		});
 
 		await eventually("the steering message to reach the backend", () => backend.steers.length === 1);
 		assert.deepEqual(backend.steers, ["focus on tests\n\nsteering context"]);
+		assert.deepEqual(backend.steeringImages[0], [{ type: "image", data: ONE_PIXEL_PNG, mimeType: "image/png" }]);
 	});
 
 	it("consumes a queued message as its own turn once the chat goes idle", async () => {
@@ -256,7 +302,7 @@ describe("chat driver", () => {
 			message: {
 				text: "then do this",
 				origin: { kind: MessageKind.User },
-				attachments: [embeddedText("queued context", "queued.txt")],
+				attachments: [embeddedText("queued context", "queued.txt"), embeddedImage("queued.png")],
 			},
 		});
 
@@ -264,6 +310,7 @@ describe("chat driver", () => {
 
 		const state = fixture.host.store.get(fixture.chatChannel) as ChatState;
 		assert.equal(backend.prompts.at(-1), "then do this\n\nqueued context");
+		assert.deepEqual(backend.promptImages.at(-1), [{ type: "image", data: ONE_PIXEL_PNG, mimeType: "image/png" }]);
 		// The reducer removes the entry atomically with creating the turn, so a
 		// client can never see it both queued and running.
 		assert.equal(state.queuedMessages, undefined);
@@ -302,7 +349,118 @@ describe("chat driver", () => {
 		assert.equal(completed.turns.at(-1)?.state, TurnState.Complete);
 	});
 
-	it("aborts the backend when a client cancels the active turn", async () => {
+	it("does not start a prompt cancelled during model selection", async () => {
+		let releaseSelection!: () => void;
+		backend.selectionGate = new Promise<void>((resolve) => {
+			releaseSelection = resolve;
+		});
+		try {
+			fixture.client.dispatch(fixture.chatChannel, {
+				type: ActionType.ChatTurnStarted,
+				turnId: "t-select-cancel",
+				startedAt: new Date().toISOString(),
+				message: {
+					text: "do not run",
+					origin: { kind: MessageKind.User },
+					model: { id: "pi/test-model" },
+				},
+			});
+			await eventually("model selection to start", () => backend.selections === 1);
+			fixture.client.dispatch(fixture.chatChannel, {
+				type: ActionType.ChatPendingMessageSet,
+				kind: PendingMessageKind.Queued,
+				id: "after-select-cancel",
+				message: { text: "run after selection cancellation", origin: { kind: MessageKind.User } },
+			});
+			fixture.client.dispatch(fixture.chatChannel, {
+				type: ActionType.ChatTurnCancelled,
+				turnId: "t-select-cancel",
+				duration: 0,
+			});
+			await eventually("preflight cancellation to reach the backend", () => backend.aborts === 1);
+
+			releaseSelection();
+			await eventually(
+				"queued work to complete after cancelled preflight settles",
+				() => (fixture.host.store.get(fixture.chatChannel) as ChatState).turns.length === 2,
+			);
+			assert.deepEqual(backend.prompts, ["run after selection cancellation"]);
+			const completed = fixture.host.store.get(fixture.chatChannel) as ChatState;
+			assert.deepEqual(completed.turns.map(turnShape), [
+				{ id: "t-select-cancel", text: "do not run", state: TurnState.Cancelled },
+				{
+					id: "turn-after-select-cancel",
+					text: "run after selection cancellation",
+					state: TurnState.Complete,
+				},
+			]);
+
+			const before = completed.turns.map((turn) => turn.id);
+			fixture.client.dispatch(fixture.chatChannel, {
+				type: ActionType.ChatTruncated,
+				turnId: "t-select-cancel",
+			});
+			await fixture.client.ping();
+			assert.deepEqual(
+				(fixture.host.store.get(fixture.chatChannel) as ChatState).turns.map((turn) => turn.id),
+				before,
+				"a turn cancelled before persistence must not acquire a truncation anchor",
+			);
+		} finally {
+			releaseSelection();
+		}
+	});
+
+	it("does not run a prompt cancelled during backend preflight", async () => {
+		let releasePreflight!: () => void;
+		backend.promptGate = new Promise<void>((resolve) => {
+			releasePreflight = resolve;
+		});
+		try {
+			fixture.client.dispatch(fixture.chatChannel, {
+				type: ActionType.ChatTurnStarted,
+				turnId: "t-preflight-cancel",
+				startedAt: new Date().toISOString(),
+				message: {
+					text: "do not run",
+					origin: { kind: MessageKind.User },
+					attachments: [embeddedImage()],
+				},
+			});
+			await eventually("backend preflight to start", () => backend.promptCalls === 1);
+			fixture.client.dispatch(fixture.chatChannel, {
+				type: ActionType.ChatPendingMessageSet,
+				kind: PendingMessageKind.Queued,
+				id: "after-preflight-cancel",
+				message: { text: "run after image preflight", origin: { kind: MessageKind.User } },
+			});
+			fixture.client.dispatch(fixture.chatChannel, {
+				type: ActionType.ChatTurnCancelled,
+				turnId: "t-preflight-cancel",
+				duration: 0,
+			});
+			await eventually("preflight cancellation to reach the backend", () => backend.aborts === 1);
+
+			releasePreflight();
+			await eventually(
+				"queued work to complete after backend preflight settles",
+				() => (fixture.host.store.get(fixture.chatChannel) as ChatState).turns.length === 2,
+			);
+			assert.deepEqual(backend.prompts, ["run after image preflight"]);
+			assert.deepEqual((fixture.host.store.get(fixture.chatChannel) as ChatState).turns.map(turnShape), [
+				{ id: "t-preflight-cancel", text: "do not run", state: TurnState.Cancelled },
+				{
+					id: "turn-after-preflight-cancel",
+					text: "run after image preflight",
+					state: TurnState.Complete,
+				},
+			]);
+		} finally {
+			releasePreflight();
+		}
+	});
+
+	it("anchors a cancelled turn before resuming queued work", async () => {
 		fixture.client.dispatch(fixture.chatChannel, {
 			type: ActionType.ChatTurnStarted,
 			turnId: "t-cancel",
@@ -312,6 +470,20 @@ describe("chat driver", () => {
 		await eventually("the cancellable prompt to reach the backend", () => backend.prompts.length === 1);
 		assert.equal((fixture.host.store.get(fixture.chatChannel) as ChatState).activeTurn?.id, "t-cancel");
 
+		const live = must(fixture.sessions.get(fixture.sessionChannel));
+		// AgentSession notifies listeners, then persists the same user message.
+		const userMessage = { role: "user", content: "long running", timestamp: 0 } as const;
+		backend.emit({ type: "message_start", message: userMessage } as AgentSessionEvent);
+		backend.emit({ type: "message_end", message: userMessage } as AgentSessionEvent);
+		live.sessionManager.appendMessage(userMessage);
+		live.sessionManager.appendMessage(fauxAssistantMessage([], { stopReason: "aborted", timestamp: 0 }));
+
+		fixture.client.dispatch(fixture.chatChannel, {
+			type: ActionType.ChatPendingMessageSet,
+			kind: PendingMessageKind.Queued,
+			id: "after-cancel",
+			message: { text: "run after cancel", origin: { kind: MessageKind.User } },
+		});
 		fixture.client.dispatch(fixture.chatChannel, {
 			type: ActionType.ChatTurnCancelled,
 			turnId: "t-cancel",
@@ -319,10 +491,24 @@ describe("chat driver", () => {
 		});
 
 		await eventually("cancellation to reach the backend", () => backend.aborts === 1);
+		await eventually(
+			"queued work to complete after backend cancellation",
+			() => (fixture.host.store.get(fixture.chatChannel) as ChatState).turns.length === 2,
+		);
 		const chat = fixture.host.store.get(fixture.chatChannel) as ChatState;
 		const session = fixture.host.store.get(fixture.sessionChannel) as SessionState;
-		assert.equal(chat.turns.at(-1)?.state, TurnState.Cancelled);
+		assert.equal(chat.turns.find((turn) => turn.id === "t-cancel")?.state, TurnState.Cancelled);
+		assert.equal(chat.turns.at(-1)?.message.text, "run after cancel");
+		assert.equal(chat.turns.at(-1)?.state, TurnState.Complete);
 		assert.equal(session.chats[0]?.status, chat.status);
+
+		fixture.client.dispatch(fixture.chatChannel, { type: ActionType.ChatTruncated, turnId: "t-cancel" });
+		await fixture.client.ping();
+		assert.deepEqual(
+			(fixture.host.store.get(fixture.chatChannel) as ChatState).turns.map((turn) => turn.id),
+			["t-cancel"],
+			"a persisted cancelled turn must remain a valid truncation target",
+		);
 	});
 });
 

@@ -19,6 +19,7 @@
  */
 
 import { isDeepStrictEqual } from "node:util";
+import type { ImageContent } from "@earendil-works/pi-ai";
 import type { AgentSessionEvent } from "@earendil-works/pi-coding-agent";
 import {
 	ActionType,
@@ -32,18 +33,21 @@ import {
 } from "@microsoft/agent-host-protocol";
 import type { AhpHost } from "../core/host.ts";
 import { TurnMapper } from "./event-mapper.ts";
-import { messageTextForPi } from "./message-input.ts";
+import { messageInputForPi } from "./message-input.ts";
 
 /**
  * The slice of a pi agent session this host needs.
  *
- * Narrow on purpose: an in-process `AgentSession` satisfies it directly, and so
- * would a subprocess driver, without the mapper or driver changing.
+ * Narrow on purpose: the in-process `AgentSession` adapter and a possible
+ * subprocess driver can satisfy it without the mapper or driver changing.
  */
 export interface PiBackend {
 	subscribe(listener: (event: AgentSessionEvent) => void): () => void;
-	prompt(text: string): Promise<void>;
-	steer(text: string): Promise<void>;
+	/** The signal prevents accepted preflight work from starting after its turn was cancelled. */
+	prompt(text: string, images?: ImageContent[], signal?: AbortSignal): Promise<void>;
+	/** Queues steering only while the owning turn's signal remains live. */
+	steer(text: string, images?: ImageContent[], signal?: AbortSignal): Promise<void>;
+	/** Stops work that has already entered the backend. */
 	abort(): Promise<void>;
 	dispose?(): void;
 	/**
@@ -87,6 +91,16 @@ export class ChatDriver {
 	readonly #unsubscribe: () => void;
 
 	#mapper: TurnMapper | undefined;
+	/** Cancels preflight work before a cancelled turn can enter AgentSession. */
+	#turnAbort: AbortController | undefined;
+	/** Preflight/run work belonging to the current mapper, if it has not settled. */
+	#turnOperation: Promise<void> | undefined;
+	/** A client cancellation must settle before another turn starts on the backend. */
+	#cancellation: Promise<void> | undefined;
+	/** Prevents an older chained cancellation from releasing a newer one's barrier. */
+	#cancellationGeneration = 0;
+	/** Turn ids whose user `message_end` pi emitted and will persist. */
+	readonly #persistedInputTurns = new Set<string>();
 	/** Backend mutations already accepted by this driver but not yet settled. */
 	readonly #inFlight = new Set<Promise<unknown>>();
 	/** Stops new mutations while the owner decides whether to remove the session. */
@@ -120,8 +134,12 @@ export class ChatDriver {
 	/** Stops new work, aborts the active run, and waits for accepted mutations to settle. */
 	async quiesce(): Promise<void> {
 		this.#quiesced = true;
+		const turnAbort = this.#turnAbort;
 		try {
 			await this.#backend.abort();
+			// Abort preflight only after backend abort succeeds, so a failed
+			// disposal can still resume the turn it tried to quiesce.
+			turnAbort?.abort();
 			await this.#drainInFlight();
 			// A backend is required to settle after abort, but a narrow test or future
 			// backend may only honour the Promise boundary.
@@ -189,11 +207,7 @@ export class ChatDriver {
 				this.#startTurn(action.turnId, action.message);
 				return true;
 			case ActionType.ChatTurnCancelled:
-				void this.#track(
-					this.#backend.abort().catch((error: unknown) => {
-						this.#log?.(`abort failed: ${String(error)}`);
-					}),
-				);
+				this.#cancelTurn(action.turnId);
 				return true;
 			case ActionType.ChatPendingMessageSet:
 				// Steering is the only kind pi needs to know about: it is
@@ -219,8 +233,17 @@ export class ChatDriver {
 	// ── Turn lifecycle ──────────────────────────────────────────────────────
 
 	async #steer(message: Message): Promise<void> {
+		const signal = this.#turnAbort?.signal;
 		try {
-			await this.#backend.steer(messageTextForPi(message));
+			const cancellation = this.#cancellation;
+			if (cancellation) {
+				await cancellation;
+			}
+			if (signal?.aborted) {
+				return;
+			}
+			const input = messageInputForPi(message);
+			await this.#backend.steer(input.text, input.images, signal);
 		} catch (error) {
 			this.#log?.(`steer failed: ${String(error)}`);
 			this.#clearPendingSteering();
@@ -228,15 +251,25 @@ export class ChatDriver {
 	}
 
 	#startTurn(turnId: string, message: Message): void {
+		this.#persistedInputTurns.clear();
 		const mapper = new TurnMapper(turnId, Date.now(), {
 			...(this.#workingDirectory ? { workingDirectory: this.#workingDirectory } : {}),
 		});
+		const controller = new AbortController();
 		this.#mapper = mapper;
-		this.#runPrompt(mapper, message, "prompt");
+		this.#turnAbort = controller;
+		this.#runPrompt(mapper, message, "prompt", controller.signal);
 	}
 
-	#runPrompt(mapper: TurnMapper, message: Message, label: "prompt" | "queued prompt"): void {
+	#runPrompt(mapper: TurnMapper, message: Message, label: "prompt" | "queued prompt", signal: AbortSignal): void {
 		const operation = (async () => {
+			const cancellation = this.#cancellation;
+			if (cancellation) {
+				await cancellation;
+			}
+			if (this.#mapper !== mapper || this.#quiesced || signal.aborted) {
+				return;
+			}
 			// The client's choice has to land before the prompt, or the turn runs on
 			// whatever the previous one used. Selection may itself append to the
 			// session, so quiescence waits for this whole operation rather than only
@@ -248,11 +281,12 @@ export class ChatDriver {
 					this.#log?.(`selectModel failed: ${String(error)}`);
 				}
 			}
-			if (this.#mapper !== mapper || this.#quiesced) {
+			if (this.#mapper !== mapper || this.#quiesced || signal.aborted) {
 				return;
 			}
 			try {
-				await this.#backend.prompt(messageTextForPi(message));
+				const input = messageInputForPi(message);
+				await this.#backend.prompt(input.text, input.images, signal);
 			} catch (error) {
 				if (this.#mapper !== mapper) {
 					return;
@@ -263,7 +297,12 @@ export class ChatDriver {
 				this.#finishTurn("error", error instanceof Error ? error.message : String(error));
 			}
 		})();
-		void this.#track(operation);
+		const tracked = this.#track(operation);
+		this.#turnOperation = tracked;
+		const forget = (): void => {
+			if (this.#turnOperation === tracked) this.#turnOperation = undefined;
+		};
+		void tracked.then(forget, forget);
 	}
 
 	#onAgentEvent(event: AgentSessionEvent): void {
@@ -284,10 +323,17 @@ export class ChatDriver {
 		for (const action of mapper.handle(event)) {
 			this.#host.dispatchServerAction(this.#chatChannel, action);
 		}
+		if (event.type === "message_end" && (event as { message?: { role?: string } }).message?.role === "user") {
+			// AgentSession appends this message immediately after notifying its
+			// listeners, before another client action can be handled.
+			this.#persistedInputTurns.add(mapper.turnId);
+		}
 
 		if (mapper.finished) {
 			this.#recordTurnAnchor?.(mapper.turnId);
+			this.#persistedInputTurns.clear();
 			this.#mapper = undefined;
+			this.#turnAbort = undefined;
 			this.#consumeNextQueuedMessage();
 		}
 	}
@@ -336,7 +382,10 @@ export class ChatDriver {
 		for (const action of mapper.finish(outcome, message)) {
 			this.#host.dispatchServerAction(this.#chatChannel, action);
 		}
+		this.#recordAnchorIfPersisted(mapper.turnId);
+		this.#persistedInputTurns.clear();
 		this.#mapper = undefined;
+		this.#turnAbort = undefined;
 		// A turn that ends without consuming its steering message must not leave
 		// it pending for the next one.
 		this.#clearPendingSteering();
@@ -352,7 +401,7 @@ export class ChatDriver {
 	 * running.
 	 */
 	#consumeNextQueuedMessage(): void {
-		if (this.#quiesced) {
+		if (this.#quiesced || this.#cancellation) {
 			return;
 		}
 		const state = this.#host.store.get(this.#chatChannel) as ChatState | undefined;
@@ -362,10 +411,13 @@ export class ChatDriver {
 		}
 
 		const turnId = `turn-${next.id}`;
+		this.#persistedInputTurns.clear();
 		const mapper = new TurnMapper(turnId, Date.now(), {
 			...(this.#workingDirectory ? { workingDirectory: this.#workingDirectory } : {}),
 		});
+		const controller = new AbortController();
 		this.#mapper = mapper;
+		this.#turnAbort = controller;
 		this.#host.dispatchServerAction(this.#chatChannel, {
 			type: ActionType.ChatTurnStarted,
 			turnId,
@@ -374,7 +426,62 @@ export class ChatDriver {
 			queuedMessageId: next.id,
 		});
 
-		this.#runPrompt(mapper, next.message, "queued prompt");
+		this.#runPrompt(mapper, next.message, "queued prompt", controller.signal);
+	}
+
+	#cancelTurn(turnId: string): void {
+		const mapper = this.#mapper;
+		if (mapper && mapper.turnId !== turnId) {
+			return;
+		}
+		const turnOperation = this.#turnOperation;
+		const inputPersisted = this.#persistedInputTurns.has(turnId);
+		this.#persistedInputTurns.clear();
+
+		this.#turnAbort?.abort();
+		this.#turnAbort = undefined;
+		this.#mapper = undefined;
+		this.#clearPendingSteering();
+
+		const state = this.#host.store.get(this.#chatChannel) as ChatState | undefined;
+		if (state?.activity !== undefined) {
+			this.#host.dispatchServerAction(this.#chatChannel, { type: ActionType.ChatActivityChanged });
+		}
+
+		const generation = ++this.#cancellationGeneration;
+		const cancellation = this.#settleCancellation(this.#cancellation, turnOperation).finally(() => {
+			if (inputPersisted) {
+				this.#recordTurnAnchor?.(turnId);
+			}
+			if (generation !== this.#cancellationGeneration) {
+				return;
+			}
+			this.#cancellation = undefined;
+			this.#consumeNextQueuedMessage();
+		});
+		this.#cancellation = cancellation;
+		void this.#track(cancellation);
+	}
+
+	async #settleCancellation(
+		previous: Promise<void> | undefined,
+		turnOperation: Promise<void> | undefined,
+	): Promise<void> {
+		await previous;
+		await Promise.all([
+			this.#backend.abort().catch((error: unknown) => {
+				this.#log?.(`abort failed: ${String(error)}`);
+			}),
+			turnOperation?.catch((error: unknown) => {
+				this.#log?.(`cancelled turn cleanup failed: ${String(error)}`);
+			}),
+		]);
+	}
+
+	#recordAnchorIfPersisted(turnId: string): void {
+		if (this.#persistedInputTurns.has(turnId)) {
+			this.#recordTurnAnchor?.(turnId);
+		}
 	}
 
 	#track<T>(operation: Promise<T>): Promise<T> {

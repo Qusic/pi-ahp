@@ -19,6 +19,7 @@ import { pathToFileUri } from "../core/uri.ts";
 import { ProtocolError } from "../protocol/errors.ts";
 import { PI_PROVIDER } from "./provider.ts";
 import { sessionDisplayTitle } from "./session-title.ts";
+import { textFromPiUserContent } from "./user-message.ts";
 
 /** Page size when the client does not ask for one. */
 const DEFAULT_PAGE_SIZE = 30;
@@ -143,19 +144,6 @@ function readSessionId(path: string): string | undefined {
 	}
 }
 
-function extractText(content: unknown): string {
-	if (typeof content === "string") {
-		return content;
-	}
-	if (!Array.isArray(content)) {
-		return "";
-	}
-	return content
-		.filter((block): block is { type: "text"; text: string } => (block as { type?: string })?.type === "text")
-		.map((block) => block.text)
-		.join(" ");
-}
-
 /**
  * Parses one session file into a summary.
  *
@@ -185,7 +173,7 @@ function readSessionSummary(file: SessionFile): SessionSummary | undefined {
 		}
 		const message = (entry as { message?: { role?: string; content?: unknown } }).message;
 		if (message?.role === "user") {
-			const text = extractText(message.content).trim();
+			const text = textFromPiUserContent(message.content).trim();
 			if (text) {
 				firstUserMessage = text;
 				break;

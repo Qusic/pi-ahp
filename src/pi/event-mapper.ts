@@ -48,6 +48,7 @@ import {
 	THINKING_ACTIVITY,
 	toolInputFor,
 } from "./activity.ts";
+import { userMessageFromPiContent } from "./user-message.ts";
 
 /** How a turn ended, decided from the last assistant message's stop reason. */
 type TurnOutcome = "complete" | "cancelled" | "error";
@@ -113,20 +114,6 @@ function toUsageInfo(usage: PiUsage | undefined, model: string | undefined): Usa
 		...(model ? { model } : {}),
 		...(Object.keys(extra).length > 0 ? { _meta: extra } : {}),
 	};
-}
-
-/** pi carries message content either as a plain string or as typed blocks. */
-function extractText(content: unknown): string {
-	if (typeof content === "string") {
-		return content;
-	}
-	if (!Array.isArray(content)) {
-		return "";
-	}
-	return content
-		.filter((block): block is { type: "text"; text: string } => (block as { type?: string })?.type === "text")
-		.map((block) => block.text)
-		.join("");
 }
 
 function textContent(text: string): ToolResultContent[] {
@@ -354,7 +341,7 @@ export class TurnMapper {
 			return [];
 		}
 
-		const text = extractText(message.content);
+		const injected = userMessageFromPiContent(message.content);
 		const completed = this.#closeCurrentTurn();
 
 		this.#injectedCount += 1;
@@ -370,7 +357,7 @@ export class TurnMapper {
 				type: ActionType.ChatTurnStarted,
 				turnId: this.#turnId,
 				startedAt: new Date(this.#turnStartedAt).toISOString(),
-				message: { text, origin: { kind: MessageKind.User } },
+				message: injected,
 			},
 		];
 	}

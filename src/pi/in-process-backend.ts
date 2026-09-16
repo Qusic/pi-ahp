@@ -10,6 +10,7 @@
  * @see ../pi/chat-driver.ts for how a backend is driven
  */
 
+import type { ImageContent } from "@earendil-works/pi-ai";
 import {
 	type AgentSession,
 	type AgentSessionEvent,
@@ -20,6 +21,7 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import type { ModelSelection } from "@microsoft/agent-host-protocol";
 import type { PiBackend } from "./chat-driver.ts";
+import { prepareImagesForPi } from "./image-input.ts";
 import { findModelBySelectionId, modelSelectionId, THINKING_CONFIG_KEY } from "./models.ts";
 import { type ProjectTrustPolicy, resolveProjectTrust, type TrustDecision } from "./project-trust.ts";
 
@@ -34,10 +36,9 @@ export interface InProcessBackendOptions {
 /**
  * Wraps an `AgentSession` in the narrow surface the driver needs.
  *
- * `prompt()` deliberately does not await the agent run: the protocol models a
- * turn as a stream of actions, and the driver closes it on `agent_settled`.
- * Awaiting here would serialise the whole turn behind one promise and make
- * cancellation impossible.
+ * `AgentSession.prompt()` spans the full run. The driver tracks that promise
+ * without blocking action routing, while session events stream protocol state
+ * and `abort()` remains available for cancellation.
  */
 export class InProcessPiBackend implements PiBackend {
 	readonly #session: AgentSession;
@@ -73,12 +74,26 @@ export class InProcessPiBackend implements PiBackend {
 		return this.#session.subscribe(listener);
 	}
 
-	async prompt(text: string): Promise<void> {
-		await this.#session.prompt(text);
+	async prompt(text: string, images?: ImageContent[], signal?: AbortSignal): Promise<void> {
+		if (signal?.aborted) {
+			return;
+		}
+		const prepared = await prepareImagesForPi(images, this.#session.settingsManager.getImageAutoResize());
+		if (signal?.aborted) {
+			return;
+		}
+		await this.#session.prompt(text, prepared ? { images: prepared } : undefined);
 	}
 
-	async steer(text: string): Promise<void> {
-		await this.#session.steer(text);
+	async steer(text: string, images?: ImageContent[], signal?: AbortSignal): Promise<void> {
+		if (signal?.aborted) {
+			return;
+		}
+		const prepared = await prepareImagesForPi(images, this.#session.settingsManager.getImageAutoResize());
+		if (signal?.aborted) {
+			return;
+		}
+		await this.#session.steer(text, prepared);
 	}
 
 	async abort(): Promise<void> {

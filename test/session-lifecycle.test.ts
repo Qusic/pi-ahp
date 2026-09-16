@@ -16,6 +16,7 @@ import {
 	ActionType,
 	type ChatState,
 	JsonRpcErrorCodes,
+	MessageAttachmentKind,
 	MessageKind,
 	SessionLifecycle,
 	type SessionState,
@@ -107,7 +108,18 @@ describe("session lifecycle", () => {
 			type: ActionType.ChatTurnStarted,
 			turnId: "title-turn",
 			startedAt: new Date().toISOString(),
-			message: { text: "  Review\n   auth handling  ", origin: { kind: MessageKind.User } },
+			message: {
+				text: "  Review\n   auth handling  ",
+				origin: { kind: MessageKind.User },
+				attachments: [
+					{
+						type: MessageAttachmentKind.EmbeddedResource,
+						label: "context.txt",
+						contentType: "text/plain",
+						data: Buffer.from("attachment text is not a session title").toString("base64"),
+					},
+				],
+			},
 		});
 		const event = await nextEvent(events, (candidate) => {
 			if (candidate.type !== "action") return false;

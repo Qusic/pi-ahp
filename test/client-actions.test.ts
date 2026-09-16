@@ -310,23 +310,6 @@ describe("pi client-action policy", () => {
 			chat,
 			{
 				type: ActionType.ChatDraftChanged,
-				draft: userMessage("image", {
-					attachments: [
-						{
-							type: MessageAttachmentKind.EmbeddedResource,
-							label: "image.png",
-							contentType: "image/png",
-							data: "iVBORw0KGgo=",
-						},
-					],
-				}),
-			},
-			/valid UTF-8/,
-		);
-		await expectRejected(
-			chat,
-			{
-				type: ActionType.ChatDraftChanged,
 				draft: userMessage("custom agent", { agent: { uri: "agent:/fixture" } }),
 			},
 			/custom agents/,

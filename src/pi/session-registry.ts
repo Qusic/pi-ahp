@@ -36,7 +36,7 @@ import type { AhpHost } from "../core/host.ts";
 import { fileUriToPath } from "../core/uri.ts";
 import { ProtocolError } from "../protocol/errors.ts";
 import { ChatDriver, type PiBackend } from "./chat-driver.ts";
-import { messageRejectionReason, messageTextForPi } from "./message-input.ts";
+import { messageRejectionReason } from "./message-input.ts";
 import { PI_PROVIDER } from "./provider.ts";
 import type { LiveSessionCatalogueEntry } from "./session-catalogue.ts";
 import { dispatchOlderTurns, truncationAnchor } from "./session-history.ts";
@@ -168,7 +168,7 @@ export class SessionRegistry {
 			const owner = this.#byChat.get(channel);
 			if (owner) {
 				if (action.type === ActionType.ChatTurnStarted) {
-					this.#applyFallbackTitle(owner, messageTextForPi(action.message));
+					this.#applyFallbackTitle(owner, action.message.text);
 				}
 				this.#syncChatProjection(owner);
 				return;
@@ -443,10 +443,13 @@ export class SessionRegistry {
 				workingDirectory: session.workingDirectory,
 				// A completed turn's last entry is wherever the leaf now points.
 				recordTurnAnchor: (turnId) => {
-					const leaf = session.sessionManager.getLeafId();
-					if (leaf) {
-						session.turnAnchors.set(turnId, leaf);
+					const leaf = session.sessionManager.getLeafEntry();
+					// Navigating to a user entry branches before it, so it cannot
+					// represent "keep this cancelled user-only turn" safely.
+					if (!leaf || (leaf.type === "message" && leaf.message.role === "user")) {
+						return;
 					}
+					session.turnAnchors.set(turnId, leaf.id);
 				},
 				...(this.#options.log ? { log: this.#options.log } : {}),
 			});

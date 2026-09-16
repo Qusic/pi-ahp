@@ -8,7 +8,8 @@ import {
 	type MessageEmbeddedResourceAttachment,
 	MessageKind,
 } from "@microsoft/agent-host-protocol";
-import { messageRejectionReason, messageTextForPi } from "../src/pi/message-input.ts";
+import { messageInputForPi, messageRejectionReason, messageTextForPi } from "../src/pi/message-input.ts";
+import { ONE_PIXEL_JPEG } from "./support/images.ts";
 
 function message(attachments: MessageAttachment[], text = "question"): Message {
 	return { text, origin: { kind: MessageKind.User }, attachments };
@@ -25,6 +26,10 @@ function embedded(
 		data,
 		...extra,
 	};
+}
+
+function embeddedImage(data: string, contentType = "image/png"): MessageEmbeddedResourceAttachment {
+	return embedded(data, { label: "screenshot.png", contentType, displayKind: "image" });
 }
 
 describe("pi message input", () => {
@@ -83,6 +88,22 @@ describe("pi message input", () => {
 			assert.equal(messageRejectionReason(input), "A simple attachment requires modelRepresentation");
 			assert.throws(() => messageTextForPi(input), /requires modelRepresentation/);
 		}
+	});
+
+	it("separates embedded images from the text prompt", () => {
+		const input = message([
+			{ type: MessageAttachmentKind.Simple, label: "context", modelRepresentation: "selected context" },
+			embeddedImage(ONE_PIXEL_JPEG, "IMAGE/JPG; name=screenshot.jpg"),
+		]);
+
+		assert.deepEqual(messageInputForPi(input), {
+			text: "question\n\nselected context",
+			images: [{ type: "image", data: ONE_PIXEL_JPEG, mimeType: "image/jpeg" }],
+		});
+	});
+
+	it("rejects an empty embedded image", () => {
+		assert.equal(messageRejectionReason(message([embeddedImage("")])), "Embedded image screenshot.png is empty");
 	});
 
 	it("appends UTF-8 embedded text without interpreting its MIME type", () => {

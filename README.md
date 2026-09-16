@@ -98,7 +98,7 @@ Currently supported protocol versions: **0.9.0**
 | Text attachments | 🟢 | Client-provided text, local file references, and embedded UTF-8 text |
 | Files and watches | 🟢 | Host-local `file:` resources only |
 | Interactive terminals | 🟢 | Client-owned; terminals and scrollback end when the host stops |
-| Images and vision | 🟡 | Pass AHP image attachments to vision-capable pi models |
+| Images and vision | 🟢 | Embedded image attachments for vision-capable pi models |
 | Tool catalogue and client tools | 🟡 | Show available pi tools and let connected clients contribute tools |
 | pi customizations | 🟡 | Show and configure loaded extensions, skills, and prompt templates |
 | Changeset views | 🟡 | Expose uncommitted workspace changes |

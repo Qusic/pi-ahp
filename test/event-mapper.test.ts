@@ -14,6 +14,7 @@ import {
 	ActionType,
 	type ChatState,
 	chatReducer,
+	MessageAttachmentKind,
 	ResponsePartKind,
 	SessionStatus,
 	type StateAction,
@@ -23,6 +24,7 @@ import {
 import { initialChatState } from "../src/channels/chat.ts";
 import { TurnMapper, userTurnStarted } from "../src/pi/event-mapper.ts";
 import { must, turnError } from "./support/assertions.ts";
+import { ONE_PIXEL_PNG } from "./support/images.ts";
 import { assertValid } from "./support/schema.ts";
 
 const CHAT_URI = "ahp-chat:/c1";
@@ -551,13 +553,17 @@ describe("event mapper — injected messages", () => {
 		// marking it as steering, so a rebuild from disk necessarily makes it a
 		// turn. The live path has to match or the same conversation renders
 		// differently before and after a reload.
+		const injectedContent = [
+			{ type: "text", text: "Stop counting." },
+			{ type: "image", data: ONE_PIXEL_PNG, mimeType: "image/png" },
+		];
 		const { state } = runTurn([
 			pi.agentStart(),
 			pi.assistantStart(),
 			pi.text(0, "1\n2\n3"),
 			pi.assistantEnd(),
-			event({ type: "message_start", message: { role: "user", content: "Stop counting." } }),
-			event({ type: "message_end", message: { role: "user", content: "Stop counting." } }),
+			event({ type: "message_start", message: { role: "user", content: injectedContent } }),
+			event({ type: "message_end", message: { role: "user", content: injectedContent } }),
 			pi.assistantStart(),
 			pi.text(0, "STOPPED"),
 			pi.assistantEnd(),
@@ -567,6 +573,15 @@ describe("event mapper — injected messages", () => {
 		assert.equal(state.turns.length, 2);
 		assert.equal(state.turns[0]?.message.text, "Hello");
 		assert.equal(state.turns[1]?.message.text, "Stop counting.");
+		assert.deepEqual(state.turns[1]?.message.attachments, [
+			{
+				type: MessageAttachmentKind.EmbeddedResource,
+				label: "Image 1",
+				displayKind: "image",
+				data: ONE_PIXEL_PNG,
+				contentType: "image/png",
+			},
+		]);
 		assert.equal((must(state.turns[1]).responseParts[0] as { content: string }).content, "STOPPED");
 	});
 

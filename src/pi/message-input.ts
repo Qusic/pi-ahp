@@ -1,11 +1,12 @@
 /**
- * Converts supported AHP user-message attachments into a text prompt for pi.
+ * Converts supported AHP user-message attachments into pi's prompt shape.
  * Resource references become paths or URIs, simple attachments contribute their
- * model representation, and embedded resources must contain UTF-8 text. Other
- * attachment kinds, including images, are rejected by this text-only boundary.
+ * model representation, embedded text is decoded as UTF-8, and embedded images
+ * become pi image-content blocks. Other attachment kinds remain unsupported.
  */
 
 import { fileURLToPath } from "node:url";
+import type { ImageContent } from "@earendil-works/pi-ai";
 import {
 	type Message,
 	MessageAttachmentKind,
@@ -13,8 +14,17 @@ import {
 	type MessageResourceAttachment,
 	type TextRange,
 } from "@microsoft/agent-host-protocol";
+import { normalizeImageMimeType } from "./image-mime.ts";
 
-type PreparedMessage = { readonly text: string } | { readonly rejectionReason: string };
+export interface PiMessageInput {
+	readonly text: string;
+	readonly images?: ImageContent[];
+}
+
+type RejectedMessage = { readonly rejectionReason: string };
+type PreparedMessage = PiMessageInput | RejectedMessage;
+type PreparedText = { readonly text: string } | RejectedMessage;
+type PreparedEmbedded = { readonly text: string } | { readonly image: ImageContent } | RejectedMessage;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null;
@@ -46,17 +56,39 @@ function rangeText(range: TextRange): string {
 	return `${range.start.line + 1}:${range.start.character + 1}-${range.end.line + 1}:${range.end.character + 1}`;
 }
 
-function embeddedText(attachment: MessageEmbeddedResourceAttachment): PreparedMessage {
+function baseContentType(contentType: string): string {
+	return contentType.split(";", 1)[0]?.trim().toLowerCase() ?? "";
+}
+
+function embeddedContent(attachment: MessageEmbeddedResourceAttachment): PreparedEmbedded {
 	if (typeof attachment.contentType !== "string") {
 		return { rejectionReason: `Embedded resource ${attachment.label} requires a content type` };
 	}
-	// MIME is advisory; successful UTF-8 decoding is the only distinction this
-	// text-only adapter needs.
+	const contentType = baseContentType(attachment.contentType);
+	if (!contentType) {
+		return { rejectionReason: `Embedded resource ${attachment.label} requires a content type` };
+	}
 	const bytes = decodeBase64(attachment.data);
 	if (!bytes) {
 		return { rejectionReason: `Embedded resource ${attachment.label} is not valid base64` };
 	}
 
+	const imageMimeType = normalizeImageMimeType(contentType);
+	if (imageMimeType) {
+		if (bytes.length === 0) {
+			return { rejectionReason: `Embedded image ${attachment.label} is empty` };
+		}
+		return {
+			image: {
+				type: "image",
+				data: bytes.toString("base64"),
+				mimeType: imageMimeType,
+			},
+		};
+	}
+
+	// MIME is advisory for non-images: successful UTF-8 decoding decides whether
+	// an embedded resource can safely join pi's text prompt.
 	let decoded: string;
 	try {
 		decoded = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
@@ -70,7 +102,7 @@ function embeddedText(attachment: MessageEmbeddedResourceAttachment): PreparedMe
 	return { text: `[selection ${rangeText(selected)}]\n${decoded}` };
 }
 
-function resourceText(attachment: MessageResourceAttachment): PreparedMessage {
+function resourceText(attachment: MessageResourceAttachment): PreparedText {
 	if (typeof attachment.uri !== "string") {
 		return { rejectionReason: "A resource attachment requires a URI" };
 	}
@@ -107,6 +139,7 @@ function prepareMessage(value: unknown): PreparedMessage {
 	const message = value as unknown as Message;
 
 	const representations: string[] = [];
+	const images: ImageContent[] = [];
 	for (const attachment of message.attachments ?? []) {
 		if (!isRecord(attachment) || typeof attachment.type !== "string" || typeof attachment.label !== "string") {
 			return { rejectionReason: "Every message attachment requires a type and label" };
@@ -139,11 +172,15 @@ function prepareMessage(value: unknown): PreparedMessage {
 				}
 				break;
 			case MessageAttachmentKind.EmbeddedResource: {
-				const embedded = embeddedText(attachment);
+				const embedded = embeddedContent(attachment);
 				if ("rejectionReason" in embedded) {
 					return embedded;
 				}
-				representations.push(embedded.text);
+				if ("image" in embedded) {
+					images.push(embedded.image);
+				} else {
+					representations.push(embedded.text);
+				}
 				break;
 			}
 			default:
@@ -151,7 +188,10 @@ function prepareMessage(value: unknown): PreparedMessage {
 		}
 	}
 
-	return { text: [message.text, ...representations].filter(Boolean).join("\n\n") };
+	return {
+		text: [message.text, ...representations].filter(Boolean).join("\n\n"),
+		...(images.length > 0 ? { images } : {}),
+	};
 }
 
 export function messageRejectionReason(message: unknown): string | undefined {
@@ -159,10 +199,14 @@ export function messageRejectionReason(message: unknown): string | undefined {
 	return "rejectionReason" in prepared ? prepared.rejectionReason : undefined;
 }
 
-export function messageTextForPi(message: Message): string {
+export function messageInputForPi(message: Message): PiMessageInput {
 	const prepared = prepareMessage(message);
 	if ("rejectionReason" in prepared) {
 		throw new Error(prepared.rejectionReason);
 	}
-	return prepared.text;
+	return prepared;
+}
+
+export function messageTextForPi(message: Message): string {
+	return messageInputForPi(message).text;
 }

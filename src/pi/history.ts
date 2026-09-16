@@ -19,6 +19,7 @@
 
 import type { SessionEntry, SessionManager } from "@earendil-works/pi-coding-agent";
 import {
+	type Message,
 	MessageKind,
 	type ResponsePart,
 	ResponsePartKind,
@@ -29,6 +30,7 @@ import {
 	TurnState,
 	type UsageInfo,
 } from "@microsoft/agent-host-protocol";
+import { userMessageFromPiContent } from "./user-message.ts";
 
 interface ContentBlock {
 	readonly type: string;
@@ -86,7 +88,7 @@ function textContent(text: string): ToolResultContent[] {
 interface PendingTurn {
 	readonly id: string;
 	readonly startedAt: string;
-	readonly text: string;
+	readonly message: Message;
 	readonly parts: ResponsePart[];
 	usage: UsageInfo | undefined;
 }
@@ -148,7 +150,7 @@ export function rebuildHistory(entries: readonly SessionEntry[], options: Rebuil
 		turns.push({
 			id: current.id,
 			startedAt: current.startedAt,
-			message: { text: current.text, origin: { kind: MessageKind.User } },
+			message: current.message,
 			responseParts: current.parts,
 			usage: current.usage,
 			state: TurnState.Complete,
@@ -157,9 +159,9 @@ export function rebuildHistory(entries: readonly SessionEntry[], options: Rebuil
 		toolCallParts = new Map();
 	};
 
-	const openTurn = (id: string, startedAt: string, text: string): void => {
+	const openTurn = (id: string, startedAt: string, message: Message): void => {
 		closeTurn();
-		current = { id, startedAt, text, parts: [], usage: undefined };
+		current = { id, startedAt, message, parts: [], usage: undefined };
 	};
 
 	for (const entry of entries) {
@@ -195,7 +197,7 @@ export function rebuildHistory(entries: readonly SessionEntry[], options: Rebuil
 		const message = entry.message as unknown as StoredMessage;
 		switch (message.role) {
 			case "user": {
-				openTurn(`${prefix}-${entry.id}`, entry.timestamp, plainText(message));
+				openTurn(`${prefix}-${entry.id}`, entry.timestamp, userMessageFromPiContent(message.content));
 				break;
 			}
 
@@ -204,7 +206,7 @@ export function rebuildHistory(entries: readonly SessionEntry[], options: Rebuil
 					// An assistant message with no preceding user message (a
 					// truncated file, or history that starts mid-turn). Give it a
 					// turn so the content is not dropped.
-					openTurn(`${prefix}-${entry.id}`, entry.timestamp, "");
+					openTurn(`${prefix}-${entry.id}`, entry.timestamp, userMessageFromPiContent(""));
 				}
 				const turn = current as PendingTurn;
 				let index = 0;
@@ -270,7 +272,7 @@ export function rebuildHistory(entries: readonly SessionEntry[], options: Rebuil
 				// pi records `!command` runs as their own message role; they are
 				// part of the transcript even though no model produced them.
 				if (!current) {
-					openTurn(`${prefix}-${entry.id}`, entry.timestamp, `!${message.command ?? ""}`);
+					openTurn(`${prefix}-${entry.id}`, entry.timestamp, userMessageFromPiContent(`!${message.command ?? ""}`));
 				}
 				(current as PendingTurn).parts.push({
 					kind: ResponsePartKind.SystemNotification,
