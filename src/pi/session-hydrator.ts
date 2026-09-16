@@ -64,6 +64,8 @@ export interface SessionHydratorOptions {
 
 export class SessionHydrator implements ChannelHydrator {
 	readonly #options: SessionHydratorOptions;
+	/** Session and chat subscriptions for one id join the same disk materialization. */
+	readonly #hydrations = new Map<string, Promise<void>>();
 
 	constructor(options: SessionHydratorOptions) {
 		this.#options = options;
@@ -81,19 +83,36 @@ export class SessionHydrator implements ChannelHydrator {
 		// Register the session under the URI the client actually used, so a
 		// non-standard scheme resolves to the same channel it subscribed to.
 		const session = isChatChannel(channel) ? sessionUri(sessionId) : channel;
-		const chat = chatUri(sessionId);
 		if (this.#options.isLive(session)) {
-			// Already running: its in-memory state is authoritative and must not
-			// be overwritten with what happens to be on disk.
 			return this.#options.host.store.has(channel);
 		}
 		if (this.#options.isDisposing(session)) {
 			return false;
 		}
 
+		const pending = this.#hydrations.get(sessionId);
+		if (pending) {
+			await pending;
+			return this.#options.host.store.has(channel);
+		}
+
+		const hydration = this.#hydrateSession(sessionId, session);
+		this.#hydrations.set(sessionId, hydration);
+		try {
+			await hydration;
+		} finally {
+			if (this.#hydrations.get(sessionId) === hydration) {
+				this.#hydrations.delete(sessionId);
+			}
+		}
+		return this.#options.host.store.has(channel);
+	}
+
+	async #hydrateSession(sessionId: string, session: URI): Promise<void> {
+		const chat = chatUri(sessionId);
 		const file = await this.#options.catalogue.findSessionFile(sessionId);
 		if (!file) {
-			return false;
+			return;
 		}
 
 		let manager: SessionManager;
@@ -101,7 +120,7 @@ export class SessionHydrator implements ChannelHydrator {
 			manager = SessionManager.open(file);
 		} catch (error) {
 			this.#options.log?.(`cannot open ${file}: ${String(error)}`);
-			return false;
+			return;
 		}
 
 		const turns = rebuildTurnsFromSession(manager, { turnIdPrefix: sessionId });
@@ -119,11 +138,11 @@ export class SessionHydrator implements ChannelHydrator {
 		const workingDirectory = manager.getCwd();
 		const title = sessionDisplayTitle(manager.getSessionName(), firstUserText(turns));
 
-		// Disposal may have started during file lookup or stat. From this check
-		// through adoption there is no await, so the pair is created atomically
-		// with respect to a new disposal request.
-		if (this.#options.isDisposing(session)) {
-			return false;
+		// Another create/adopt or disposal may have won during file I/O. From this
+		// check through adoption there is no await, so live state cannot be
+		// replaced by this disk snapshot after the check.
+		if (this.#options.isLive(session) || this.#options.isDisposing(session)) {
+			return;
 		}
 
 		// Read, for the same reason the catalogue reports read — see
@@ -187,7 +206,6 @@ export class SessionHydrator implements ChannelHydrator {
 		});
 
 		this.#options.log?.(`hydrated ${session} with ${turns.length} turns`);
-		return this.#options.host.store.has(channel);
 	}
 }
 

@@ -23,12 +23,27 @@ import {
 } from "@microsoft/agent-host-protocol";
 import { RpcError } from "@microsoft/agent-host-protocol/client";
 import { chatUri, ROOT_CHANNEL, sessionUri } from "../src/core/channels.ts";
+import { AhpHost } from "../src/core/host.ts";
 import { pathToFileUri } from "../src/core/uri.ts";
 import { PiSessionCatalogue } from "../src/pi/session-catalogue.ts";
+import { SessionHydrator } from "../src/pi/session-hydrator.ts";
 import { must } from "./support/assertions.ts";
 import { type HydratedSessionFixture, startHydratedSessionFixture } from "./support/hydrated-session.ts";
 import { ONE_PIXEL_PNG } from "./support/images.ts";
 import { assertValid } from "./support/schema.ts";
+
+class BlockingCatalogue extends PiSessionCatalogue {
+	readonly lookupStarted = Promise.withResolvers<void>();
+	readonly lookupGate = Promise.withResolvers<void>();
+	lookups = 0;
+
+	override async findSessionFile(sessionId: string): Promise<string | undefined> {
+		this.lookups += 1;
+		this.lookupStarted.resolve();
+		await this.lookupGate.promise;
+		return super.findSessionFile(sessionId);
+	}
+}
 
 describe("opening a session from the catalogue", () => {
 	let fixture: HydratedSessionFixture;
@@ -120,6 +135,42 @@ describe("opening a session from the catalogue", () => {
 			assert.ok(fresh.host.store.has(sessionUri(fresh.sessionId)), "the session must load alongside its chat");
 		} finally {
 			await fresh.close();
+		}
+	});
+
+	it("coalesces concurrent session and chat hydration", async () => {
+		const source = await startHydratedSessionFixture();
+		const catalogue = new BlockingCatalogue(source.root);
+		try {
+			const host = new AhpHost();
+			const live = new Set<string>();
+			const adopted: string[] = [];
+			const hydrator = new SessionHydrator({
+				host,
+				catalogue,
+				isLive: (session) => live.has(session),
+				isDisposing: () => false,
+				adopt: (session) => {
+					live.add(session.uri);
+					adopted.push(session.uri);
+				},
+			});
+			const session = sessionUri(source.sessionId);
+			const chat = chatUri(source.sessionId);
+
+			const first = hydrator.hydrate(session);
+			await catalogue.lookupStarted.promise;
+			const second = hydrator.hydrate(chat);
+			catalogue.lookupGate.resolve();
+
+			assert.deepEqual(await Promise.all([first, second]), [true, true]);
+			assert.equal(catalogue.lookups, 1);
+			assert.deepEqual(adopted, [session]);
+			assert.equal(host.store.has(session), true);
+			assert.equal(host.store.has(chat), true);
+		} finally {
+			catalogue.lookupGate.resolve();
+			await source.close();
 		}
 	});
 });
