@@ -81,7 +81,7 @@ it("wires product services through createPiHost", async () => {
 		await client.shutdown();
 		await server.close();
 		built.terminals.shutdown();
-		await built.watches.dispose();
+		await Promise.all([built.changesets.dispose(), built.watches.dispose()]);
 		rmSync(workspace, { recursive: true, force: true });
 	}
 });

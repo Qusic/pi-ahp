@@ -52,6 +52,8 @@ import { ProtocolError } from "../protocol/errors.ts";
 import { ResourcePathPolicy } from "./resource-paths.ts";
 
 export interface ResourceServiceOptions {
+	/** Resolves host-owned virtual content references before filesystem routing. */
+	readonly readVirtual?: (params: ResourceReadParams) => Promise<ResourceReadResult | undefined>;
 	/**
 	 * Directories a client may reach, as filesystem paths.
 	 *
@@ -106,15 +108,19 @@ function translate(error: unknown, uri: string): ProtocolError {
 
 export class ResourceService {
 	readonly #paths: ResourcePathPolicy;
+	readonly #readVirtual: ResourceServiceOptions["readVirtual"];
 	readonly #writeTails = new Map<string, Promise<void>>();
 
 	constructor(options: ResourceServiceOptions = {}) {
 		this.#paths = options.pathPolicy ?? new ResourcePathPolicy(options.roots);
+		this.#readVirtual = options.readVirtual;
 	}
 
 	// ── Commands ────────────────────────────────────────────────────────────
 
 	async read(params: ResourceReadParams): Promise<ResourceReadResult> {
+		const virtual = typeof params?.uri === "string" ? await this.#readVirtual?.(params) : undefined;
+		if (virtual) return virtual;
 		const path = await this.#paths.pathFor(params.uri);
 		try {
 			const buffer = await readFile(path);

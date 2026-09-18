@@ -113,7 +113,7 @@ describe("live turn", { skip: LIVE ? false : SKIP_REASON }, () => {
 		await client?.shutdown();
 		await server?.close();
 		built?.terminals.shutdown();
-		await built?.watches.dispose();
+		await Promise.all([built?.changesets.dispose(), built?.watches.dispose()]);
 		if (previousAgentDir === undefined) delete process.env.PI_CODING_AGENT_DIR;
 		else process.env.PI_CODING_AGENT_DIR = previousAgentDir;
 		rmSync(root, { recursive: true, force: true });

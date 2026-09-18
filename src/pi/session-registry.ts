@@ -146,6 +146,9 @@ export interface SessionRegistryOptions {
 	readonly log?: (message: string) => void;
 }
 
+export type SessionAvailableListener = (session: LiveSession) => void;
+export type SessionDeletionCommittedListener = (sessionId: string) => void | Promise<void>;
+
 export class SessionRegistry {
 	readonly #options: SessionRegistryOptions;
 	readonly #host: AhpHost;
@@ -157,6 +160,8 @@ export class SessionRegistry {
 	readonly #disposals = new Map<URI, Promise<void>>();
 	/** Prevents projection-generated session actions from recursively republishing. */
 	readonly #projectingSessions = new Set<URI>();
+	readonly #sessionAvailableListeners = new Set<SessionAvailableListener>();
+	readonly #sessionDeletionCommittedListeners = new Set<SessionDeletionCommittedListener>();
 
 	constructor(options: SessionRegistryOptions) {
 		this.#options = options;
@@ -204,6 +209,19 @@ export class SessionRegistry {
 
 	isDisposing(uri: URI): boolean {
 		return this.#disposals.has(uri);
+	}
+
+	/** Observes sessions after their registry and protocol channels exist. */
+	onSessionAvailable(listener: SessionAvailableListener): () => void {
+		this.#sessionAvailableListeners.add(listener);
+		for (const session of this.#sessions.values()) this.#notifySessionAvailable(listener, session);
+		return () => this.#sessionAvailableListeners.delete(listener);
+	}
+
+	/** Runs after durable deletion commits, before protocol channels disappear. */
+	onSessionDeletionCommitted(listener: SessionDeletionCommittedListener): () => void {
+		this.#sessionDeletionCommittedListeners.add(listener);
+		return () => this.#sessionDeletionCommittedListeners.delete(listener);
 	}
 
 	/** Live summaries that override or supplement pi's on-disk catalogue. */
@@ -264,6 +282,7 @@ export class SessionRegistry {
 			turnAnchors: new Map(),
 		};
 		this.#track(session);
+		this.#notifySessionAvailableToAll(session);
 
 		const summary = this.#summaryOf(session);
 		notifySessionAdded(this.#host, summary);
@@ -294,6 +313,7 @@ export class SessionRegistry {
 		}
 		const adopted: LiveSession = { ...session, turnAnchors: session.turnAnchors ?? new Map() };
 		this.#track(adopted);
+		this.#notifySessionAvailableToAll(adopted);
 		this.#summaryBaselines.set(adopted.uri, this.#summaryOf(adopted));
 		this.#bumpActiveSessions();
 		return adopted;
@@ -389,8 +409,18 @@ export class SessionRegistry {
 			throw new Error(`Could not dispose session ${uri}: ${message}`);
 		}
 
-		// Durable deletion is now committed. Re-read the live entry defensively so
-		// cleanup cannot leave registry and protocol state disagreeing.
+		// Durable deletion is now committed. Protocol children disappear before
+		// the parent so their subscribers can observe final cleanup actions.
+		for (const listener of this.#sessionDeletionCommittedListeners) {
+			try {
+				await listener(sessionId);
+			} catch (error) {
+				this.#options.log?.(`protocol child cleanup failed for ${uri}: ${String(error)}`);
+			}
+		}
+
+		// Re-read the live entry defensively so cleanup cannot leave registry and
+		// protocol state disagreeing.
 		const current = this.#sessions.get(uri);
 		if (current) {
 			current.driver?.dispose();
@@ -759,6 +789,18 @@ export class SessionRegistry {
 	#track(session: LiveSession): void {
 		this.#sessions.set(session.uri, session);
 		this.#byChat.set(session.chatChannel, session);
+	}
+
+	#notifySessionAvailableToAll(session: LiveSession): void {
+		for (const listener of this.#sessionAvailableListeners) this.#notifySessionAvailable(listener, session);
+	}
+
+	#notifySessionAvailable(listener: SessionAvailableListener, session: LiveSession): void {
+		try {
+			listener(session);
+		} catch (error) {
+			this.#options.log?.(`session availability listener failed for ${session.uri}: ${String(error)}`);
+		}
 	}
 
 	#bumpActiveSessions(): void {

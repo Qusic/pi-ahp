@@ -10,7 +10,9 @@
 
 import {
 	ActionType,
+	type ChangesetState,
 	type ChatState,
+	changesetReducer,
 	chatReducer,
 	type ResourceWatchState,
 	type RootState,
@@ -29,7 +31,7 @@ import {
 import { type ChannelKind, channelKind } from "./channels.ts";
 
 /** Any state tree this host serves. */
-export type ChannelState = RootState | SessionState | ChatState | TerminalState | ResourceWatchState;
+export type ChannelState = RootState | SessionState | ChatState | TerminalState | ChangesetState | ResourceWatchState;
 
 /** Maximum output characters retained for snapshots; live clients still receive every action. */
 const MAX_RETAINED_TERMINAL_CHARS = 1_000_000;
@@ -92,6 +94,8 @@ function reduce(kind: ChannelKind, state: ChannelState, action: StateAction): Ch
 			return chatReducer(state as ChatState, action as never);
 		case "terminal":
 			return reduceTerminal(state as TerminalState, action as never);
+		case "changeset":
+			return changesetReducer(state as ChangesetState, action as never);
 		case "resourceWatch":
 			// Pass-through by design: a watch's state describes what is being
 			// watched, and `resourceWatch/changed` carries pure event traffic.

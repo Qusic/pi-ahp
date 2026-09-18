@@ -7,7 +7,9 @@ import { clampThinkingLevel } from "@earendil-works/pi-ai";
 import { createAgentSessionServices, type ModelRuntime, SettingsManager } from "@earendil-works/pi-coding-agent";
 import type { CreateSessionParams, ModelSelection, URI } from "@microsoft/agent-host-protocol";
 import { installRootChannel } from "../channels/root.ts";
+import { sessionUri } from "../core/channels.ts";
 import { AhpHost, type HostOptions } from "../core/host.ts";
+import { ChangesetService } from "../pi/changeset-service.ts";
 import { CompletionService, MENTION_TRIGGER } from "../pi/completions.ts";
 import { deleteSessionFile } from "../pi/delete-session.ts";
 import { InProcessPiBackend } from "../pi/in-process-backend.ts";
@@ -51,6 +53,7 @@ export interface PiHost {
 	readonly host: AhpHost;
 	readonly sessions: SessionRegistry;
 	readonly catalogue: PiSessionCatalogue;
+	readonly changesets: ChangesetService;
 	readonly watches: ResourceWatchService;
 	readonly terminals: { shutdown(): void };
 }
@@ -106,7 +109,6 @@ export async function createPiHost(options: PiHostOptions = {}): Promise<PiHost>
 
 	const catalogue = new PiSessionCatalogue();
 	const resourcePaths = new ResourcePathPolicy(options.resourceRoots);
-	const resources = new ResourceService({ pathPolicy: resourcePaths });
 	const watches = new ResourceWatchService(host, {
 		pathPolicy: resourcePaths,
 		...(options.log ? { log: options.log } : {}),
@@ -133,6 +135,34 @@ export async function createPiHost(options: PiHostOptions = {}): Promise<PiHost>
 		deleteFile: options.deleteFile ?? deleteSessionFile,
 		findSessionFile: (id) => catalogue.findSessionFile(id),
 		...(options.log ? { log: options.log } : {}),
+	});
+	const sessionHydrator = new SessionHydrator({
+		host,
+		catalogue,
+		isLive: (session) => sessions.has(session),
+		isDisposing: (session) => sessions.isDisposing(session),
+		// Adopted without a backend; one starts on the first turn.
+		adopt: (session) => void sessions.adopt(session),
+		fallbackSelection,
+		...(options.log ? { log: options.log } : {}),
+	});
+	const changesets = new ChangesetService(host, {
+		getSession: (sessionId) => sessions.get(sessionUri(sessionId)),
+		getSessionByChat: (chat) => sessions.getByChat(chat),
+		hydrateSession: async (sessionId) => {
+			await sessionHydrator.hydrate(sessionUri(sessionId));
+			return sessions.get(sessionUri(sessionId));
+		},
+		onSessionAvailable: (listener) => sessions.onSessionAvailable(listener),
+		onSessionDeletionCommitted: (listener) => sessions.onSessionDeletionCommitted(listener),
+		authorizeResource: async (uri) => {
+			await resourcePaths.pathFor(uri);
+		},
+		...(options.log ? { log: options.log } : {}),
+	});
+	const resources = new ResourceService({
+		pathPolicy: resourcePaths,
+		readVirtual: (params) => changesets.readResource(params),
 	});
 
 	host.serve({
@@ -163,24 +193,24 @@ export async function createPiHost(options: PiHostOptions = {}): Promise<PiHost>
 				// fields explicit: config, activeClient, and progressToken are ignored.
 				sessions.create(params);
 			},
-			dispose(channel: URI): Promise<void> {
-				return sessions.dispose(channel);
+			async dispose(channel: URI): Promise<void> {
+				const sessionId = sessions.get(channel)?.sessionId;
+				if (sessionId) await changesets.suspendSession(sessionId);
+				try {
+					await sessions.dispose(channel);
+				} catch (error) {
+					if (sessionId) changesets.resumeSession(sessionId);
+					throw error;
+				}
 			},
 		},
-		// Opening a session from the catalogue must work: only sessions this
-		// host created are live, so anything else is loaded from disk on
-		// subscribe.
-		hydrator: new SessionHydrator({
-			host,
-			catalogue,
-			isLive: (session) => sessions.has(session),
-			isDisposing: (session) => sessions.isDisposing(session),
-			// Adopted without a backend; one starts on the first turn.
-			adopt: (session) => void sessions.adopt(session),
-			fallbackSelection,
-			...(options.log ? { log: options.log } : {}),
-		}),
+		// Both session/chat and their advertised changesets survive host restarts.
+		hydrator: {
+			async hydrate(channel) {
+				return (await changesets.hydrate(channel)) || sessionHydrator.hydrate(channel);
+			},
+		},
 	});
 
-	return { host, sessions, catalogue, watches, terminals };
+	return { host, sessions, catalogue, changesets, watches, terminals };
 }

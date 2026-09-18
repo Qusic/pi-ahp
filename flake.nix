@@ -81,6 +81,7 @@
                 makeWrapper
                 jq
                 python3
+                git
                 fd
                 ripgrep
               ]

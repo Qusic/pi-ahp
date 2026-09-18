@@ -34,6 +34,7 @@ export interface ServeOptions {
 export async function startHost(options: ServeOptions): Promise<RunningServer> {
 	const {
 		host: ahpHost,
+		changesets,
 		terminals,
 		watches,
 	} = await createPiHost({
@@ -53,7 +54,7 @@ export async function startHost(options: ServeOptions): Promise<RunningServer> {
 		...server,
 		async close() {
 			terminals.shutdown();
-			await Promise.all([server.close(), watches.dispose()]);
+			await Promise.all([server.close(), changesets.dispose(), watches.dispose()]);
 		},
 	};
 }

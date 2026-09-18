@@ -99,9 +99,9 @@ Currently supported protocol versions: **0.9.0**
 | Files and watches | 🟢 | Host-local `file:` resources only |
 | Interactive terminals | 🟢 | Client-owned; terminals and scrollback end when the host stops |
 | Images and vision | 🟢 | Embedded image attachments for vision-capable pi models |
+| Changeset views | 🟢 | Latest commit and uncommitted changes in Git workspaces |
 | Tool catalogue and client tools | 🟡 | Show available pi tools and let connected clients contribute tools |
 | pi customizations | 🟡 | Show and configure loaded extensions, skills, and prompt templates |
-| Changeset views | 🟡 | Expose uncommitted workspace changes |
 | Terminal command detection | 🟡 | Group terminal output by command and exit status |
 | Persistent read and archive controls | 🔴 | pi sessions do not store this metadata |
 | Multiple chats or working directories | 🔴 | A pi session has one active branch and cwd; branches are not simultaneous AHP chats |
