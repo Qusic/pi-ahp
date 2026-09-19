@@ -58,7 +58,7 @@
               inherit (finalAttrs) src;
               inherit pnpm;
               fetcherVersion = 4;
-              hash = "sha256-N9846KdrkTWKgCKPdpBW22LRS3E/ohfC3cFrEJ5UbKg=";
+              hash = "sha256-rSuw7HGb/2HX3rLJ3ISjIDRbzcg3FMH/lWydtVk60Mc=";
             };
 
             __structuredAttrs = true;
@@ -110,14 +110,14 @@
 
             installPhase = ''
               runHook preInstall
-              bin=$out/bin
-              lib=$out/lib/${finalAttrs.pname}
-              mkdir -p "$bin" "$lib"
-              pnpm prune --prod --ignore-scripts
-              cp -r dist node_modules package.json "$lib/"
+              package=${finalAttrs.pname}
+              mkdir -p $out/{bin,lib}
+              pnpm deploy --filter=. --config.inject-workspace-packages=true \
+                --frozen-lockfile --ignore-scripts --offline --prod deploy
+              mv deploy $out/lib/$package
               jq -r '.bin | to_entries[] | "\(.key) \(.value)"' package.json | \
                 while read -r name entry; do
-                  makeWrapper ${nodejs}/bin/node "$bin/$name" --add-flag "$lib/$entry"
+                  makeWrapper ${nodejs}/bin/node $out/bin/$name --add-flag $out/lib/$package/$entry
                 done
               runHook postInstall
             '';
