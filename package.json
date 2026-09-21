@@ -49,8 +49,8 @@
 		"prepack": "pnpm run build"
 	},
 	"dependencies": {
-		"@earendil-works/pi-ai": "0.85.1",
-		"@earendil-works/pi-coding-agent": "0.85.1",
+		"@earendil-works/pi-ai": "0.87.0",
+		"@earendil-works/pi-coding-agent": "0.87.0",
 		"@microsoft/agent-host-protocol": "0.9.0",
 		"chokidar": "^5.0.0",
 		"mime": "^4.1.0",
