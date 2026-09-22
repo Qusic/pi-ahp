@@ -68,6 +68,7 @@
               with final;
               lib.optionals stdenv.hostPlatform.isLinux [
                 stdenv.cc.cc.lib
+                libxcb
               ];
 
             nativeBuildInputs = [
