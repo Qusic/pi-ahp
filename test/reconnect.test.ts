@@ -322,7 +322,7 @@ describe("reconnect after host restart", () => {
 		const backend = new RestartBackend();
 		const harness = await startHarness({
 			sessions: true,
-			catalogueRoot: root,
+			sessionRoot: root,
 			workingDirectory: workspace,
 			createBackend: () => backend,
 		});

@@ -1,10 +1,11 @@
 /**
  * The session catalogue, backed by pi's on-disk session files.
  *
- * This host scans pi's default per-directory JSONL tree under
- * `getAgentDir()/sessions`; it does not resolve pi's optional custom
- * `sessionDir` setting. Parsing a summary reads the session file, so
- * `listSessions` stats and sorts the corpus but parses only the requested page.
+ * Production points it at pi's default per-directory JSONL tree under
+ * `getAgentDir()/sessions`; tests and embeddings provide their root explicitly.
+ * It does not resolve pi's optional custom `sessionDir` setting. Parsing a
+ * summary reads the session file, so `listSessions` stats and sorts the corpus
+ * but parses only the requested page.
  *
  * @see https://microsoft.github.io/agent-host-protocol/specification/root-channel
  */
@@ -12,7 +13,7 @@
 import { closeSync, openSync, readSync } from "node:fs";
 import { readdir, stat } from "node:fs/promises";
 import { join } from "node:path";
-import { getAgentDir, SessionManager } from "@earendil-works/pi-coding-agent";
+import { SessionManager } from "@earendil-works/pi-coding-agent";
 import { type ListSessionsResult, SessionStatus, type SessionSummary, type URI } from "@microsoft/agent-host-protocol";
 import { sessionUri } from "../core/channels.ts";
 import { pathToFileUri } from "../core/uri.ts";
@@ -51,17 +52,13 @@ interface CatalogueEntry extends SessionFile {
 	readonly summary?: SessionSummary;
 }
 
-function sessionsRoot(): string {
-	return join(getAgentDir(), "sessions");
-}
-
 /**
  * Every session file with its mtime, newest first.
  *
  * `stat` only — no parsing. mtime is a good proxy for pi's own "last activity"
  * ordering because the file is appended on every message.
  */
-async function listSessionFiles(root: string = sessionsRoot()): Promise<SessionFile[]> {
+async function listSessionFiles(root: string): Promise<SessionFile[]> {
 	let directories: string[];
 	try {
 		directories = await readdir(root);
@@ -209,7 +206,7 @@ export class PiSessionCatalogue {
 	readonly #root: string;
 	/** Session URI → file path, populated as pages are read. Purely a cache. */
 	readonly #index = new Map<URI, string>();
-	constructor(root: string = sessionsRoot()) {
+	constructor(root: string) {
 		this.#root = root;
 	}
 

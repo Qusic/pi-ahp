@@ -14,7 +14,7 @@
  * @see https://microsoft.github.io/agent-host-protocol/specification/session-channel
  */
 
-import { SessionManager } from "@earendil-works/pi-coding-agent";
+import type { SessionManager } from "@earendil-works/pi-coding-agent";
 import {
 	ActionType,
 	type ChatState,
@@ -40,6 +40,7 @@ import { messageRejectionReason } from "./message-input.ts";
 import { PI_PROVIDER } from "./provider.ts";
 import type { LiveSessionCatalogueEntry } from "./session-catalogue.ts";
 import { dispatchOlderTurns, truncationAnchor } from "./session-history.ts";
+import type { SessionManagerFactory } from "./session-storage.ts";
 import { fallbackSessionTitle, NEW_SESSION_TITLE } from "./session-title.ts";
 
 /** Everything the host tracks for a live session. */
@@ -137,6 +138,8 @@ export interface SessionRegistryOptions {
 	/** Used for sessions created without one of their own. */
 	readonly defaultWorkingDirectory?: string;
 	readonly createBackend?: BackendFactory;
+	/** Explicit storage boundary; composition chooses durable or in-memory sessions. */
+	readonly createSessionManager: SessionManagerFactory;
 	/** Seeds a new chat's draft so a client has a model selected from the start. */
 	readonly defaultSelection?: () => ModelSelection | undefined;
 	/** A failed result or rejection prevents protocol removal. */
@@ -267,9 +270,9 @@ export class SessionRegistry {
 		// A provider-alias URI still needs the session reducer.
 		this.#host.store.create(uri, initialSessionState(PI_PROVIDER, title, workingDirectory), "session");
 
-		// pi writes the session file lazily on first append, so allocating the
-		// manager here does not litter the disk with empty sessions.
-		const sessionManager = SessionManager.create(workingDirectory, undefined, { id: sessionId });
+		// pi withholds the session file until an assistant message exists; the
+		// manager still owns the target directory and in-memory entry tree now.
+		const sessionManager = this.#options.createSessionManager(workingDirectory, sessionId);
 		const chatChannel = installDefaultChat(this.#host, uri, sessionId, title, this.#options.defaultSelection?.());
 
 		const session: LiveSession = {

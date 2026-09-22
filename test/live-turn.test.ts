@@ -48,6 +48,7 @@ import { type RunningServer, serveWebSocket } from "../src/transport/websocket.t
 import { must, turnError } from "./support/assertions.ts";
 import { eventually } from "./support/async.ts";
 import { assertValid } from "./support/schema.ts";
+import { persistentSessionStorage } from "./support/session-storage.ts";
 
 const LIVE_SETTINGS = process.env.PI_AHP_LIVE_SETTINGS?.trim();
 const LIVE_AUTH = process.env.PI_AHP_LIVE_AUTH?.trim();
@@ -111,6 +112,7 @@ describe("live turn", { skip: LIVE ? false : SKIP_REASON }, () => {
 		selection = { id: modelId, config: { [THINKING_CONFIG_KEY]: thinking } };
 		workspace = join(root, "workspace");
 		const agentDir = join(root, "agent");
+		const sessionRoot = join(agentDir, "sessions");
 		mkdirSync(workspace);
 		mkdirSync(agentDir);
 		writeFileSync(join(workspace, "note.txt"), "ALPHA BETA GAMMA\n");
@@ -145,6 +147,7 @@ describe("live turn", { skip: LIVE ? false : SKIP_REASON }, () => {
 			serverInfo: { name: "pi-ahp", version: "live-test" },
 			workingDirectory: workspace,
 			modelRuntime: discovery.modelRuntime,
+			sessionStorage: persistentSessionStorage(sessionRoot),
 			projectTrustPolicy: "never",
 			createBackend: async (session) => {
 				const backend = await InProcessPiBackend.create({

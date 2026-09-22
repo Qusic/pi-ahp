@@ -43,6 +43,7 @@ import { expectRpcError, must } from "./support/assertions.ts";
 import { eventually } from "./support/async.ts";
 import { startHydratedSessionFixture } from "./support/hydrated-session.ts";
 import { assertValid } from "./support/schema.ts";
+import { persistentSessionManagerFactory, persistentSessionStorage } from "./support/session-storage.ts";
 
 function git(cwd: string, ...args: string[]): string {
 	return execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
@@ -64,12 +65,14 @@ async function readyState(client: AhpClient, host: AhpHost, channel: string): Pr
 
 describe("Git changesets", () => {
 	let workspace: string;
+	let sessionRoot: string;
 	let built: PiHost;
 	let server: RunningServer;
 	let client: AhpClient;
 
 	before(async () => {
 		workspace = mkdtempSync(join(tmpdir(), "pi-ahp-changeset-"));
+		sessionRoot = mkdtempSync(join(tmpdir(), "pi-ahp-changeset-sessions-"));
 		git(workspace, "init", "-q");
 		git(workspace, "config", "user.email", "test@example.com");
 		git(workspace, "config", "user.name", "pi-ahp test");
@@ -95,6 +98,7 @@ describe("Git changesets", () => {
 		built = await createPiHost({
 			workingDirectory: workspace,
 			modelRuntime: { getAvailable: async () => [] },
+			sessionStorage: persistentSessionStorage(sessionRoot),
 			createBackend: () => ({
 				subscribe: () => () => {},
 				prompt: async () => {},
@@ -115,6 +119,7 @@ describe("Git changesets", () => {
 		built.terminals.shutdown();
 		await Promise.all([built.changesets.dispose(), built.watches.dispose()]);
 		rmSync(workspace, { recursive: true, force: true });
+		rmSync(sessionRoot, { recursive: true, force: true });
 	});
 
 	it("keeps the latest commit separate from uncommitted work and refreshes it", async () => {
@@ -346,6 +351,7 @@ it("resumes changeset updates when durable session deletion fails", async () => 
 	git(workspace, "config", "user.email", "test@example.com");
 	git(workspace, "config", "user.name", "pi-ahp test");
 	const file = join(workspace, "tracked.txt");
+	const sessionRoot = mkdtempSync(join(tmpdir(), "pi-ahp-changeset-delete-sessions-"));
 	writeFileSync(file, "base\n");
 	git(workspace, "add", ".");
 	git(workspace, "commit", "-qm", "base");
@@ -354,6 +360,7 @@ it("resumes changeset updates when durable session deletion fails", async () => 
 	const built = await createPiHost({
 		workingDirectory: workspace,
 		modelRuntime: { getAvailable: async () => [] },
+		sessionStorage: persistentSessionStorage(sessionRoot),
 		createBackend: () => ({
 			subscribe: () => () => {},
 			prompt: async () => {},
@@ -400,6 +407,7 @@ it("resumes changeset updates when durable session deletion fails", async () => 
 		built.terminals.shutdown();
 		await Promise.all([built.changesets.dispose(), built.watches.dispose()]);
 		rmSync(workspace, { recursive: true, force: true });
+		rmSync(sessionRoot, { recursive: true, force: true });
 	}
 });
 
@@ -417,6 +425,7 @@ it("hydrates the parent session when its changeset is subscribed directly", asyn
 	const catalogue = new PiSessionCatalogue(source.root);
 	const sessions = new SessionRegistry({
 		host,
+		createSessionManager: persistentSessionManagerFactory(source.root),
 		findSessionFile: (sessionId) => catalogue.findSessionFile(sessionId),
 		deleteFile: () => ({ ok: true }),
 	});

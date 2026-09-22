@@ -18,10 +18,11 @@ import { type ProjectTrustPolicy, resolveProjectTrust } from "../pi/project-trus
 import { ResourcePathPolicy } from "../pi/resource-paths.ts";
 import { ResourceService } from "../pi/resource-service.ts";
 import { ResourceWatchService } from "../pi/resource-watch.ts";
-import { PiSessionCatalogue } from "../pi/session-catalogue.ts";
+import type { PiSessionCatalogue } from "../pi/session-catalogue.ts";
 import { SessionConfigService } from "../pi/session-config.ts";
 import { SessionHydrator } from "../pi/session-hydrator.ts";
 import { type BackendFactory, type SessionFileDeletionResult, SessionRegistry } from "../pi/session-registry.ts";
+import type { PiSessionStorage } from "../pi/session-storage.ts";
 import { TerminalService } from "./terminal-service.ts";
 
 export interface PiHostOptions extends HostOptions {
@@ -33,6 +34,8 @@ export interface PiHostOptions extends HostOptions {
 	readonly deleteFile?: (path: string) => SessionFileDeletionResult | Promise<SessionFileDeletionResult>;
 	/** Injectable for tests; defaults to an in-process `AgentSession`. */
 	readonly createBackend?: BackendFactory;
+	/** Explicit storage boundary; tests cannot accidentally fall back to user data. */
+	readonly sessionStorage: PiSessionStorage;
 	/**
 	 * How to treat trust-gated pi resources in a session's working directory.
 	 *
@@ -63,7 +66,7 @@ export interface PiHost {
  * startup snapshot; dynamic refresh would require publishing
  * `root/agentsChanged` and is not implemented.
  */
-export async function createPiHost(options: PiHostOptions = {}): Promise<PiHost> {
+export async function createPiHost(options: PiHostOptions): Promise<PiHost> {
 	const workingDirectory = options.workingDirectory ?? process.cwd();
 	const host = new AhpHost({
 		...options,
@@ -107,7 +110,7 @@ export async function createPiHost(options: PiHostOptions = {}): Promise<PiHost>
 			? { id: modelSelectionId(fallback), config: { [THINKING_CONFIG_KEY]: fallbackThinking } }
 			: undefined;
 
-	const catalogue = new PiSessionCatalogue();
+	const catalogue = options.sessionStorage.catalogue;
 	const resourcePaths = new ResourcePathPolicy(options.resourceRoots);
 	const watches = new ResourceWatchService(host, {
 		pathPolicy: resourcePaths,
@@ -131,6 +134,7 @@ export async function createPiHost(options: PiHostOptions = {}): Promise<PiHost>
 		host,
 		defaultWorkingDirectory: workingDirectory,
 		createBackend,
+		createSessionManager: options.sessionStorage.createSessionManager,
 		defaultSelection: fallbackSelection,
 		deleteFile: options.deleteFile ?? deleteSessionFile,
 		findSessionFile: (id) => catalogue.findSessionFile(id),

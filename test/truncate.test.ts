@@ -6,7 +6,7 @@
 
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before, describe, it } from "node:test";
@@ -25,11 +25,12 @@ import { SessionRegistry } from "../src/pi/session-registry.ts";
 import { type RunningServer, serveWebSocket } from "../src/transport/websocket.ts";
 import { must } from "./support/assertions.ts";
 import { eventually } from "./support/async.ts";
+import { fixtureSessionDirectory } from "./support/session-files.ts";
+import { persistentSessionManagerFactory } from "./support/session-storage.ts";
 
 /** Two complete turns, so there is something to truncate back to. */
 function writeSession(root: string, id: string, cwd: string): void {
-	const directory = join(root, `--${cwd.replace(/^[/\\]/, "").replace(/[/\\:]/g, "-")}--`);
-	mkdirSync(directory, { recursive: true });
+	const directory = fixtureSessionDirectory(root, cwd);
 	const at = "2026-01-01T00:00:00.000Z";
 	const lines = [JSON.stringify({ type: "session", id, parentId: null, timestamp: at, version: 3, cwd })];
 	let parentId: string | null = null;
@@ -121,7 +122,12 @@ async function startFixture(options: { acceptTruncate?: boolean } = {}): Promise
 			return options.acceptTruncate ?? true;
 		},
 	};
-	const sessions = new SessionRegistry({ host, defaultWorkingDirectory: workspace, createBackend: () => backend });
+	const sessions = new SessionRegistry({
+		host,
+		defaultWorkingDirectory: workspace,
+		createBackend: () => backend,
+		createSessionManager: persistentSessionManagerFactory(root),
+	});
 	host.serve({
 		sessions: {
 			create: (params) => sessions.create(params),

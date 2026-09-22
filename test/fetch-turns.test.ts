@@ -9,7 +9,7 @@
 
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before, describe, it } from "node:test";
@@ -25,6 +25,8 @@ import { SessionRegistry } from "../src/pi/session-registry.ts";
 import { type RunningServer, serveWebSocket } from "../src/transport/websocket.ts";
 import { must } from "./support/assertions.ts";
 import { assertValid } from "./support/schema.ts";
+import { fixtureSessionDirectory } from "./support/session-files.ts";
+import { persistentSessionManagerFactory } from "./support/session-storage.ts";
 
 /**
  * Writes a session with `before` exchanges, then a compaction, then `after`.
@@ -33,8 +35,7 @@ import { assertValid } from "./support/schema.ts";
  * window, which is exactly the case paging exists for.
  */
 function writeCompactedSession(root: string, id: string, cwd: string, before: number, after: number): void {
-	const directory = join(root, `--${cwd.replace(/^[/\\]/, "").replace(/[/\\:]/g, "-")}--`);
-	mkdirSync(directory, { recursive: true });
+	const directory = fixtureSessionDirectory(root, cwd);
 	const at = "2026-01-01T00:00:00.000Z";
 	const lines = [JSON.stringify({ type: "session", id, parentId: null, timestamp: at, version: 3, cwd })];
 	let parentId: string | null = null;
@@ -83,7 +84,11 @@ async function startFixture(before: number, after: number): Promise<Fixture> {
 	installRootChannel(host, []);
 	const catalogue = new PiSessionCatalogue(root);
 	host.serve({ catalogue });
-	const sessions = new SessionRegistry({ host, defaultWorkingDirectory: workspace });
+	const sessions = new SessionRegistry({
+		host,
+		defaultWorkingDirectory: workspace,
+		createSessionManager: persistentSessionManagerFactory(root),
+	});
 	host.serve({
 		hydrator: new SessionHydrator({
 			host,

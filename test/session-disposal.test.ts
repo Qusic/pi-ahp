@@ -36,12 +36,12 @@ async function startDisposalFixture(options: {
 }): Promise<DisposalFixture> {
 	const root = mkdtempSync(join(tmpdir(), "pi-ahp-disposal-"));
 	const workspace = join(root, "workspace");
-	const catalogueRoot = join(root, "sessions");
+	const sessionRoot = join(root, "sessions");
 	mkdirSync(workspace);
 	const harness = await startHarness({
 		sessions: true,
 		workingDirectory: workspace,
-		catalogueRoot,
+		sessionRoot,
 		...(options.createBackend ? { createBackend: options.createBackend } : {}),
 		...(options.deleteFile ? { deleteFile: options.deleteFile } : {}),
 	});

@@ -27,6 +27,7 @@ import { type RunningServer, serveWebSocket } from "../src/transport/websocket.t
 import { must } from "./support/assertions.ts";
 import { eventually } from "./support/async.ts";
 import { assertValid } from "./support/schema.ts";
+import { inMemorySessionManagerFactory } from "./support/session-storage.ts";
 
 describe("resolveSessionConfig", () => {
 	let bare: string;
@@ -124,6 +125,7 @@ describe("model selection", () => {
 		const sessions = new SessionRegistry({
 			host,
 			createBackend: () => backend,
+			createSessionManager: inMemorySessionManagerFactory,
 			// The backend is authoritative once it starts, including config values.
 			defaultSelection: () => ({ id: "default-model", config: { [THINKING_CONFIG_KEY]: "low" } }),
 		});
@@ -161,6 +163,7 @@ describe("model selection", () => {
 		installRootChannel(host2, []);
 		const registry = new SessionRegistry({
 			host: host2,
+			createSessionManager: inMemorySessionManagerFactory,
 			defaultSelection: () => ({ id: "seeded-model", config: { [THINKING_CONFIG_KEY]: "medium" } }),
 		});
 		const id = randomUUID();

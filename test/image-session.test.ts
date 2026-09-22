@@ -12,7 +12,9 @@ import { createReplayEnvironment } from "./support/replay.ts";
 it("passes and persists images while honouring preflight cancellation", async () => {
 	const environment = createReplayEnvironment();
 	const workspace = mkdtempSync(join(tmpdir(), "pi-ahp-image-session-"));
-	const manager = SessionManager.create(workspace, undefined, { id: "image-session" });
+	const manager = SessionManager.create(workspace, join(environment.agentDir, "sessions", "image-session"), {
+		id: "image-session",
+	});
 	let backend: InProcessPiBackend | undefined;
 	let contextMessages: Message[] = [];
 

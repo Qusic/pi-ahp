@@ -7,6 +7,9 @@
  * in the tests.
  */
 
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { AgentInfo } from "@microsoft/agent-host-protocol";
 import { AhpClient } from "@microsoft/agent-host-protocol/client";
 import { WebSocketTransport } from "@microsoft/agent-host-protocol/ws";
@@ -17,6 +20,7 @@ import { PiSessionCatalogue } from "../src/pi/session-catalogue.ts";
 import { SessionHydrator } from "../src/pi/session-hydrator.ts";
 import { type BackendFactory, type SessionFileDeletionResult, SessionRegistry } from "../src/pi/session-registry.ts";
 import { type RunningServer, serveWebSocket } from "../src/transport/websocket.ts";
+import { persistentSessionManagerFactory } from "./support/session-storage.ts";
 
 export const TEST_AGENT: AgentInfo = {
 	provider: PI_PROVIDER,
@@ -53,8 +57,8 @@ export async function startHarness(
 		createBackend?: BackendFactory;
 		/** Durable deletion boundary. */
 		deleteFile?: (path: string) => SessionFileDeletionResult | Promise<SessionFileDeletionResult>;
-		/** Root of the session catalogue; defaults to pi's real sessions directory. */
-		catalogueRoot?: string;
+		/** Durable session root; defaults to a fixture-owned temporary directory. */
+		sessionRoot?: string;
 	} = {},
 ): Promise<Harness> {
 	const host = new AhpHost({
@@ -65,11 +69,15 @@ export async function startHarness(
 
 	const deletedFiles: string[] = [];
 	let sessions: SessionRegistry | undefined;
+	let ownedSessionRoot: string | undefined;
 	if (options.sessions) {
-		const catalogue = new PiSessionCatalogue(options.catalogueRoot);
+		const sessionRoot = options.sessionRoot ?? mkdtempSync(join(tmpdir(), "pi-ahp-harness-"));
+		if (!options.sessionRoot) ownedSessionRoot = sessionRoot;
+		const catalogue = new PiSessionCatalogue(sessionRoot);
 		const registry = new SessionRegistry({
 			host,
 			defaultWorkingDirectory: options.workingDirectory ?? process.cwd(),
+			createSessionManager: persistentSessionManagerFactory(sessionRoot),
 			...(options.createBackend ? { createBackend: options.createBackend } : {}),
 			deleteFile:
 				options.deleteFile ??
@@ -128,8 +136,12 @@ export async function startHarness(
 			return client;
 		},
 		async dispose() {
-			await Promise.allSettled(clients.map((client) => client.shutdown()));
-			await server.close();
+			try {
+				await Promise.allSettled(clients.map((client) => client.shutdown()));
+				await server.close();
+			} finally {
+				if (ownedSessionRoot) rmSync(ownedSessionRoot, { recursive: true, force: true });
+			}
 		},
 	};
 }

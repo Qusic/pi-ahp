@@ -131,7 +131,7 @@ async function fixture(t: TestContext, createBackend?: BackendFactory) {
 	const root = mkdtempSync(join(tmpdir(), "pi-ahp-summary-"));
 	const harness = await startHarness({
 		sessions: true,
-		catalogueRoot: join(root, "sessions"),
+		sessionRoot: join(root, "sessions"),
 		workingDirectory: root,
 		createBackend:
 			createBackend ??

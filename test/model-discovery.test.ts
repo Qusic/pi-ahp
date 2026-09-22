@@ -9,6 +9,7 @@ import { chatUri, sessionUri } from "../src/core/channels.ts";
 import { createPiHost } from "../src/host/pi-host.ts";
 import { InProcessPiBackend } from "../src/pi/in-process-backend.ts";
 import { modelSelectionId } from "../src/pi/models.ts";
+import { persistentSessionStorage } from "./support/session-storage.ts";
 
 it("advertises extension models and uses pi's configured default", async () => {
 	const root = mkdtempSync(join(tmpdir(), "pi-ahp-model-discovery-"));
@@ -59,8 +60,10 @@ it("advertises extension models and uses pi's configured default", async () => {
 			id: modelSelectionId({ provider: "fixture", id: "fixture-model" }),
 			config: { thinkingLevel: "max" },
 		};
+		const sessionRoot = join(agentDir, "sessions");
 		const { host, sessions } = await createPiHost({
 			workingDirectory: workspace,
+			sessionStorage: persistentSessionStorage(sessionRoot),
 			deleteFile: () => ({ ok: true }),
 			createBackend: () => ({
 				subscribe: () => () => {},

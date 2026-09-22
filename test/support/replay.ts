@@ -123,7 +123,9 @@ export async function replayTurns(
 
 		backend = await InProcessPiBackend.create({
 			cwd: workspace,
-			sessionManager: SessionManager.create(workspace, undefined, { id: `replay-${fixture.name}` }),
+			sessionManager: SessionManager.create(workspace, join(environment.agentDir, "sessions", fixture.name), {
+				id: `replay-${fixture.name}`,
+			}),
 		});
 		backend.session.setActiveToolsByName(backend.session.getAllTools().map((tool) => tool.name));
 

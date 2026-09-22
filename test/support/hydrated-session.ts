@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { AgentSessionEvent } from "@earendil-works/pi-coding-agent";
@@ -15,11 +15,12 @@ import { SessionHydrator } from "../../src/pi/session-hydrator.ts";
 import { type SessionFileDeletionResult, SessionRegistry } from "../../src/pi/session-registry.ts";
 import { type RunningServer, serveWebSocket } from "../../src/transport/websocket.ts";
 import { ONE_PIXEL_PNG } from "./images.ts";
+import { fixtureSessionDirectory } from "./session-files.ts";
+import { persistentSessionManagerFactory } from "./session-storage.ts";
 
 /** Writes a pi session file containing one full turn with a tool call. */
 function writeSession(root: string, id: string, cwd: string, includeImage: boolean): void {
-	const directory = join(root, `--${cwd.replace(/^[/\\]/, "").replace(/[/\\:]/g, "-")}--`);
-	mkdirSync(directory, { recursive: true });
+	const directory = fixtureSessionDirectory(root, cwd);
 
 	const at = "2026-01-01T00:00:00.000Z";
 	let parentId: string | null = null;
@@ -137,6 +138,7 @@ export async function startHydratedSessionFixture(
 		host,
 		defaultWorkingDirectory: workspace,
 		createBackend: () => backend,
+		createSessionManager: persistentSessionManagerFactory(root),
 		deleteFile: async (path) => {
 			deletedFiles.push(path);
 			if (options.deleteFile) {

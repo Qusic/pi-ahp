@@ -35,6 +35,7 @@ import { serveWebSocket } from "../src/transport/websocket.ts";
 import { must, turnError } from "./support/assertions.ts";
 import { eventually } from "./support/async.ts";
 import { ONE_PIXEL_PNG } from "./support/images.ts";
+import { inMemorySessionManagerFactory } from "./support/session-storage.ts";
 
 /**
  * A backend that records prompts and replays a scripted event sequence for each
@@ -147,7 +148,11 @@ async function startFixture(): Promise<Fixture> {
 	const host = new AhpHost({ serverInfo: { name: "pi-ahp", version: "test" } });
 	installRootChannel(host, []);
 	const backend = new ScriptedBackend((text) => (text === "long running" ? [] : say(`echo: ${text}`)));
-	const sessions = new SessionRegistry({ host, createBackend: () => backend });
+	const sessions = new SessionRegistry({
+		host,
+		createBackend: () => backend,
+		createSessionManager: inMemorySessionManagerFactory,
+	});
 	host.serve({
 		sessions: {
 			create: (params) => sessions.create(params),
@@ -471,7 +476,7 @@ describe("chat driver", () => {
 		assert.equal((fixture.host.store.get(fixture.chatChannel) as ChatState).activeTurn?.id, "t-cancel");
 
 		const live = must(fixture.sessions.get(fixture.sessionChannel));
-		// AgentSession notifies listeners, then persists the same user message.
+		// AgentSession notifies listeners, then records the same user message.
 		const userMessage = { role: "user", content: "long running", timestamp: 0 } as const;
 		backend.emit({ type: "message_start", message: userMessage } as AgentSessionEvent);
 		backend.emit({ type: "message_end", message: userMessage } as AgentSessionEvent);
@@ -507,7 +512,7 @@ describe("chat driver", () => {
 		assert.deepEqual(
 			(fixture.host.store.get(fixture.chatChannel) as ChatState).turns.map((turn) => turn.id),
 			["t-cancel"],
-			"a persisted cancelled turn must remain a valid truncation target",
+			"a recorded cancelled turn must remain a valid truncation target",
 		);
 	});
 });
@@ -518,6 +523,7 @@ describe("chat driver — backend failure", () => {
 		installRootChannel(host, []);
 		const sessions = new SessionRegistry({
 			host,
+			createSessionManager: inMemorySessionManagerFactory,
 			createBackend: () => {
 				throw new Error("no credentials");
 			},
@@ -544,7 +550,11 @@ describe("chat driver — backend failure", () => {
 			steer: () => Promise.resolve(),
 			abort: () => Promise.resolve(),
 		};
-		const sessions = new SessionRegistry({ host, createBackend: () => backend });
+		const sessions = new SessionRegistry({
+			host,
+			createBackend: () => backend,
+			createSessionManager: inMemorySessionManagerFactory,
+		});
 		host.serve({
 			sessions: {
 				create: (params) => sessions.create(params),
@@ -622,7 +632,11 @@ describe("steering message lifetime", () => {
 			abort: async () => {},
 		};
 
-		const sessions = new SessionRegistry({ host, createBackend: () => backend });
+		const sessions = new SessionRegistry({
+			host,
+			createBackend: () => backend,
+			createSessionManager: inMemorySessionManagerFactory,
+		});
 		host.serve({
 			sessions: {
 				create: (params) => sessions.create(params),

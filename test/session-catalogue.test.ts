@@ -22,6 +22,7 @@ import { pathToFileUri } from "../src/core/uri.ts";
 import { PiSessionCatalogue } from "../src/pi/session-catalogue.ts";
 import { type Harness, nextClientId, startHarness } from "./harness.ts";
 import { assertValid } from "./support/schema.ts";
+import { fixtureSessionDirectory } from "./support/session-files.ts";
 
 interface FakeSessionOptions {
 	readonly cwd: string;
@@ -36,9 +37,7 @@ interface FakeSessionOptions {
  * entries linked through `id`/`parentId`.
  */
 function writeFakeSession(root: string, id: string, options: FakeSessionOptions): string {
-	const dirName = `--${options.cwd.replace(/^[/\\]/, "").replace(/[/\\:]/g, "-")}--`;
-	const directory = join(root, dirName);
-	mkdirSync(directory, { recursive: true });
+	const directory = fixtureSessionDirectory(root, options.cwd);
 
 	const timestamp = new Date(options.mtimeSeconds * 1000).toISOString();
 	const lines: string[] = [
@@ -294,7 +293,7 @@ describe("listSessions over the wire", () => {
 			firstUserMessage: "Explain this repository",
 			mtimeSeconds: 1_700_100_000,
 		});
-		harness = await startHarness({ sessions: true, catalogueRoot: root });
+		harness = await startHarness({ sessions: true, sessionRoot: root });
 	});
 
 	after(async () => {

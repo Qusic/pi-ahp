@@ -20,14 +20,17 @@ import { createPiHost } from "../src/host/pi-host.ts";
 import { PROJECT_TRUST_KEY } from "../src/pi/session-config.ts";
 import { serveWebSocket } from "../src/transport/websocket.ts";
 import { eventually } from "./support/async.ts";
+import { persistentSessionStorage } from "./support/session-storage.ts";
 
 it("wires product services through createPiHost", async () => {
 	const workspace = mkdtempSync(join(tmpdir(), "pi-ahp-composition-"));
+	const sessionRoot = mkdtempSync(join(tmpdir(), "pi-ahp-composition-sessions-"));
 	writeFileSync(join(workspace, "notes.md"), "# Notes\n");
 	const built = await createPiHost({
 		serverInfo: { name: "pi-ahp", version: "composition-test" },
 		workingDirectory: workspace,
 		modelRuntime: { getAvailable: async () => [] },
+		sessionStorage: persistentSessionStorage(sessionRoot),
 		createBackend: () => ({
 			subscribe: () => () => {},
 			prompt: async () => {},
@@ -83,5 +86,6 @@ it("wires product services through createPiHost", async () => {
 		built.terminals.shutdown();
 		await Promise.all([built.changesets.dispose(), built.watches.dispose()]);
 		rmSync(workspace, { recursive: true, force: true });
+		rmSync(sessionRoot, { recursive: true, force: true });
 	}
 });
