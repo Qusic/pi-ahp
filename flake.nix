@@ -58,7 +58,7 @@
               inherit (finalAttrs) src;
               inherit pnpm;
               fetcherVersion = 4;
-              hash = "sha256-rlrfqQk+NRtg6tJqaYpN0bhoSsECPixYuZJpTSO0ecY=";
+              hash = "sha256-GS+GrIdEQWVZiYfKLOEv8GaKcj8wllp/UiBcEEQAvqM=";
             };
 
             __structuredAttrs = true;
