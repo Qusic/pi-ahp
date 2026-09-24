@@ -19,6 +19,7 @@ import { sessionUri } from "../core/channels.ts";
 import { pathToFileUri } from "../core/uri.ts";
 import { ProtocolError } from "../protocol/errors.ts";
 import { PI_PROVIDER } from "./provider.ts";
+import { isSessionArchived } from "./session-archive.ts";
 import { sessionDisplayTitle } from "./session-title.ts";
 import { textFromPiUserContent } from "./user-message.ts";
 
@@ -183,15 +184,11 @@ function readSessionSummary(file: SessionFile): SessionSummary | undefined {
 		resource: sessionUri(sessionId),
 		provider: PI_PROVIDER,
 		title: sessionDisplayTitle(manager.getSessionName(), firstUserMessage),
-		// Idle by definition, and reported as read.
-		//
-		// Read/unread is not modelled: pi has no such concept, so tracking it
-		// would mean this host inventing durable state of its own — and without
-		// archiving to go with it, a catalogue where everything is permanently
-		// unread is worse than one that is quiet. The chat reducer may still clear
-		// its chat-local bit on `chat/turnStarted`; the session catalogue remains
-		// read because this host does not implement mutable session read state.
-		status: SessionStatus.Idle | SessionStatus.IsRead,
+		// Idle by definition and reported as read; archive state is persisted as
+		// a pi custom entry and belongs to the session-level status flags.
+		status: (SessionStatus.Idle |
+			SessionStatus.IsRead |
+			(isSessionArchived(manager) ? SessionStatus.IsArchived : 0)) as SessionStatus,
 		createdAt: createdAt ?? new Date(file.mtimeMs).toISOString(),
 		modifiedAt: new Date(file.mtimeMs).toISOString(),
 		...(cwd ? { workingDirectories: [pathToFileUri(cwd)] } : {}),

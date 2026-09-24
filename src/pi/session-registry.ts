@@ -38,6 +38,7 @@ import { ProtocolError } from "../protocol/errors.ts";
 import { ChatDriver, type PiBackend } from "./chat-driver.ts";
 import { messageRejectionReason } from "./message-input.ts";
 import { PI_PROVIDER } from "./provider.ts";
+import { persistSessionArchived } from "./session-archive.ts";
 import type { LiveSessionCatalogueEntry } from "./session-catalogue.ts";
 import { dispatchOlderTurns, truncationAnchor } from "./session-history.ts";
 import type { SessionManagerFactory } from "./session-storage.ts";
@@ -97,8 +98,7 @@ function unsupportedClientActionReason(action: StateAction): string | undefined 
 		case ActionType.SessionMcpServerStopRequested:
 			return "This host does not support MCP servers";
 		case ActionType.SessionIsReadChanged:
-		case ActionType.SessionIsArchivedChanged:
-			return "This host does not persist read or archive state";
+			return "This host does not persist read state";
 		case ActionType.SessionConfigChanged:
 			return "This session has no mutable configuration";
 		case ActionType.ChatToolCallConfirmed:
@@ -650,6 +650,22 @@ export class SessionRegistry {
 	}
 
 	#handleSessionAction(session: LiveSession, action: StateAction): void {
+		if (action.type === ActionType.SessionIsArchivedChanged) {
+			try {
+				persistSessionArchived(session.sessionManager, action.isArchived);
+			} catch (error) {
+				// The reducer has already committed the new flag. Restore the prior
+				// status and broadcast it so failed durable writes cannot resurrect
+				// an archive on the next catalogue refresh.
+				this.#options.log?.(`could not persist archive state for ${session.uri}: ${String(error)}`);
+				this.#host.dispatchServerAction(session.uri, {
+					type: ActionType.SessionIsArchivedChanged,
+					isArchived: !action.isArchived,
+				});
+			}
+			this.#publishSummary(session);
+			return;
+		}
 		if (action.type !== ActionType.SessionTitleChanged) {
 			return;
 		}

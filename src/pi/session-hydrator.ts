@@ -26,6 +26,7 @@ import { pathToFileUri } from "../core/uri.ts";
 import { rebuildTurnsFromSession } from "./history.ts";
 import { modelSelectionId, THINKING_CONFIG_KEY } from "./models.ts";
 import { PI_PROVIDER } from "./provider.ts";
+import { isSessionArchived } from "./session-archive.ts";
 import type { PiSessionCatalogue } from "./session-catalogue.ts";
 import { sessionDisplayTitle } from "./session-title.ts";
 import { initialTurnsCursor } from "./turn-paging.ts";
@@ -147,7 +148,9 @@ export class SessionHydrator implements ChannelHydrator {
 
 		// Read, for the same reason the catalogue reports read — see
 		// `readSessionSummary`. The reducer still clears the bit if a turn starts.
-		const status = SessionStatus.Idle | SessionStatus.IsRead;
+		const status = (SessionStatus.Idle |
+			SessionStatus.IsRead |
+			(isSessionArchived(manager) ? SessionStatus.IsArchived : 0)) as SessionStatus;
 
 		// Which model this conversation was last using. The agent starts only on
 		// the first new turn, so without seeding it here the client's model
