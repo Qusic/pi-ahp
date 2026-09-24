@@ -10,6 +10,7 @@
 
 import {
 	type ActionEnvelope,
+	ActionType,
 	type CommandMap,
 	type CompletionsParams,
 	type CompletionsResult,
@@ -703,6 +704,22 @@ export class AhpHost {
 		// Spec: an action naming a channel that does not exist is silently
 		// ignored — no echo, no rejection.
 		if (!this.#store.has(channel)) {
+			// A session in the disk catalogue exists even if nobody has subscribed
+			// to it yet. VS Code can archive it directly from the session list.
+			const hydrator = this.#capabilities.hydrator;
+			if (action.type === ActionType.SessionIsArchivedChanged && channelKind(channel) === "session" && hydrator) {
+				void hydrator
+					.hydrate(channel)
+					.then((hydrated) => {
+						if (hydrated && this.#store.has(channel)) {
+							this.#dispatchClientAction(connection, params);
+						} else {
+							this.#log(`Ignoring action for unknown channel: ${channel}`);
+						}
+					})
+					.catch((error: unknown) => this.#log(`Could not load ${channel} for archive action: ${String(error)}`));
+				return;
+			}
 			this.#log(`Ignoring action for unknown channel: ${channel}`);
 			return;
 		}
