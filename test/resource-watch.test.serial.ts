@@ -196,6 +196,41 @@ describe("resource watch", () => {
 		await expectChange(events, child, ResourceChangeType.Added, since);
 	});
 
+	it("keeps a recursive watch attached when its directory is replaced", async () => {
+		const target = join(fixture.workspace, "recursive-folder");
+		mkdirSync(target);
+		const { channel } = await fixture.client.createResourceWatch({ uri: uri(target), recursive: true });
+		const events = await fixture.observe(channel);
+		rmSync(target, { recursive: true });
+		await expectChange(events, target, ResourceChangeType.Deleted);
+		const since = events.mark();
+		mkdirSync(target);
+		await expectChange(events, target, ResourceChangeType.Added, since);
+		const child = join(target, "nested");
+		mkdirSync(child);
+		const file = join(child, "after.txt");
+		writeFileSync(file, "content");
+		await expectChange(events, file, ResourceChangeType.Added, since);
+	});
+
+	it("keeps a recursive watch attached across an atomic directory replacement", async () => {
+		const target = join(fixture.workspace, "atomic-folder");
+		const replacement = join(fixture.workspace, "replacement-folder");
+		const old = join(fixture.workspace, "old-folder");
+		mkdirSync(target);
+		mkdirSync(replacement);
+		const { channel } = await fixture.client.createResourceWatch({ uri: uri(target), recursive: true });
+		const events = await fixture.observe(channel);
+		renameSync(target, old);
+		renameSync(replacement, target);
+		await expectChange(events, target, ResourceChangeType.Updated);
+		const nested = join(target, "nested");
+		mkdirSync(nested);
+		const file = join(nested, "after.txt");
+		writeFileSync(file, "content");
+		await expectChange(events, file, ResourceChangeType.Added);
+	});
+
 	it("reports both sides of a rename without assuming batch boundaries", async () => {
 		const source = join(fixture.workspace, "before.txt");
 		const destination = join(fixture.workspace, "after.txt");
@@ -255,6 +290,30 @@ describe("resource watch", () => {
 			);
 		});
 	}
+
+	it("delivers add, change, and delete events in order under a recursive watch", async () => {
+		const { channel } = await fixture.client.createResourceWatch({
+			uri: uri(fixture.workspace),
+			recursive: true,
+		});
+		const events = await fixture.observe(channel);
+		const target = join(fixture.workspace, "nested", "lifecycle.txt");
+		mkdirSync(join(fixture.workspace, "nested"), { recursive: true });
+
+		// 1. Add
+		writeFileSync(target, "initial");
+		await expectChange(events, target, ResourceChangeType.Added);
+
+		// 2. Change
+		const sinceAdd = events.mark();
+		writeFileSync(target, "updated");
+		await expectChange(events, target, ResourceChangeType.Updated, sinceAdd);
+
+		// 3. Delete
+		const sinceUpdate = events.mark();
+		rmSync(target);
+		await expectChange(events, target, ResourceChangeType.Deleted, sinceUpdate);
+	});
 
 	it("rejects watching something that does not exist", async () => {
 		await expectRpcError(fixture.client.createResourceWatch({ uri: uri(join(fixture.workspace, "missing")) }), -32008);

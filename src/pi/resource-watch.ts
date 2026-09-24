@@ -12,7 +12,8 @@
  */
 
 import { randomUUID } from "node:crypto";
-import { realpath, stat } from "node:fs/promises";
+import { type FSWatcher as NodeFSWatcher, statSync, watch as nodeWatch } from "node:fs";
+import { lstat, realpath, stat } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import {
@@ -46,13 +47,26 @@ export interface ResourceWatchOptions {
 const DEFAULT_GRACE_MS = 30_000;
 const DEFAULT_DEBOUNCE_MS = 50;
 
+interface NativeWatcherHandle {
+	close(): Promise<void> | void;
+}
+
+interface SharedNativeWatcher {
+	watcher: NodeFSWatcher | undefined;
+	readonly parentWatcher: NodeFSWatcher;
+	refCount: number;
+	readonly listeners: Set<(filename: string | null) => void>;
+	readonly errorListeners: Set<(error: unknown) => void>;
+	identity: string | undefined;
+}
+
 interface ActiveWatch {
 	readonly channel: URI;
 	/** The path clients addressed; emitted event URIs retain this spelling. */
 	readonly resourceRoot: string;
-	/** The canonical path passed to chokidar. */
+	/** The canonical path passed to chokidar or native watcher. */
 	readonly watchedRoot: string;
-	readonly watcher: FSWatcher;
+	readonly watcher: NativeWatcherHandle;
 	readonly excludes: readonly string[];
 	readonly includes: readonly string[];
 	pending: Map<string, ResourceChangeType>;
@@ -127,6 +141,7 @@ export class ResourceWatchService {
 	readonly #unhook: () => void;
 	/** Native setup/close operations that shutdown must drain, not protocol state. */
 	readonly #pending = new Set<Promise<unknown>>();
+	readonly #nativeRecursiveWatches = new Map<string, SharedNativeWatcher>();
 	#disposed = false;
 	#disposal: Promise<void> | undefined;
 
@@ -145,6 +160,11 @@ export class ResourceWatchService {
 		this.#disposed = true;
 		this.#unhook();
 		const releases = [...this.#watches.keys()].map((channel) => this.#release(channel));
+		for (const shared of this.#nativeRecursiveWatches.values()) {
+			shared.watcher?.close();
+			shared.parentWatcher.close();
+		}
+		this.#nativeRecursiveWatches.clear();
 		this.#disposal = Promise.allSettled([...this.#pending, ...releases]).then(() => {});
 		return this.#disposal;
 	}
@@ -197,59 +217,230 @@ export class ResourceWatchService {
 
 		if (this.#disposed) throw new Error("ResourceWatchService is disposed");
 
-		// Starting from the parent keeps the watch alive when an editor replaces a
-		// file—or the watched directory itself—by rename. The ignored predicate
-		// prevents siblings from entering chokidar's watched tree.
-		const watchRoot = dirname(watchedRoot);
-		const depth = !directory ? 0 : recursive ? undefined : watchRoot === watchedRoot ? 0 : 1;
-		// Keep Chokidar's default persistent watcher: overlapping watches then
-		// share native handles and forward asynchronous watcher errors. Polling or
-		// `awaitWriteFinish` would change delivery timing rather than add protocol
-		// state guarantees.
-		const watcher = watch(watchRoot, {
-			atomic: true,
-			followSymlinks: false,
-			ignoreInitial: true,
-			...(depth === undefined ? {} : { depth }),
-			ignored: (path: string) => {
-				if (resolve(path) === watchRoot) return false;
-				const rel = relativeWatchPath(watchedRoot, path);
-				return rel === undefined || isExcluded(rel, excludes);
-			},
-		});
-		try {
-			// Let startup settle before closing: closing a not-yet-ready watcher
-			// does not settle its ready waiter. Shutdown drains this creation task.
-			await waitUntilReady(watcher);
-			if (this.#disposed) throw new Error("ResourceWatchService is disposed");
-		} catch (error) {
-			await watcher.close();
-			throw watchError(error, uri);
-		}
-
 		const channel: URI = `${RESOURCE_WATCH_SCHEME}/${randomUUID()}`;
-		const active: ActiveWatch = {
-			channel,
-			resourceRoot,
-			watchedRoot,
-			watcher,
-			excludes,
-			includes,
-			pending: new Map(),
-			flushTimer: undefined,
-			graceTimer: undefined,
-		};
-		const record = (path: string, type: ResourceChangeType): void => this.#record(active, path, type);
-		watcher
-			.on("add", (path) => record(path, ResourceChangeType.Added))
-			.on("addDir", (path) => record(path, ResourceChangeType.Added))
-			.on("change", (path) => record(path, ResourceChangeType.Updated))
-			.on("unlink", (path) => record(path, ResourceChangeType.Deleted))
-			.on("unlinkDir", (path) => record(path, ResourceChangeType.Deleted))
-			.on("error", (error) => {
+		const useNativeRecursive = recursive && (process.platform === "darwin" || process.platform === "win32");
+
+		let watcherHandle: NativeWatcherHandle;
+		let active: ActiveWatch;
+
+		if (useNativeRecursive) {
+			let shared = this.#nativeRecursiveWatches.get(watchedRoot);
+			if (!shared) {
+				const listeners = new Set<(filename: string | null) => void>();
+				const errorListeners = new Set<(error: unknown) => void>();
+				const reportError = (error: unknown): void => {
+					this.#options.log?.(`native watch on ${watchedRoot} failed: ${String(error)}`);
+					for (const listener of errorListeners) listener(error);
+				};
+				let watcher: NodeFSWatcher | undefined;
+				let parentWatcher: NodeFSWatcher;
+				try {
+					watcher = nodeWatch(watchedRoot, { recursive: true }, (_eventType, filename) => {
+						for (const listener of listeners) listener(filename);
+					});
+					// A non-recursive parent watch survives removal/replacement of watchedRoot.
+					// Do not recursively watch the parent: it may contain other huge workspaces.
+					parentWatcher = nodeWatch(dirname(watchedRoot), (_eventType, filename) => {
+						if (filename && resolve(dirname(watchedRoot), filename) !== watchedRoot) return;
+						const current = this.#nativeRecursiveWatches.get(watchedRoot);
+						if (!current) return;
+						let identity: string | undefined;
+						try {
+							const stats = statSync(watchedRoot);
+							if (stats.isDirectory()) identity = `${stats.dev}:${stats.ino}:${stats.birthtimeMs}`;
+						} catch (error) {
+							if (errorCodeOf(error) !== "ENOENT") {
+								reportError(error);
+								return;
+							}
+						}
+						if (identity === current.identity) return;
+						current.watcher?.close();
+						current.watcher = undefined;
+						current.identity = identity;
+						if (identity) {
+							try {
+							current.watcher = nodeWatch(watchedRoot, { recursive: true }, (_type, child) => {
+								for (const listener of listeners) listener(child);
+							});
+							current.watcher.on("error", reportError);
+							} catch (error) {
+								reportError(error);
+							}
+						}
+						for (const listener of listeners) listener("");
+					});
+				} catch (error) {
+					watcher?.close();
+					throw watchError(error, uri);
+				}
+				watcher.on("error", reportError);
+				parentWatcher.on("error", reportError);
+				let stats: ReturnType<typeof statSync>;
+				try {
+					stats = statSync(watchedRoot);
+				} catch (error) {
+					watcher?.close();
+					parentWatcher.close();
+					throw watchError(error, uri);
+				}
+				shared = {
+					watcher, parentWatcher, refCount: 0, listeners, errorListeners,
+					identity: `${stats.dev}:${stats.ino}:${stats.birthtimeMs}`,
+				};
+				this.#nativeRecursiveWatches.set(watchedRoot, shared);
+			}
+
+			shared.refCount++;
+			const onError = (error: unknown): void => {
 				this.#options.log?.(`watch ${channel} failed: ${String(error)}`);
 				void this.#release(channel);
+			};
+			shared.errorListeners.add(onError);
+			const knownPaths = new Set<string>();
+			const startTime = performance.timeOrigin + performance.now();
+			const pathLocks = new Map<string, Promise<void>>();
+
+			const onEvent = (filename: string | null): void => {
+				if (filename === null) return;
+				const fullPath = resolve(watchedRoot, filename);
+				const rel = relativeWatchPath(watchedRoot, fullPath);
+				if (rel === undefined || (rel.length > 0 && isExcluded(rel, excludes))) return;
+
+				const prev = pathLocks.get(fullPath) ?? Promise.resolve();
+				const task = prev
+					.then(async () => {
+						let stats: import("node:fs").Stats | undefined;
+						let exists = false;
+						try {
+							stats = await lstat(fullPath);
+							exists = true;
+						} catch (error) {
+							if (errorCodeOf(error) === "ENOENT") {
+								exists = false;
+							} else {
+								return;
+							}
+						}
+
+						// fs.watch reports that something changed, not a snapshot of each transition.
+						// A rapid delete/recreate before lstat may therefore appear as an update.
+						let type: ResourceChangeType;
+						if (!exists) {
+							knownPaths.delete(fullPath);
+							for (const known of knownPaths) {
+								if (known.startsWith(`${fullPath}/`)) {
+									knownPaths.delete(known);
+								}
+							}
+							type = ResourceChangeType.Deleted;
+						} else if (knownPaths.has(fullPath)) {
+							type = ResourceChangeType.Updated;
+						} else if (stats && stats.birthtimeMs >= startTime) {
+							knownPaths.add(fullPath);
+							type = ResourceChangeType.Added;
+						} else {
+							knownPaths.add(fullPath);
+							type = ResourceChangeType.Updated;
+						}
+
+						this.#record(active, fullPath, type);
+					})
+					.catch((error) => {
+						this.#options.log?.(`error processing watch event for ${fullPath}: ${String(error)}`);
+					})
+					.finally(() => {
+						if (pathLocks.get(fullPath) === task) {
+							pathLocks.delete(fullPath);
+						}
+					});
+				pathLocks.set(fullPath, task);
+			};
+
+			shared.listeners.add(onEvent);
+			const currentShared = shared;
+			watcherHandle = {
+				close: () => {
+					currentShared.listeners.delete(onEvent);
+					currentShared.errorListeners.delete(onError);
+					currentShared.refCount--;
+					if (currentShared.refCount <= 0) {
+						this.#nativeRecursiveWatches.delete(watchedRoot);
+						try {
+							currentShared.watcher?.close();
+							currentShared.parentWatcher.close();
+						} catch (error) {
+							this.#options.log?.(`closing native watcher for ${watchedRoot} failed: ${String(error)}`);
+						}
+					}
+				},
+			};
+
+			active = {
+				channel,
+				resourceRoot,
+				watchedRoot,
+				watcher: watcherHandle,
+				excludes,
+				includes,
+				pending: new Map(),
+				flushTimer: undefined,
+				graceTimer: undefined,
+			};
+		} else {
+			// Starting from the parent keeps the watch alive when an editor replaces a
+			// file—or the watched directory itself—by rename. The ignored predicate
+			// prevents siblings from entering chokidar's watched tree.
+			const watchRoot = dirname(watchedRoot);
+			const depth = !directory ? 0 : recursive ? undefined : watchRoot === watchedRoot ? 0 : 1;
+			// Keep Chokidar's default persistent watcher: overlapping watches then
+			// share native handles and forward asynchronous watcher errors. Polling or
+			// `awaitWriteFinish` would change delivery timing rather than add protocol
+			// state guarantees.
+			const watcher = watch(watchRoot, {
+				atomic: true,
+				followSymlinks: false,
+				ignoreInitial: true,
+				...(depth === undefined ? {} : { depth }),
+				ignored: (path: string) => {
+					if (resolve(path) === watchRoot) return false;
+					const rel = relativeWatchPath(watchedRoot, path);
+					return rel === undefined || isExcluded(rel, excludes);
+				},
 			});
+			try {
+				// Let startup settle before closing: closing a not-yet-ready watcher
+				// does not settle its ready waiter. Shutdown drains this creation task.
+				await waitUntilReady(watcher);
+				if (this.#disposed) throw new Error("ResourceWatchService is disposed");
+			} catch (error) {
+				await watcher.close();
+				throw watchError(error, uri);
+			}
+
+			active = {
+				channel,
+				resourceRoot,
+				watchedRoot,
+				watcher,
+				excludes,
+				includes,
+				pending: new Map(),
+				flushTimer: undefined,
+				graceTimer: undefined,
+			};
+			const record = (path: string, type: ResourceChangeType): void => this.#record(active, path, type);
+			watcher
+				.on("add", (path) => record(path, ResourceChangeType.Added))
+				.on("addDir", (path) => record(path, ResourceChangeType.Added))
+				.on("change", (path) => record(path, ResourceChangeType.Updated))
+				.on("unlink", (path) => record(path, ResourceChangeType.Deleted))
+				.on("unlinkDir", (path) => record(path, ResourceChangeType.Deleted))
+				.on("error", (error) => {
+					this.#options.log?.(`watch ${channel} failed: ${String(error)}`);
+					void this.#release(channel);
+				});
+		}
 
 		const state: ResourceWatchState = {
 			root: uri,
@@ -349,7 +540,7 @@ export class ResourceWatchService {
 		active.pending.clear();
 		this.#host.store.delete(channel);
 		try {
-			await this.#track(active.watcher.close());
+			await this.#track(Promise.resolve(active.watcher.close()));
 		} catch (error) {
 			this.#options.log?.(`closing watch ${channel} failed: ${String(error)}`);
 		}

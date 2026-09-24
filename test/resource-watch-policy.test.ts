@@ -30,7 +30,7 @@ describe("watch path scope and filters", () => {
 			["nested/file.md", ["**/*.md"], ["nested/**"], false],
 			["node_modules/pkg/index.js", [], ["**/node_modules/**"], false],
 			["nested/node_modules/pkg/index.js", [], ["**/node_modules/**"], false],
-			["node_modules", [], ["**/node_modules/**"], true],
+			["node_modules", [], ["**/node_modules/**"], false],
 			[".git/config", [], ["**/.git/**"], false],
 			["src/.hidden.ts", ["**/*.ts"], [], false],
 			["src/.hidden.ts", ["**/.*.ts"], [], true],
@@ -45,6 +45,14 @@ describe("watch path scope and filters", () => {
 		assert.equal(isExcluded("src", []), false);
 		assert.equal(matchesPatterns("src/file.ts", ["**/*.ts"], []), true);
 		assert.equal(isExcluded("src/generated", ["**/generated"]), true);
+	});
+
+	it("skips excluded folders and dot-named descendants", () => {
+		const excludes = ["**/node_modules/**", "**/.claude/worktrees/**"];
+		for (const path of ["node_modules", "node_modules/.pnpm/x", "a/.claude/worktrees/b"]) {
+			assert.equal(isExcluded(path, excludes), true, `${path} should be excluded`);
+			assert.equal(matchesPatterns(path, [], excludes), false, `${path} should not match`);
+		}
 	});
 });
 

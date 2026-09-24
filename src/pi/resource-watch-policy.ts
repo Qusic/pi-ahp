@@ -9,8 +9,30 @@ export function relativeWatchPath(root: string, path: string): string | undefine
 	return result.split(sep).join("/");
 }
 
+function matchesExcludePattern(path: string, pattern: string): boolean {
+	if (matchesGlob(path, pattern) || matchesGlob(`${path}/x`, pattern)) {
+		return true;
+	}
+	// Node's matchesGlob does not match hidden dot-segments against wildcards like **.
+	// Allow dot names so e.g. **/node_modules/** matches node_modules/.pnpm/x.
+	const noDots = path
+		.split("/")
+		.map((s) => (s.startsWith(".") && s !== "." && s !== ".." ? `_${s.slice(1)}` : s))
+		.join("/");
+	return matchesGlob(noDots, pattern) || matchesGlob(`${noDots}/x`, pattern);
+}
+
 export function isExcluded(path: string, excludes: readonly string[]): boolean {
-	return path.length > 0 && excludes.some((pattern) => matchesGlob(path, pattern));
+	if (path.length === 0 || excludes.length === 0) return false;
+	const segments = path.split("/");
+	return excludes.some((pattern) => {
+		let prefix = "";
+		for (const segment of segments) {
+			prefix = prefix ? `${prefix}/${segment}` : segment;
+			if (matchesExcludePattern(prefix, pattern)) return true;
+		}
+		return false;
+	});
 }
 
 export function matchesPatterns(path: string, includes: readonly string[], excludes: readonly string[]): boolean {
