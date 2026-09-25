@@ -53,6 +53,7 @@
 		"@earendil-works/pi-coding-agent": "0.87.0",
 		"@microsoft/agent-host-protocol": "0.9.0",
 		"chokidar": "^5.0.0",
+		"lowdb": "^7.0.1",
 		"mime": "^4.1.0",
 		"node-pty": "^1.2.0-beta.15",
 		"ws": "^8.21.3"

@@ -103,7 +103,8 @@ Currently supported protocol versions: **0.9.0**
 | Tool catalogue and client tools | 🟡 | Show available pi tools and let connected clients contribute tools |
 | pi customizations | 🟡 | Show and configure loaded extensions, skills, and prompt templates |
 | Terminal command detection | 🟡 | Group terminal output by command and exit status |
-| Persistent read and archive controls | 🔴 | pi sessions do not store this metadata |
+| Persistent archive controls | 🟢 | pi-ahp stores archive flags in profile-scoped host metadata, separate from Pi sessions |
+| Persistent read controls | 🔴 | Read state is not persisted yet |
 | Multiple chats or working directories | 🔴 | A pi session has one active branch and cwd; branches are not simultaneous AHP chats |
 | Custom agents | 🔴 | pi sub-agents are extension tools rather than selectable agents |
 | Elicitation | 🔴 | pi extension dialogs are not persisted as turn input |

@@ -24,9 +24,9 @@ import { chatIdFromUri, chatUri, isChatChannel, sessionIdFromUri, sessionUri } f
 import type { AhpHost, ChannelHydrator } from "../core/host.ts";
 import { pathToFileUri } from "../core/uri.ts";
 import { rebuildTurnsFromSession } from "./history.ts";
+import { MetadataStore } from "./metadata-store.ts";
 import { modelSelectionId, THINKING_CONFIG_KEY } from "./models.ts";
 import { PI_PROVIDER } from "./provider.ts";
-import { isSessionArchived } from "./session-archive.ts";
 import type { PiSessionCatalogue } from "./session-catalogue.ts";
 import { sessionDisplayTitle } from "./session-title.ts";
 import { initialTurnsCursor } from "./turn-paging.ts";
@@ -34,6 +34,7 @@ import { initialTurnsCursor } from "./turn-paging.ts";
 export interface SessionHydratorOptions {
 	readonly host: AhpHost;
 	readonly catalogue: PiSessionCatalogue;
+	readonly metadata?: MetadataStore;
 	/** Sessions this host already has live; those must never be reloaded over. */
 	readonly isLive: (sessionChannel: URI) => boolean;
 	/** Prevents a disk session from becoming live while its removal is pending. */
@@ -65,11 +66,13 @@ export interface SessionHydratorOptions {
 
 export class SessionHydrator implements ChannelHydrator {
 	readonly #options: SessionHydratorOptions;
+	readonly #metadata: MetadataStore;
 	/** Session and chat subscriptions for one id join the same disk materialization. */
 	readonly #hydrations = new Map<string, Promise<void>>();
 
 	constructor(options: SessionHydratorOptions) {
 		this.#options = options;
+		this.#metadata = options.metadata ?? new MetadataStore();
 	}
 
 	async hydrate(channel: URI): Promise<boolean> {
@@ -150,7 +153,7 @@ export class SessionHydrator implements ChannelHydrator {
 		// `readSessionSummary`. The reducer still clears the bit if a turn starts.
 		const status = (SessionStatus.Idle |
 			SessionStatus.IsRead |
-			(isSessionArchived(manager) ? SessionStatus.IsArchived : 0)) as SessionStatus;
+			(this.#metadata.getSessionArchived(sessionId) ? SessionStatus.IsArchived : 0)) as SessionStatus;
 
 		// Which model this conversation was last using. The agent starts only on
 		// the first new turn, so without seeding it here the client's model

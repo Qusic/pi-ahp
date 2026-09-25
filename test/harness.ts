@@ -15,6 +15,7 @@ import { AhpClient } from "@microsoft/agent-host-protocol/client";
 import { WebSocketTransport } from "@microsoft/agent-host-protocol/ws";
 import { installRootChannel } from "../src/channels/root.ts";
 import { AhpHost } from "../src/core/host.ts";
+import { MetadataStore } from "../src/pi/metadata-store.ts";
 import { PI_PROVIDER } from "../src/pi/provider.ts";
 import { PiSessionCatalogue } from "../src/pi/session-catalogue.ts";
 import { SessionHydrator } from "../src/pi/session-hydrator.ts";
@@ -73,11 +74,13 @@ export async function startHarness(
 	if (options.sessions) {
 		const sessionRoot = options.sessionRoot ?? mkdtempSync(join(tmpdir(), "pi-ahp-harness-"));
 		if (!options.sessionRoot) ownedSessionRoot = sessionRoot;
-		const catalogue = new PiSessionCatalogue(sessionRoot);
+		const metadata = new MetadataStore(join(sessionRoot, "metadata.json"));
+		const catalogue = new PiSessionCatalogue(sessionRoot, metadata);
 		const registry = new SessionRegistry({
 			host,
 			defaultWorkingDirectory: options.workingDirectory ?? process.cwd(),
 			createSessionManager: persistentSessionManagerFactory(sessionRoot),
+			metadata,
 			...(options.createBackend ? { createBackend: options.createBackend } : {}),
 			deleteFile:
 				options.deleteFile ??
@@ -95,6 +98,7 @@ export async function startHarness(
 			hydrator: new SessionHydrator({
 				host,
 				catalogue,
+				metadata,
 				isLive: (session) => registry.has(session),
 				isDisposing: (session) => registry.isDisposing(session),
 				adopt: (session) => void registry.adopt(session),

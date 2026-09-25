@@ -258,7 +258,7 @@ describe("session lifecycle", () => {
 		assert.equal(error.code, -32001);
 	});
 
-	it("persists archive state in the pi session and reflects it in session/catalogue state", async () => {
+	it("persists archive state in host metadata and reflects it in session/catalogue state", async () => {
 		const client = await initialized();
 		const uri = sessionUri(randomUUID());
 		await client.request("createSession", { channel: uri });
@@ -275,10 +275,8 @@ describe("session lifecycle", () => {
 		const live = harness.sessions?.get(uri);
 		assert.ok(live);
 		assert.equal(
-			live.sessionManager
-				.getEntries()
-				.some((entry) => entry.type === "custom" && entry.customType === "pi-ahp.session-archive"),
-			true,
+			live.sessionManager.getEntries().some((entry) => entry.type === "custom"),
+			false,
 		);
 		await client.ping();
 		const listing = await client.request("listSessions", { channel: ROOT_CHANNEL });
@@ -318,8 +316,8 @@ describe("session lifecycle", () => {
 			harness.sessions
 				?.get(uri)
 				?.sessionManager.getEntries()
-				.some((entry) => entry.type === "custom" && entry.customType === "pi-ahp.session-archive"),
-			true,
+				.some((entry) => entry.type === "custom"),
+			false,
 		);
 	});
 

@@ -37,8 +37,8 @@ import { fileUriToPath } from "../core/uri.ts";
 import { ProtocolError } from "../protocol/errors.ts";
 import { ChatDriver, type PiBackend } from "./chat-driver.ts";
 import { messageRejectionReason } from "./message-input.ts";
+import { MetadataStore } from "./metadata-store.ts";
 import { PI_PROVIDER } from "./provider.ts";
-import { persistSessionArchived } from "./session-archive.ts";
 import type { LiveSessionCatalogueEntry } from "./session-catalogue.ts";
 import { dispatchOlderTurns, truncationAnchor } from "./session-history.ts";
 import type { SessionManagerFactory } from "./session-storage.ts";
@@ -140,6 +140,7 @@ export interface SessionRegistryOptions {
 	readonly createBackend?: BackendFactory;
 	/** Explicit storage boundary; composition chooses durable or in-memory sessions. */
 	readonly createSessionManager: SessionManagerFactory;
+	readonly metadata?: MetadataStore;
 	/** Seeds a new chat's draft so a client has a model selected from the start. */
 	readonly defaultSelection?: () => ModelSelection | undefined;
 	/** A failed result or rejection prevents protocol removal. */
@@ -154,6 +155,7 @@ export type SessionDeletionCommittedListener = (sessionId: string) => void | Pro
 
 export class SessionRegistry {
 	readonly #options: SessionRegistryOptions;
+	readonly #metadata: MetadataStore;
 	readonly #host: AhpHost;
 	readonly #sessions = new Map<URI, LiveSession>();
 	readonly #byChat = new Map<URI, LiveSession>();
@@ -169,6 +171,7 @@ export class SessionRegistry {
 	constructor(options: SessionRegistryOptions) {
 		this.#options = options;
 		this.#host = options.host;
+		this.#metadata = options.metadata ?? new MetadataStore();
 
 		// Client actions are routed to whichever channel owns them; the host
 		// core stays agnostic of chats and backends.
@@ -412,6 +415,13 @@ export class SessionRegistry {
 			throw new Error(`Could not dispose session ${uri}: ${message}`);
 		}
 
+		// The transcript is gone; stale host-owned flags must not survive an id reuse.
+		try {
+			this.#metadata.deleteSession(sessionId);
+		} catch (error) {
+			this.#options.log?.(`could not remove metadata for ${uri}: ${String(error)}`);
+		}
+
 		// Durable deletion is now committed. Protocol children disappear before
 		// the parent so their subscribers can observe final cleanup actions.
 		for (const listener of this.#sessionDeletionCommittedListeners) {
@@ -652,7 +662,7 @@ export class SessionRegistry {
 	#handleSessionAction(session: LiveSession, action: StateAction): void {
 		if (action.type === ActionType.SessionIsArchivedChanged) {
 			try {
-				persistSessionArchived(session.sessionManager, action.isArchived);
+				this.#metadata.setSessionArchived(session.sessionId, action.isArchived);
 			} catch (error) {
 				// The reducer has already committed the new flag. Restore the prior
 				// status and broadcast it so failed durable writes cannot resurrect

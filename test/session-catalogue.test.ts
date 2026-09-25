@@ -19,6 +19,7 @@ import {
 } from "@microsoft/agent-host-protocol";
 import { sessionUri } from "../src/core/channels.ts";
 import { pathToFileUri } from "../src/core/uri.ts";
+import { MetadataStore } from "../src/pi/metadata-store.ts";
 import { PiSessionCatalogue } from "../src/pi/session-catalogue.ts";
 import { type Harness, nextClientId, startHarness } from "./harness.ts";
 import { assertValid } from "./support/schema.ts";
@@ -28,7 +29,6 @@ interface FakeSessionOptions {
 	readonly cwd: string;
 	readonly firstUserMessage?: string;
 	readonly name?: string;
-	readonly archived?: boolean;
 	/** Seconds since the epoch; controls catalogue ordering. */
 	readonly mtimeSeconds: number;
 }
@@ -64,9 +64,6 @@ function writeFakeSession(root: string, id: string, options: FakeSessionOptions)
 	}
 	if (options.name) {
 		push({ type: "session_info", name: options.name });
-	}
-	if (options.archived !== undefined) {
-		push({ type: "custom", customType: "pi-ahp.session-archive", data: { isArchived: options.archived } });
 	}
 
 	const path = join(directory, `${options.mtimeSeconds}_${id}.jsonl`);
@@ -110,15 +107,16 @@ describe("session catalogue", () => {
 		assert.deepEqual(result.items[0]?.workingDirectories, [pathToFileUri("/tmp/project a")]);
 	});
 
-	it("reports archived state from pi custom entries", async () => {
+	it("reports archived state from host metadata", async () => {
 		const id = randomUUID();
 		writeFakeSession(root, id, {
 			cwd: "/tmp/archive-project",
 			firstUserMessage: "Archived task",
-			archived: true,
 			mtimeSeconds: 1_700_000_100,
 		});
-		const result = await catalogue.list(undefined, undefined);
+		const metadata = new MetadataStore();
+		metadata.setSessionArchived(id, true);
+		const result = await new PiSessionCatalogue(root, metadata).list(undefined, undefined);
 		const item = result.items.find((entry) => entry.resource === sessionUri(id));
 		assert.ok(item);
 		assert.notEqual(item.status & SessionStatus.IsArchived, 0);

@@ -1,37 +1,50 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { it } from "node:test";
 import { setTimeout } from "node:timers/promises";
-import { SessionManager } from "@earendil-works/pi-coding-agent";
 import { ActionType, SessionStatus } from "@microsoft/agent-host-protocol";
 import { ROOT_CHANNEL, sessionUri } from "../src/core/channels.ts";
-import { isSessionArchived, persistSessionArchived } from "../src/pi/session-archive.ts";
+import { MetadataStore } from "../src/pi/metadata-store.ts";
 import { PiSessionCatalogue } from "../src/pi/session-catalogue.ts";
 import { startHydratedSessionFixture } from "./support/hydrated-session.ts";
 
-it("persists the latest archive marker in pi custom entries", (t) => {
+it("persists archive state independently of other session and client data", (t) => {
 	const root = mkdtempSync(join(tmpdir(), "pi-ahp-archive-"));
 	t.after(() => rmSync(root, { recursive: true, force: true }));
-	const manager = SessionManager.create(root, join(root, "sessions"));
+	const path = join(root, "metadata.json");
+	writeFileSync(path, JSON.stringify({ sessions: { a: { label: "keep" } }, clients: { vscode: { theme: "dark" } } }));
+	const store = new MetadataStore(path);
+	assert.equal(store.getSessionArchived("a"), false);
+	store.setSessionArchived("a", true);
+	store.setSessionArchived("b", true);
+	assert.equal(new MetadataStore(path).getSessionArchived("a"), true);
+	store.setSessionArchived("a", false);
+	assert.equal(new MetadataStore(path).getSessionArchived("a"), false);
+	assert.equal(new MetadataStore(path).getSessionArchived("b"), true);
+	store.deleteSession("b");
+	assert.equal(new MetadataStore(path).getSessionArchived("b"), false);
+	assert.deepEqual(JSON.parse(readFileSync(path, "utf8")), {
+		sessions: { a: { label: "keep" } },
+		clients: { vscode: { theme: "dark" } },
+	});
+});
 
-	assert.equal(isSessionArchived(manager), false);
-	persistSessionArchived(manager, true);
-	assert.equal(isSessionArchived(manager), true);
-	persistSessionArchived(manager, false);
-	assert.equal(isSessionArchived(manager), false);
-
-	const file = manager.getSessionFile();
-	assert.ok(file);
-	assert.equal(isSessionArchived(SessionManager.open(file)), false);
+it("rejects malformed metadata instead of silently overwriting it", (t) => {
+	const root = mkdtempSync(join(tmpdir(), "pi-ahp-invalid-metadata-"));
+	t.after(() => rmSync(root, { recursive: true, force: true }));
+	const path = join(root, "metadata.json");
+	writeFileSync(path, "{broken");
+	assert.throws(() => new MetadataStore(path));
+	assert.equal(readFileSync(path, "utf8"), "{broken");
 });
 
 it("archives a listed disk session before any client subscribes to it", async () => {
 	const fixture = await startHydratedSessionFixture();
 	try {
 		const uri = sessionUri(fixture.sessionId);
-		const catalogue = new PiSessionCatalogue(fixture.root);
+		const catalogue = new PiSessionCatalogue(fixture.root, fixture.metadata);
 		const file = await catalogue.findSessionFile(fixture.sessionId);
 		assert.ok(file);
 		const before = await fixture.client.request("listSessions", { channel: ROOT_CHANNEL });
@@ -45,13 +58,16 @@ it("archives a listed disk session before any client subscribes to it", async ()
 		});
 
 		const deadline = Date.now() + 2_000;
-		while (!isSessionArchived(SessionManager.open(file)) && Date.now() < deadline) {
+		while (!fixture.metadata.getSessionArchived(fixture.sessionId) && Date.now() < deadline) {
 			await setTimeout(10);
 		}
-		assert.equal(isSessionArchived(SessionManager.open(file)), true);
+		assert.equal(fixture.metadata.getSessionArchived(fixture.sessionId), true);
 		assert.equal(fixture.host.store.has(uri), true);
 
-		const freshCatalogue = await new PiSessionCatalogue(fixture.root).list(undefined, undefined);
+		const freshCatalogue = await new PiSessionCatalogue(
+			fixture.root,
+			new MetadataStore(join(fixture.root, "metadata.json")),
+		).list(undefined, undefined);
 		const archived = freshCatalogue.items.find((item) => item.resource === uri);
 		assert.ok(archived);
 		assert.notEqual(archived.status & SessionStatus.IsArchived, 0);
