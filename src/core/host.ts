@@ -394,6 +394,7 @@ export class AhpHost {
 			connection.workarounds.identify(this.#clientInfoById.get(params.clientId));
 		}
 		connection.workarounds.applyToIncoming(request);
+		this.#flushPendingOutgoing(connection);
 		if (ROOT_COMMANDS.has(request.method as keyof CommandMap) && readChannel(request.params) !== ROOT_CHANNEL) {
 			throw ProtocolError.invalidParams(`${request.method} requires channel ${ROOT_CHANNEL}`);
 		}
@@ -541,12 +542,25 @@ export class AhpHost {
 		return this.#capabilities.resources;
 	}
 
+	#flushPendingOutgoing(connection: ClientConnection): void {
+		for (const msg of connection.workarounds.takePendingOutgoing()) {
+			if ("method" in msg && typeof msg.params === "object" && msg.params !== null && "channel" in msg.params) {
+				const channel = (msg.params as { channel?: string }).channel;
+				if (typeof channel === "string" && !connection.isSubscribed(channel)) {
+					continue;
+				}
+			}
+			connection.send(msg);
+		}
+	}
+
 	#handleNotification(connection: ClientConnection, message: JsonRpcNotification): void {
 		if (!connection.clientId) {
 			this.#log(`Ignoring ${message.method} before initialize or reconnect`);
 			return;
 		}
 		connection.workarounds.applyToIncoming(message);
+		this.#flushPendingOutgoing(connection);
 		switch (message.method) {
 			case "unsubscribe": {
 				const channel = readChannel(message.params);
