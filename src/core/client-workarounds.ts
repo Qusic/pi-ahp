@@ -238,12 +238,14 @@ export class ClientWorkarounds {
 				const sessionId = providerSessionId(channel);
 				channel = sessionId ? chatUri(sessionId) : channel;
 			}
-			// VS Code addresses its session rename to the selected chat. AHP defines
-			// `session/titleChanged` only on the owning session.
+			// VS Code addresses session rename and archive actions to the selected
+			// chat. AHP defines both actions only on the owning session.
 			if (
 				message.method === "dispatchAction" &&
 				this.#isVscode &&
-				typeOfAction(params.action) === ActionType.SessionTitleChanged
+				[ActionType.SessionTitleChanged, ActionType.SessionIsArchivedChanged].includes(
+					typeOfAction(params.action) as ActionType,
+				)
 			) {
 				const chatId = chatIdFromUri(channel);
 				channel = chatId ? sessionUri(chatId) : channel;

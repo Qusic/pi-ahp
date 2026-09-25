@@ -204,10 +204,7 @@ describe("pi client-action policy", () => {
 				{ type: ActionType.SessionMcpServerStartRequested, id: "mcp" },
 				{ type: ActionType.SessionMcpServerStopRequested, id: "mcp" },
 			]),
-			...rejected(session, /read or archive state/, [
-				{ type: ActionType.SessionIsReadChanged, isRead: false },
-				{ type: ActionType.SessionIsArchivedChanged, isArchived: true },
-			]),
+			...rejected(session, /read state/, [{ type: ActionType.SessionIsReadChanged, isRead: false }]),
 			...rejected(session, /no mutable configuration/, [
 				{ type: ActionType.SessionConfigChanged, config: { probe: true } },
 			]),

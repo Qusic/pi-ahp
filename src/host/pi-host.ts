@@ -135,6 +135,7 @@ export async function createPiHost(options: PiHostOptions): Promise<PiHost> {
 		defaultWorkingDirectory: workingDirectory,
 		createBackend,
 		createSessionManager: options.sessionStorage.createSessionManager,
+		metadata: options.sessionStorage.metadata,
 		defaultSelection: fallbackSelection,
 		deleteFile: options.deleteFile ?? deleteSessionFile,
 		findSessionFile: (id) => catalogue.findSessionFile(id),
@@ -143,6 +144,7 @@ export async function createPiHost(options: PiHostOptions): Promise<PiHost> {
 	const sessionHydrator = new SessionHydrator({
 		host,
 		catalogue,
+		metadata: options.sessionStorage.metadata,
 		isLive: (session) => sessions.has(session),
 		isDisposing: (session) => sessions.isDisposing(session),
 		// Adopted without a backend; one starts on the first turn.

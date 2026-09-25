@@ -18,6 +18,7 @@ import { type ListSessionsResult, SessionStatus, type SessionSummary, type URI }
 import { sessionUri } from "../core/channels.ts";
 import { pathToFileUri } from "../core/uri.ts";
 import { ProtocolError } from "../protocol/errors.ts";
+import { MetadataStore } from "./metadata-store.ts";
 import { PI_PROVIDER } from "./provider.ts";
 import { sessionDisplayTitle } from "./session-title.ts";
 import { textFromPiUserContent } from "./user-message.ts";
@@ -147,7 +148,7 @@ function readSessionId(path: string): string | undefined {
  * Returns `undefined` for a file that is not a readable pi session so a single
  * corrupt file cannot break the whole catalogue.
  */
-function readSessionSummary(file: SessionFile): SessionSummary | undefined {
+function readSessionSummary(file: SessionFile, metadata: MetadataStore): SessionSummary | undefined {
 	let manager: SessionManager;
 	try {
 		manager = SessionManager.open(file.path);
@@ -183,15 +184,10 @@ function readSessionSummary(file: SessionFile): SessionSummary | undefined {
 		resource: sessionUri(sessionId),
 		provider: PI_PROVIDER,
 		title: sessionDisplayTitle(manager.getSessionName(), firstUserMessage),
-		// Idle by definition, and reported as read.
-		//
-		// Read/unread is not modelled: pi has no such concept, so tracking it
-		// would mean this host inventing durable state of its own — and without
-		// archiving to go with it, a catalogue where everything is permanently
-		// unread is worse than one that is quiet. The chat reducer may still clear
-		// its chat-local bit on `chat/turnStarted`; the session catalogue remains
-		// read because this host does not implement mutable session read state.
-		status: SessionStatus.Idle | SessionStatus.IsRead,
+		// Idle by definition and reported as read; archive state is host-owned metadata.
+		status: (SessionStatus.Idle |
+			SessionStatus.IsRead |
+			(metadata.getSessionArchived(sessionId) ? SessionStatus.IsArchived : 0)) as SessionStatus,
 		createdAt: createdAt ?? new Date(file.mtimeMs).toISOString(),
 		modifiedAt: new Date(file.mtimeMs).toISOString(),
 		...(cwd ? { workingDirectories: [pathToFileUri(cwd)] } : {}),
@@ -204,10 +200,12 @@ function readSessionSummary(file: SessionFile): SessionSummary | undefined {
  */
 export class PiSessionCatalogue {
 	readonly #root: string;
+	readonly #metadata: MetadataStore;
 	/** Session URI → file path, populated as pages are read. Purely a cache. */
 	readonly #index = new Map<URI, string>();
-	constructor(root: string) {
+	constructor(root: string, metadata: MetadataStore = new MetadataStore()) {
 		this.#root = root;
+		this.#metadata = metadata;
 	}
 
 	/** The pi session file backing a URI, if a page has surfaced it. */
@@ -299,7 +297,8 @@ export class PiSessionCatalogue {
 		const items: SessionSummary[] = [];
 		for (const entry of page) {
 			const summary =
-				entry.summary ?? (entry.file ? readSessionSummary({ path: entry.file, mtimeMs: entry.mtimeMs }) : undefined);
+				entry.summary ??
+				(entry.file ? readSessionSummary({ path: entry.file, mtimeMs: entry.mtimeMs }, this.#metadata) : undefined);
 			if (summary) {
 				if (entry.file && entry.onDisk) {
 					this.#index.set(summary.resource, entry.file);

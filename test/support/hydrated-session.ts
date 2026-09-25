@@ -10,6 +10,7 @@ import { installRootChannel } from "../../src/channels/root.ts";
 import { ROOT_CHANNEL } from "../../src/core/channels.ts";
 import { AhpHost } from "../../src/core/host.ts";
 import type { PiBackend } from "../../src/pi/chat-driver.ts";
+import { MetadataStore } from "../../src/pi/metadata-store.ts";
 import { PiSessionCatalogue } from "../../src/pi/session-catalogue.ts";
 import { SessionHydrator } from "../../src/pi/session-hydrator.ts";
 import { type SessionFileDeletionResult, SessionRegistry } from "../../src/pi/session-registry.ts";
@@ -111,6 +112,7 @@ export interface HydratedSessionFixture {
 	readonly server: RunningServer;
 	readonly sessionId: string;
 	readonly root: string;
+	readonly metadata: MetadataStore;
 	readonly workspace: string;
 	readonly deletedFiles: string[];
 	readonly backend: RecordingBackend;
@@ -131,7 +133,8 @@ export async function startHydratedSessionFixture(
 
 	const host = new AhpHost();
 	installRootChannel(host, []);
-	const catalogue = new PiSessionCatalogue(root);
+	const metadata = new MetadataStore(join(root, "metadata.json"));
+	const catalogue = new PiSessionCatalogue(root, metadata);
 	const deletedFiles: string[] = [];
 	const backend = new RecordingBackend();
 	const sessions = new SessionRegistry({
@@ -139,6 +142,7 @@ export async function startHydratedSessionFixture(
 		defaultWorkingDirectory: workspace,
 		createBackend: () => backend,
 		createSessionManager: persistentSessionManagerFactory(root),
+		metadata,
 		deleteFile: async (path) => {
 			deletedFiles.push(path);
 			if (options.deleteFile) {
@@ -156,6 +160,7 @@ export async function startHydratedSessionFixture(
 		hydrator: new SessionHydrator({
 			host,
 			catalogue,
+			metadata,
 			isLive: (session) => sessions.has(session),
 			isDisposing: (session) => sessions.isDisposing(session),
 			adopt: (session) => void sessions.adopt(session),
@@ -180,6 +185,7 @@ export async function startHydratedSessionFixture(
 		server,
 		sessionId,
 		root,
+		metadata,
 		workspace,
 		deletedFiles,
 		backend,

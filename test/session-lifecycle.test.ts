@@ -20,6 +20,7 @@ import {
 	MessageKind,
 	SessionLifecycle,
 	type SessionState,
+	SessionStatus,
 	SUPPORTED_PROTOCOL_VERSIONS,
 } from "@microsoft/agent-host-protocol";
 import { type AhpClient, RpcError, type Subscription } from "@microsoft/agent-host-protocol/client";
@@ -255,6 +256,69 @@ describe("session lifecycle", () => {
 
 		assert.ok(error instanceof RpcError);
 		assert.equal(error.code, -32001);
+	});
+
+	it("persists archive state in host metadata and reflects it in session/catalogue state", async () => {
+		const client = await initialized();
+		const uri = sessionUri(randomUUID());
+		await client.request("createSession", { channel: uri });
+		const { subscription: events } = await client.subscribe(uri);
+
+		const dispatched = client.dispatch(uri, { type: ActionType.SessionIsArchivedChanged, isArchived: true });
+		const event = (await nextEvent(events, (candidate) => {
+			if (candidate.type !== "action") return false;
+			return (candidate as unknown as { params: ActionEnvelope }).params.origin?.clientSeq === dispatched.clientSeq;
+		})) as unknown as { type: string; params: ActionEnvelope };
+		assert.equal((event.params as ActionEnvelope).rejectionReason, undefined);
+		assert.notEqual((harness.host.store.get(uri) as SessionState).status & SessionStatus.IsArchived, 0);
+
+		const live = harness.sessions?.get(uri);
+		assert.ok(live);
+		assert.equal(
+			live.sessionManager.getEntries().some((entry) => entry.type === "custom"),
+			false,
+		);
+		await client.ping();
+		const listing = await client.request("listSessions", { channel: ROOT_CHANNEL });
+		const listed = listing.items.find((item) => item.resource === uri);
+		assert.ok(listed);
+		assert.notEqual(listed.status & SessionStatus.IsArchived, 0);
+
+		client.dispatch(uri, { type: ActionType.SessionIsArchivedChanged, isArchived: false });
+		await client.ping();
+		assert.equal((harness.host.store.get(uri) as SessionState).status & SessionStatus.IsArchived, 0);
+	});
+
+	it("persists VS Code's chat-addressed archive action", async () => {
+		const client = await harness.connect();
+		await client.request("initialize", {
+			channel: ROOT_CHANNEL,
+			clientId: nextClientId(),
+			protocolVersions: [...SUPPORTED_PROTOCOL_VERSIONS],
+			clientInfo: { name: "vscode-editor-window" },
+		});
+		const id = randomUUID();
+		const uri = sessionUri(id);
+		const chat = `ahp-chat://default/${Buffer.from(uri).toString("base64url")}`;
+		await client.request("createSession", { channel: uri });
+		await client.subscribe(uri);
+		const events = client.attachSubscription(uri);
+
+		const dispatched = client.dispatch(chat, { type: ActionType.SessionIsArchivedChanged, isArchived: true });
+		const event = await nextEvent(events, (candidate) => {
+			if (candidate.type !== "action") return false;
+			return (candidate as unknown as { params: ActionEnvelope }).params.origin?.clientSeq === dispatched.clientSeq;
+		});
+
+		assert.equal((event.params as ActionEnvelope).rejectionReason, undefined);
+		assert.notEqual((harness.host.store.get(uri) as SessionState).status & SessionStatus.IsArchived, 0);
+		assert.equal(
+			harness.sessions
+				?.get(uri)
+				?.sessionManager.getEntries()
+				.some((entry) => entry.type === "custom"),
+			false,
+		);
 	});
 
 	it("accepts session/titleChanged from a client", async () => {
