@@ -13,7 +13,7 @@
 
 import { randomUUID } from "node:crypto";
 import { realpath, stat } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
+import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import {
 	ActionType,
@@ -26,10 +26,11 @@ import {
 	type ResourceWatchState,
 	type URI,
 } from "@microsoft/agent-host-protocol";
-import { type FSWatcher, watch } from "chokidar";
+
 import { RESOURCE_WATCH_SCHEME } from "../core/channels.ts";
 import type { AhpHost } from "../core/host.ts";
 import { ProtocolError } from "../protocol/errors.ts";
+import { type FileWatchSource, openChokidarWatchSource } from "./file-watch-source.ts";
 import { ResourcePathPolicy } from "./resource-paths.ts";
 import { isExcluded, matchesPatterns, mergeChange, relativeWatchPath } from "./resource-watch-policy.ts";
 
@@ -46,13 +47,19 @@ export interface ResourceWatchOptions {
 const DEFAULT_GRACE_MS = 30_000;
 const DEFAULT_DEBOUNCE_MS = 50;
 
+const SOURCE_CHANGE_TYPES = {
+	added: ResourceChangeType.Added,
+	updated: ResourceChangeType.Updated,
+	deleted: ResourceChangeType.Deleted,
+};
+
 interface ActiveWatch {
 	readonly channel: URI;
 	/** The path clients addressed; emitted event URIs retain this spelling. */
 	readonly resourceRoot: string;
-	/** The canonical path passed to chokidar. */
+	/** The canonical path passed to the event source. */
 	readonly watchedRoot: string;
-	readonly watcher: FSWatcher;
+	readonly source: FileWatchSource;
 	readonly excludes: readonly string[];
 	readonly includes: readonly string[];
 	pending: Map<string, ResourceChangeType>;
@@ -93,25 +100,6 @@ function readPatterns(value: unknown, name: string): string[] {
 		throw ProtocolError.invalidParams(`${name}.items must be an array of strings`);
 	}
 	return [...items];
-}
-
-function waitUntilReady(watcher: FSWatcher): Promise<void> {
-	return new Promise((resolveReady, rejectReady) => {
-		const cleanup = (): void => {
-			watcher.removeListener("ready", onReady);
-			watcher.removeListener("error", onError);
-		};
-		const onReady = (): void => {
-			cleanup();
-			resolveReady();
-		};
-		const onError = (error: unknown): void => {
-			cleanup();
-			rejectReady(error);
-		};
-		watcher.once("ready", onReady);
-		watcher.once("error", onError);
-	});
 }
 
 /**
@@ -197,34 +185,20 @@ export class ResourceWatchService {
 
 		if (this.#disposed) throw new Error("ResourceWatchService is disposed");
 
-		// Starting from the parent keeps the watch alive when an editor replaces a
-		// file—or the watched directory itself—by rename. The ignored predicate
-		// prevents siblings from entering chokidar's watched tree.
-		const watchRoot = dirname(watchedRoot);
-		const depth = !directory ? 0 : recursive ? undefined : watchRoot === watchedRoot ? 0 : 1;
-		// Keep Chokidar's default persistent watcher: overlapping watches then
-		// share native handles and forward asynchronous watcher errors. Polling or
-		// `awaitWriteFinish` would change delivery timing rather than add protocol
-		// state guarantees.
-		const watcher = watch(watchRoot, {
-			atomic: true,
-			followSymlinks: false,
-			ignoreInitial: true,
-			...(depth === undefined ? {} : { depth }),
-			ignored: (path: string) => {
-				if (resolve(path) === watchRoot) return false;
+		const source = await openChokidarWatchSource({
+			root: watchedRoot,
+			directory,
+			recursive,
+			ignored: (path) => {
 				const rel = relativeWatchPath(watchedRoot, path);
 				return rel === undefined || isExcluded(rel, excludes);
 			},
-		});
-		try {
-			// Let startup settle before closing: closing a not-yet-ready watcher
-			// does not settle its ready waiter. Shutdown drains this creation task.
-			await waitUntilReady(watcher);
-			if (this.#disposed) throw new Error("ResourceWatchService is disposed");
-		} catch (error) {
-			await watcher.close();
+		}).catch((error: unknown) => {
 			throw watchError(error, uri);
+		});
+		if (this.#disposed) {
+			await source.close();
+			throw watchError(new Error("ResourceWatchService is disposed"), uri);
 		}
 
 		const channel: URI = `${RESOURCE_WATCH_SCHEME}/${randomUUID()}`;
@@ -232,24 +206,18 @@ export class ResourceWatchService {
 			channel,
 			resourceRoot,
 			watchedRoot,
-			watcher,
+			source,
 			excludes,
 			includes,
 			pending: new Map(),
 			flushTimer: undefined,
 			graceTimer: undefined,
 		};
-		const record = (path: string, type: ResourceChangeType): void => this.#record(active, path, type);
-		watcher
-			.on("add", (path) => record(path, ResourceChangeType.Added))
-			.on("addDir", (path) => record(path, ResourceChangeType.Added))
-			.on("change", (path) => record(path, ResourceChangeType.Updated))
-			.on("unlink", (path) => record(path, ResourceChangeType.Deleted))
-			.on("unlinkDir", (path) => record(path, ResourceChangeType.Deleted))
-			.on("error", (error) => {
-				this.#options.log?.(`watch ${channel} failed: ${String(error)}`);
-				void this.#release(channel);
-			});
+		source.onChange((path, kind) => this.#record(active, path, SOURCE_CHANGE_TYPES[kind]));
+		source.onError((error) => {
+			this.#options.log?.(`watch ${channel} failed: ${String(error)}`);
+			void this.#release(channel);
+		});
 
 		const state: ResourceWatchState = {
 			root: uri,
@@ -349,7 +317,7 @@ export class ResourceWatchService {
 		active.pending.clear();
 		this.#host.store.delete(channel);
 		try {
-			await this.#track(active.watcher.close());
+			await this.#track(active.source.close());
 		} catch (error) {
 			this.#options.log?.(`closing watch ${channel} failed: ${String(error)}`);
 		}
