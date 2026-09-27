@@ -9,7 +9,6 @@ interface ChokidarWatchRequest {
 	/** Canonical path to a file or directory. */
 	readonly root: string;
 	readonly directory: boolean;
-	readonly recursive: boolean;
 	/** Advisory traversal pruning; callers must still filter reported events. */
 	readonly ignored: (path: string) => boolean;
 }
@@ -33,19 +32,19 @@ function waitUntilReady(watcher: FSWatcher): Promise<void> {
 	});
 }
 
-/** Preserves Chokidar's file, directory, and recursive-watch behavior. */
+/** Preserves Chokidar's single-file and non-recursive directory behavior. */
 export async function openChokidarWatchSource(request: ChokidarWatchRequest): Promise<FileWatchSource> {
 	// Starting from the parent keeps the watch alive when an editor replaces a
 	// file—or the watched directory itself—by rename. Do not traverse siblings.
 	const watchRoot = dirname(request.root);
-	const depth = !request.directory ? 0 : request.recursive ? undefined : watchRoot === request.root ? 0 : 1;
+	const depth = request.directory && watchRoot !== request.root ? 1 : 0;
 	// Keep the default persistent watcher so overlapping watches share native
 	// handles. Polling or awaitWriteFinish would change delivery timing.
 	const watcher = watch(watchRoot, {
 		atomic: true,
 		followSymlinks: false,
 		ignoreInitial: true,
-		...(depth === undefined ? {} : { depth }),
+		depth,
 		ignored: (path: string) => resolve(path) !== watchRoot && request.ignored(path),
 	});
 	try {

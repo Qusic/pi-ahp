@@ -141,6 +141,8 @@ class ParcelWatchSource implements FileWatchSource {
 						this.#requestReconcile(true);
 						continue;
 					}
+					// FSEvents can label a pre-existing file's first modification as
+					// create. Do not guess path history from its birthtime.
 					const kind: FileWatchChangeKind =
 						event.type === "create" ? "added" : event.type === "delete" ? "deleted" : "updated";
 					this.#emitChange(event.path, kind);

@@ -19,6 +19,7 @@ import { ResourcePathPolicy } from "../src/pi/resource-paths.ts";
 import { ResourceWatchService } from "../src/pi/resource-watch.ts";
 import { type RunningServer, serveWebSocket } from "../src/transport/websocket.ts";
 import { expectRpcError } from "./support/assertions.ts";
+import { eventually } from "./support/async.ts";
 import { assertValid } from "./support/schema.ts";
 import { WatchEvents } from "./support/watch-events.ts";
 
@@ -233,7 +234,7 @@ describe("resource watch", () => {
 	}
 
 	for (const filter of ["includes", "excludes"] as const) {
-		it(`wires ${filter} into native watch delivery`, async () => {
+		it(`applies ${filter} to AHP watch delivery`, async () => {
 			const { channel } = await fixture.client.createResourceWatch({
 				uri: uri(fixture.workspace),
 				recursive: true,
@@ -249,12 +250,47 @@ describe("resource watch", () => {
 			writeFileSync(target, "x");
 			await expectChange(events, target, ResourceChangeType.Added);
 			assert.ok(
-				events.changes.every((change) =>
-					filter === "includes" ? change.uri.endsWith(".md") : !change.uri.includes("/node_modules/"),
+				events.changes.every(
+					(change) =>
+						change.uri === uri(fixture.workspace) ||
+						(filter === "includes" ? change.uri.endsWith(".md") : !change.uri.includes("/node_modules/")),
 				),
 			);
 		});
 	}
+
+	it("keeps filters independent across recursive watches on the same root", async () => {
+		const markdown = await fixture.client.createResourceWatch({
+			uri: uri(fixture.workspace),
+			recursive: true,
+			includes: { items: ["**/*.md"] },
+		});
+		const text = await fixture.client.createResourceWatch({
+			uri: uri(fixture.workspace),
+			recursive: true,
+			includes: { items: ["**/*.txt"] },
+		});
+		const markdownEvents = await fixture.observe(markdown.channel);
+		const textEvents = await fixture.observe(text.channel);
+		const markdownPath = join(fixture.workspace, "notes.md");
+		const textPath = join(fixture.workspace, "notes.txt");
+		const markdownSince = markdownEvents.mark();
+		const textSince = textEvents.mark();
+		writeFileSync(markdownPath, "markdown");
+		writeFileSync(textPath, "text");
+		await Promise.all([
+			expectChange(markdownEvents, markdownPath, ResourceChangeType.Added, markdownSince),
+			expectChange(textEvents, textPath, ResourceChangeType.Added, textSince),
+		]);
+		assert.equal(
+			markdownEvents.changes.some((change) => change.uri === uri(textPath)),
+			false,
+		);
+		assert.equal(
+			textEvents.changes.some((change) => change.uri === uri(markdownPath)),
+			false,
+		);
+	});
 
 	it("rejects watching something that does not exist", async () => {
 		await expectRpcError(fixture.client.createResourceWatch({ uri: uri(join(fixture.workspace, "missing")) }), -32008);
@@ -288,13 +324,17 @@ describe("resource watch — roots", () => {
 			const target = join(fixture.workspace, "target");
 			const link = join(fixture.workspace, "link");
 			mkdirSync(target);
-			const child = join(target, "watched.txt");
-			writeFileSync(child, "before");
 			symlinkSync(target, link, "dir");
 			const { channel } = await fixture.client.createResourceWatch({ uri: uri(link), recursive: true });
 			const events = await fixture.observe(channel);
+			const child = join(target, "watched.txt");
+			const aliasedChild = join(link, "watched.txt");
+			const beforeAdd = events.mark();
+			writeFileSync(child, "before");
+			await expectChange(events, aliasedChild, ResourceChangeType.Added, beforeAdd);
+			const beforeUpdate = events.mark();
 			writeFileSync(child, "after");
-			await expectChange(events, join(link, "watched.txt"), ResourceChangeType.Updated);
+			await expectChange(events, aliasedChild, ResourceChangeType.Updated, beforeUpdate);
 		} finally {
 			await fixture.close();
 		}
@@ -342,6 +382,36 @@ describe("resource watch — lifetime", { timeout: 10_000 }, () => {
 		} finally {
 			t.mock.timers.reset();
 			await other.shutdown();
+			await fixture.close();
+		}
+	});
+
+	it("keeps a shared recursive watch alive when the other channel expires", async () => {
+		const fixture = await startFixture({ graceMs: 120 });
+		try {
+			const root = uri(fixture.workspace);
+			const first = await fixture.client.createResourceWatch({ uri: root, recursive: true });
+			await fixture.client.subscribe(first.channel);
+			const second = await fixture.client.createResourceWatch({ uri: root, recursive: true });
+			const events = await fixture.observe(second.channel);
+			assert.equal(fixture.watches.activeCount, 2);
+
+			await fixture.client.unsubscribe(first.channel);
+			await fixture.client.ping();
+			await eventually("first watch channel released", () => fixture.watches.activeCount === 1, {
+				describe: () => ({
+					first: fixture.host.store.has(first.channel),
+					second: fixture.host.store.has(second.channel),
+					activeCount: fixture.watches.activeCount,
+				}),
+			});
+			assert.equal(fixture.host.store.has(first.channel), false);
+			assert.equal(fixture.host.store.has(second.channel), true);
+			const file = join(fixture.workspace, "still-watched.txt");
+			const since = events.mark();
+			writeFileSync(file, "still watching");
+			await expectChange(events, file, ResourceChangeType.Added, since);
+		} finally {
 			await fixture.close();
 		}
 	});

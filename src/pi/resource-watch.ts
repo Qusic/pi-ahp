@@ -31,6 +31,7 @@ import { RESOURCE_WATCH_SCHEME } from "../core/channels.ts";
 import type { AhpHost } from "../core/host.ts";
 import { ProtocolError } from "../protocol/errors.ts";
 import { openChokidarWatchSource } from "./chokidar-watch-source.ts";
+import { ParcelWatchPool } from "./parcel-watch-pool.ts";
 import { ResourcePathPolicy } from "./resource-paths.ts";
 import { isExcluded, matchesPatterns, mergeChange, relativeWatchPath } from "./resource-watch-policy.ts";
 import type { FileWatchSource } from "./watch-source.ts";
@@ -113,6 +114,7 @@ export class ResourceWatchService {
 	readonly #options: ResourceWatchOptions;
 	readonly #paths: ResourcePathPolicy;
 	readonly #watches = new Map<URI, ActiveWatch>();
+	readonly #parcelPool = new ParcelWatchPool();
 	readonly #unhook: () => void;
 	/** Native setup/close operations that shutdown must drain, not protocol state. */
 	readonly #pending = new Set<Promise<unknown>>();
@@ -186,15 +188,18 @@ export class ResourceWatchService {
 
 		if (this.#disposed) throw new Error("ResourceWatchService is disposed");
 
-		const source = await openChokidarWatchSource({
-			root: watchedRoot,
-			directory,
-			recursive,
-			ignored: (path) => {
-				const rel = relativeWatchPath(watchedRoot, path);
-				return rel === undefined || isExcluded(rel, excludes);
-			},
-		}).catch((error: unknown) => {
+		const opening =
+			directory && recursive
+				? this.#parcelPool.acquire(watchedRoot)
+				: openChokidarWatchSource({
+						root: watchedRoot,
+						directory,
+						ignored: (path) => {
+							const rel = relativeWatchPath(watchedRoot, path);
+							return rel === undefined || isExcluded(rel, excludes);
+						},
+					});
+		const source = await opening.catch((error: unknown) => {
 			throw watchError(error, uri);
 		});
 		if (this.#disposed) {
