@@ -30,9 +30,10 @@ import {
 import { RESOURCE_WATCH_SCHEME } from "../core/channels.ts";
 import type { AhpHost } from "../core/host.ts";
 import { ProtocolError } from "../protocol/errors.ts";
-import { type FileWatchSource, openChokidarWatchSource } from "./file-watch-source.ts";
+import { openChokidarWatchSource } from "./chokidar-watch-source.ts";
 import { ResourcePathPolicy } from "./resource-paths.ts";
 import { isExcluded, matchesPatterns, mergeChange, relativeWatchPath } from "./resource-watch-policy.ts";
+import type { FileWatchSource } from "./watch-source.ts";
 
 export interface ResourceWatchOptions {
 	/** Shared access policy for the request/response and watch resource surfaces. */

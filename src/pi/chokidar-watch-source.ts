@@ -1,18 +1,10 @@
-/** Filesystem event sources. Protocol channels and final filtering belong to their callers. */
+/** Chokidar filesystem events, independent of protocol channels and final filtering. */
 
 import { dirname, resolve } from "node:path";
 import { type FSWatcher, watch } from "chokidar";
+import type { FileWatchSource } from "./watch-source.ts";
 
-type FileWatchChangeKind = "added" | "updated" | "deleted";
-
-/** A ready watcher whose listeners remain owned by this handle until close. */
-export interface FileWatchSource {
-	onChange(listener: (path: string, kind: FileWatchChangeKind) => void): void;
-	onError(listener: (error: unknown) => void): void;
-	close(): Promise<void>;
-}
-
-/** Backend-specific setup; only the event handle is shared with other sources. */
+/** Chokidar-specific traversal options. */
 interface ChokidarWatchRequest {
 	/** Canonical path to a file or directory. */
 	readonly root: string;
