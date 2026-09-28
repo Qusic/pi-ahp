@@ -63,7 +63,6 @@ export interface GitChangesBackend {
 		kind: PiChangesetKind,
 		signal?: AbortSignal,
 	): Promise<ChangesetFile[]>;
-	ignoredDirectories(workspace: GitWorkspace, signal?: AbortSignal): Promise<string[]>;
 	pathForBlob(workspace: GitWorkspace, blob: GitBlobRef): string | undefined;
 	readBlob(workspace: GitWorkspace, blob: GitBlobRef, signal?: AbortSignal): Promise<Buffer>;
 }
@@ -512,20 +511,6 @@ export class GitChanges implements GitChangesBackend {
 			changes.push({ newPath: path, ...(added !== undefined ? { added, removed: 0 } : {}) });
 		}
 		return this.#toFiles(workspace, sessionId, "uncommitted", changes);
-	}
-
-	async ignoredDirectories(workspace: GitWorkspace, signal?: AbortSignal): Promise<string[]> {
-		const output = await runGit(
-			workspace.repositoryRoot,
-			["ls-files", "--others", "--ignored", "--exclude-standard", "--directory", "-z", "--", workspace.pathspec],
-			signal ? { signal } : {},
-		);
-		const directories: string[] = [];
-		for (const path of nulPaths(output, "git ls-files --ignored")) {
-			const absolute = gitPathToAbsolute(workspace.repositoryRoot, path.replace(/\/$/u, ""));
-			if (absolute && isInside(workspace.cwd, absolute)) directories.push(absolute);
-		}
-		return directories;
 	}
 
 	pathForBlob(workspace: GitWorkspace, blob: GitBlobRef): string | undefined {

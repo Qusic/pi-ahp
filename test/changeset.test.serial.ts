@@ -229,6 +229,46 @@ describe("Git changesets", () => {
 		assert.equal(built.changesets.activeWatcherCount, 0);
 	});
 
+	it("recomputes untracked files when Git ignore rules change", async () => {
+		const directory = mkdtempSync(join(tmpdir(), "pi-ahp-ignore-rules-"));
+		const session = sessionUri(randomUUID());
+		try {
+			git(directory, "init", "-q");
+			git(directory, "config", "user.email", "test@example.com");
+			git(directory, "config", "user.name", "pi-ahp test");
+			mkdirSync(join(directory, "generated"));
+			const ignoreFile = join(directory, ".gitignore");
+			writeFileSync(ignoreFile, "generated/\n");
+			writeFileSync(join(directory, "generated", "untracked.txt"), "present\n");
+			git(directory, "add", ".gitignore");
+			git(directory, "commit", "-qm", "initial ignore rules");
+
+			await client.request("createSession", {
+				channel: session,
+				workingDirectories: [pathToFileURL(directory).toString()],
+			});
+			await built.changesets.attach(must(built.sessions.get(session)));
+			const state = built.host.store.get(session) as SessionState;
+			const channel = must(state.changesets?.find(({ changeKind }) => changeKind === "uncommitted")).uriTemplate;
+			await client.subscribe(channel);
+			assert.deepEqual((await readyState(client, built.host, channel)).files, []);
+
+			writeFileSync(ignoreFile, "");
+			await eventually("the previously ignored file to appear", () => {
+				const next = built.host.store.get(channel) as ChangesetState | undefined;
+				return next?.status === ChangesetStatus.Ready && next.files.some((file) => fileName(file) === "untracked.txt");
+			});
+			writeFileSync(ignoreFile, "generated/\n");
+			await eventually("the ignored file to disappear", () => {
+				const next = built.host.store.get(channel) as ChangesetState | undefined;
+				return next?.status === ChangesetStatus.Ready && next.files.length === 0;
+			});
+		} finally {
+			if (built.sessions.has(session)) await client.request("disposeSession", { channel: session });
+			rmSync(directory, { recursive: true, force: true });
+		}
+	});
+
 	it("limits changes to the session working-directory subtree", async () => {
 		const scopedDirectory = join(workspace, "scope");
 		const siblingDirectory = join(workspace, "sibling");

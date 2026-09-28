@@ -14,6 +14,7 @@ import { CompletionService, MENTION_TRIGGER } from "../pi/completions.ts";
 import { deleteSessionFile } from "../pi/delete-session.ts";
 import { InProcessPiBackend } from "../pi/in-process-backend.ts";
 import { buildAgentInfo, modelSelectionId, THINKING_CONFIG_KEY } from "../pi/models.ts";
+import { ParcelWatchPool } from "../pi/parcel-watch-pool.ts";
 import { type ProjectTrustPolicy, resolveProjectTrust } from "../pi/project-trust.ts";
 import { ResourcePathPolicy } from "../pi/resource-paths.ts";
 import { ResourceService } from "../pi/resource-service.ts";
@@ -112,8 +113,10 @@ export async function createPiHost(options: PiHostOptions): Promise<PiHost> {
 
 	const catalogue = options.sessionStorage.catalogue;
 	const resourcePaths = new ResourcePathPolicy(options.resourceRoots);
+	const parcelPool = new ParcelWatchPool();
 	const watches = new ResourceWatchService(host, {
 		pathPolicy: resourcePaths,
+		parcelPool,
 		...(options.log ? { log: options.log } : {}),
 	});
 	const terminals = new TerminalService(host, {
@@ -162,6 +165,7 @@ export async function createPiHost(options: PiHostOptions): Promise<PiHost> {
 		authorizeResource: async (uri) => {
 			await resourcePaths.pathFor(uri);
 		},
+		parcelPool,
 		...(options.log ? { log: options.log } : {}),
 	});
 	const resources = new ResourceService({

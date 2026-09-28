@@ -1,7 +1,7 @@
 /** AHP changeset lifecycle, refresh, hydration, and immutable Git content. */
 
 import { isUtf8 } from "node:buffer";
-import { basename, isAbsolute, join, relative, sep } from "node:path";
+import { isAbsolute, join, relative, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 import { isDeepStrictEqual } from "node:util";
 import {
@@ -14,21 +14,21 @@ import {
 	type SessionState,
 	type URI,
 } from "@microsoft/agent-host-protocol";
-import { type ChokidarOptions, type FSWatcher, watch } from "chokidar";
 import mime from "mime";
 import { sessionIdFromUri } from "../core/channels.ts";
 import type { AhpHost, ChannelHydrator } from "../core/host.ts";
 import { ProtocolError } from "../protocol/errors.ts";
 import { type PiChangesetKind, parsePiChangesetUri, piChangesetCatalogue, piChangesetUri } from "./changeset-uri.ts";
+import { type ChokidarWatchFactory, openChokidarWatchTargets } from "./chokidar-watch-source.ts";
 import { GitChanges, type GitChangesBackend, type GitWorkspace, parseGitBlobUri } from "./git-changes.ts";
+import { ParcelWatchPool } from "./parcel-watch-pool.ts";
+import type { FileWatchSource } from "./watch-source.ts";
 
 export interface ChangesetSession {
 	readonly uri: URI;
 	readonly sessionId: string;
 	readonly workingDirectory: string;
 }
-
-export type ChangesetWatchFactory = (paths: string | string[], options: ChokidarOptions) => FSWatcher;
 
 export interface ChangesetServiceOptions {
 	readonly getSession: (sessionId: string) => ChangesetSession | undefined;
@@ -38,10 +38,18 @@ export interface ChangesetServiceOptions {
 	readonly onSessionDeletionCommitted?: (listener: (sessionId: string) => Promise<void>) => () => void;
 	readonly authorizeResource?: (uri: URI) => Promise<void>;
 	readonly git?: GitChangesBackend;
-	readonly watchFactory?: ChangesetWatchFactory;
+	readonly parcelPool?: ParcelWatchPool;
+	/** Chokidar factory for narrow Git metadata targets. */
+	readonly metadataWatchFactory?: ChokidarWatchFactory;
 	readonly debounceMs?: number;
 	readonly stateGraceMs?: number;
 	readonly log?: (message: string) => void;
+}
+
+interface ChangesetWatcher {
+	readonly target: GitWorkspace;
+	readonly recursive: FileWatchSource;
+	readonly metadata: FileWatchSource;
 }
 
 interface SessionEntry {
@@ -53,10 +61,10 @@ interface SessionEntry {
 	refreshRequested: boolean;
 	suspended: boolean;
 	abort: AbortController | undefined;
-	watcher: FSWatcher | undefined;
+	watcher: ChangesetWatcher | undefined;
 	watchStarting: Promise<void> | undefined;
+	watchClosing: Promise<void> | undefined;
 	watchAbort: AbortController | undefined;
-	watcherNeedsRestart: boolean;
 	refreshTimer: NodeJS.Timeout | undefined;
 }
 
@@ -67,32 +75,9 @@ function sameCatalogue(left: SessionState["changesets"], right: SessionState["ch
 	return isDeepStrictEqual(left, right);
 }
 
-function waitUntilReady(watcher: FSWatcher): Promise<void> {
-	return new Promise((resolveReady, rejectReady) => {
-		const cleanup = (): void => {
-			watcher.removeListener("ready", onReady);
-			watcher.removeListener("error", onError);
-		};
-		const onReady = (): void => {
-			cleanup();
-			resolveReady();
-		};
-		const onError = (error: unknown): void => {
-			cleanup();
-			rejectReady(error);
-		};
-		watcher.once("ready", onReady);
-		watcher.once("error", onError);
-	});
-}
-
 function isInside(root: string, candidate: string): boolean {
 	const path = relative(root, candidate);
 	return path === "" || (path !== ".." && !path.startsWith(`..${sep}`) && !isAbsolute(path));
-}
-
-function changesIgnoreRules(workspace: GitWorkspace, path: string): boolean {
-	return basename(path) === ".gitignore" || path === join(workspace.commonGitDirectory, "info", "exclude");
 }
 
 function isText(buffer: Buffer): boolean {
@@ -112,7 +97,7 @@ export class ChangesetService implements ChannelHydrator {
 	readonly #host: AhpHost;
 	readonly #options: ChangesetServiceOptions;
 	readonly #git: GitChangesBackend;
-	readonly #watch: ChangesetWatchFactory;
+	readonly #parcelPool: ParcelWatchPool;
 	readonly #entries = new Map<string, SessionEntry>();
 	readonly #stateEvictions = new Map<URI, NodeJS.Timeout>();
 	readonly #unhookSubscribers: () => void;
@@ -127,7 +112,7 @@ export class ChangesetService implements ChannelHydrator {
 		this.#host = host;
 		this.#options = options;
 		this.#git = options.git ?? new GitChanges();
-		this.#watch = options.watchFactory ?? watch;
+		this.#parcelPool = options.parcelPool ?? new ParcelWatchPool();
 		this.#unhookSubscribers = host.onSubscriberCountChanged((channel, count) =>
 			this.#subscriberChanged(channel, count),
 		);
@@ -190,8 +175,8 @@ export class ChangesetService implements ChannelHydrator {
 			abort: undefined,
 			watcher: undefined,
 			watchStarting: undefined,
+			watchClosing: undefined,
 			watchAbort: undefined,
-			watcherNeedsRestart: false,
 			refreshTimer: undefined,
 		};
 		this.#entries.set(session.sessionId, entry);
@@ -440,7 +425,7 @@ export class ChangesetService implements ChannelHydrator {
 				await this.#closeWatcher(entry);
 				return;
 			}
-			if (entry.watcherNeedsRestart) await this.#closeWatcher(entry);
+			if (entry.watcher && !sameWatchTarget(entry.watcher.target, workspace)) await this.#closeWatcher(entry);
 			// Establish observation before scanning. Any event during the scan sets
 			// `refreshRequested`, so the loop immediately computes a second snapshot.
 			await this.#ensureWatcher(entry);
@@ -535,6 +520,7 @@ export class ChangesetService implements ChannelHydrator {
 	}
 
 	async #ensureWatcher(entry: SessionEntry): Promise<void> {
+		await entry.watchClosing;
 		if (entry.watchStarting) return entry.watchStarting;
 		if (this.#disposed || entry.suspended || entry.watcher || !entry.workspace || !this.#hasInterest(entry)) {
 			return;
@@ -557,18 +543,13 @@ export class ChangesetService implements ChannelHydrator {
 	}
 
 	async #startWatcher(entry: SessionEntry, workspace: GitWorkspace, signal: AbortSignal): Promise<void> {
-		// If Git cannot describe ignored trees, do not fall back to recursively
-		// watching them: large dependency trees can exhaust native descriptors.
-		const ignored = await this.#git.ignoredDirectories(workspace, signal);
-		if (
-			signal.aborted ||
-			this.#disposed ||
-			entry.suspended ||
-			!sameWatchTarget(entry.workspace, workspace) ||
-			!this.#hasInterest(entry)
-		) {
-			return;
-		}
+		const canWatch = (): boolean =>
+			!signal.aborted &&
+			!this.#disposed &&
+			!entry.suspended &&
+			sameWatchTarget(entry.workspace, workspace) &&
+			this.#hasInterest(entry);
+		if (!canWatch()) return;
 		const metadataTargets = [
 			join(workspace.gitDirectory, "HEAD"),
 			join(workspace.gitDirectory, "index"),
@@ -576,65 +557,70 @@ export class ChangesetService implements ChannelHydrator {
 			join(workspace.commonGitDirectory, "refs"),
 			join(workspace.commonGitDirectory, "info", "exclude"),
 		];
-		const metadataRoots = new Set([workspace.gitDirectory, workspace.commonGitDirectory]);
-		const watcher = this.#watch([workspace.cwd, ...metadataTargets], {
-			ignoreInitial: true,
-			followSymlinks: false,
-			ignored: (path: string) => {
-				const metadataRoot = [...metadataRoots].find((root) => isInside(root, path));
-				if (metadataRoot) {
-					return (
-						path !== metadataRoot && !metadataTargets.some((target) => isInside(path, target) || isInside(target, path))
-					);
-				}
-				return ignored.some((root) => isInside(root, path));
-			},
-		});
-		const changed = (path: string): void => {
-			if (changesIgnoreRules(workspace, path)) entry.watcherNeedsRestart = true;
-			this.#scheduleRefresh(entry);
-		};
-		watcher
-			.on("add", changed)
-			.on("addDir", changed)
-			.on("change", changed)
-			.on("unlink", changed)
-			.on("unlinkDir", changed);
+		const metadataRoots = [workspace.gitDirectory, workspace.commonGitDirectory];
+		let metadata: FileWatchSource | undefined;
+		let recursive: FileWatchSource | undefined;
+		let active: ChangesetWatcher | undefined;
 		try {
-			await waitUntilReady(watcher);
-			if (
-				this.#disposed ||
-				entry.suspended ||
-				!sameWatchTarget(entry.workspace, workspace) ||
-				!this.#hasInterest(entry)
-			) {
-				await watcher.close();
-				return;
-			}
-			entry.watcher = watcher;
-			entry.watcherNeedsRestart = false;
-			watcher.on("error", (error) => {
-				if (entry.watcher === watcher) entry.watcher = undefined;
-				this.#options.log?.(`changeset watch failed for ${entry.session.uri}: ${String(error)}`);
-				void watcher.close();
+			// Metadata may be outside the worktree. Watch only these Git-reported
+			// targets; the workspace source has no native ignore policy.
+			metadata = await openChokidarWatchTargets(
+				{
+					targets: metadataTargets,
+					ignored: (path) => !metadataTargets.some((target) => isInside(path, target) || isInside(target, path)),
+				},
+				this.#options.metadataWatchFactory,
+			);
+			metadata.onChange(() => this.#scheduleRefresh(entry));
+			if (!canWatch()) return;
+			// Git ignore rules decide snapshot contents, not which paths a native
+			// source observes. Resource watches can use this same canonical root.
+			recursive = await this.#parcelPool.acquire(workspace.cwd);
+			if (!canWatch()) return;
+			const watcher: ChangesetWatcher = { target: workspace, recursive, metadata };
+			recursive.onChange((path) => {
+				if (metadataRoots.some((root) => isInside(root, path))) return;
+				this.#scheduleRefresh(entry);
 			});
-		} catch (error) {
-			await watcher.close();
-			this.#options.log?.(`cannot watch changes for ${entry.session.uri}: ${String(error)}`);
+			entry.watcher = watcher;
+			active = watcher;
+			metadata.onError((error) => this.#watcherFailed(entry, watcher, error));
+			recursive.onError((error) => this.#watcherFailed(entry, watcher, error));
+		} finally {
+			if (!active) await this.#closeSources(entry, metadata, recursive);
 		}
 	}
 
-	async #closeWatcher(entry: SessionEntry): Promise<void> {
-		entry.watchAbort?.abort();
-		await entry.watchStarting?.catch(() => undefined);
-		const watcher = entry.watcher;
-		if (!watcher) return;
-		entry.watcher = undefined;
-		try {
-			await watcher.close();
-		} catch (error) {
-			this.#options.log?.(`closing changeset watch failed for ${entry.session.uri}: ${String(error)}`);
+	#watcherFailed(entry: SessionEntry, watcher: ChangesetWatcher, error: unknown): void {
+		if (entry.watcher !== watcher) return;
+		this.#options.log?.(`changeset watch failed for ${entry.session.uri}: ${String(error)}`);
+		void this.#closeWatcher(entry);
+	}
+
+	async #closeSources(entry: SessionEntry, metadata?: FileWatchSource, recursive?: FileWatchSource): Promise<void> {
+		const results = await Promise.allSettled([metadata?.close(), recursive?.close()]);
+		for (const result of results) {
+			if (result.status === "rejected") {
+				this.#options.log?.(`closing changeset watch failed for ${entry.session.uri}: ${String(result.reason)}`);
+			}
 		}
+	}
+
+	#closeWatcher(entry: SessionEntry): Promise<void> {
+		entry.watchAbort?.abort();
+		if (entry.watchClosing) return entry.watchClosing;
+		const operation = (async () => {
+			await entry.watchStarting?.catch(() => undefined);
+			const watcher = entry.watcher;
+			if (!watcher) return;
+			entry.watcher = undefined;
+			await this.#closeSources(entry, watcher.metadata, watcher.recursive);
+		})();
+		entry.watchClosing = operation;
+		void operation.finally(() => {
+			if (entry.watchClosing === operation) entry.watchClosing = undefined;
+		});
+		return operation;
 	}
 
 	#disposeChannel(channel: URI): void {

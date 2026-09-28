@@ -39,6 +39,8 @@ import type { FileWatchSource } from "./watch-source.ts";
 export interface ResourceWatchOptions {
 	/** Shared access policy for the request/response and watch resource surfaces. */
 	readonly pathPolicy?: ResourcePathPolicy;
+	/** Shared native recursive subscriptions for watches on the same canonical root. */
+	readonly parcelPool?: ParcelWatchPool;
 	/** How long an unsubscribed watch remains available for reconnect. */
 	readonly graceMs?: number;
 	/** Maximum time to collect changes into one protocol action. */
@@ -114,7 +116,7 @@ export class ResourceWatchService {
 	readonly #options: ResourceWatchOptions;
 	readonly #paths: ResourcePathPolicy;
 	readonly #watches = new Map<URI, ActiveWatch>();
-	readonly #parcelPool = new ParcelWatchPool();
+	readonly #parcelPool: ParcelWatchPool;
 	readonly #unhook: () => void;
 	/** Native setup/close operations that shutdown must drain, not protocol state. */
 	readonly #pending = new Set<Promise<unknown>>();
@@ -125,6 +127,7 @@ export class ResourceWatchService {
 		this.#host = host;
 		this.#options = options;
 		this.#paths = options.pathPolicy ?? new ResourcePathPolicy();
+		this.#parcelPool = options.parcelPool ?? new ParcelWatchPool();
 		this.#unhook = host.onSubscriberCountChanged((channel, count) => {
 			this.#onSubscriberCount(channel, count);
 		});
