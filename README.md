@@ -39,6 +39,8 @@ On first run, it creates `~/.pi/ahp/settings.json` with a free port and a random
 }
 ```
 
+`PI_AHP_DIR` overrides the pi-ahp data directory and must be absolute.
+
 The token is optional and may be set to `null`. The host and port can also be overridden for one run:
 
 ```sh

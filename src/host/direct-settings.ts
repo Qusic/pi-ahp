@@ -1,5 +1,5 @@
 /**
- * Direct `pi-ahp` listener settings, persisted at `~/.pi/ahp/settings.json`.
+ * Direct `pi-ahp` listener settings, persisted under `PI_AHP_DIR`.
  *
  * Two file states, deliberately kept apart:
  *
@@ -15,8 +15,8 @@
 import { randomBytes } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
-import { homedir } from "node:os";
 import { dirname, join } from "node:path";
+import { getAhpDir } from "../core/ahp-dir.ts";
 
 export interface DirectListenerSettings {
 	port: number;
@@ -26,16 +26,10 @@ export interface DirectListenerSettings {
 	host: string;
 }
 
-const CONFIG_DIR_NAME = ".pi";
 const DEFAULT_HOST = "127.0.0.1";
 
-function getAhpDir(): string {
-	const configDir = process.env.PI_CONFIG_DIR || join(homedir(), CONFIG_DIR_NAME);
-	return join(configDir, "ahp");
-}
-
 function getSettingsPath(): string {
-	return process.env.PI_AHP_SETTINGS || join(getAhpDir(), "settings.json");
+	return join(getAhpDir(), "settings.json");
 }
 
 /** Asks the OS for a free port and immediately gives it back. */
