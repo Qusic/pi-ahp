@@ -56,7 +56,8 @@
 		"chokidar": "^5.0.0",
 		"mime": "^4.1.0",
 		"node-pty": "^1.2.0-beta.15",
-		"ws": "^8.21.3"
+		"ws": "^8.21.3",
+		"zod": "^4.4.3"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.5.14",

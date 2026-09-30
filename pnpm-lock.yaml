@@ -35,6 +35,9 @@ importers:
       ws:
         specifier: ^8.21.3
         version: 8.21.3
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@biomejs/biome':
         specifier: ^2.5.14
@@ -4101,5 +4104,4 @@ snapshots:
 
   yoctocolors@2.2.0: {}
 
-  zod@4.4.3:
-    optional: true
+  zod@4.4.3: {}
