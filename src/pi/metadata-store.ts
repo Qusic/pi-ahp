@@ -5,6 +5,11 @@ import fs from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { z } from "zod";
 
+/** Infer each schema first so its default cannot widen the accepted type. */
+type Definitions<Schemas extends Record<string, z.ZodType>> = {
+	readonly [Key in keyof Schemas]: { readonly schema: Schemas[Key]; readonly default: z.output<NoInfer<Schemas[Key]>> };
+};
+
 interface StoredValue {
 	readonly namespace: string;
 	readonly id: string;
@@ -21,12 +26,12 @@ function validateName(name: string): void {
 }
 
 /** One typed namespace; schemas should accept their JSON representation unchanged. */
-class MetadataNamespace<Keys extends Record<string, z.ZodType>> {
+class MetadataNamespace<Schemas extends Record<string, z.ZodType>> {
 	readonly #root: string;
 	readonly #name: string;
-	readonly #keys: Keys;
+	readonly #keys: Definitions<Schemas>;
 
-	constructor(root: string, name: string, keys: Keys) {
+	constructor(root: string, name: string, keys: Definitions<Schemas>) {
 		validateName(name);
 		for (const key of Object.keys(keys)) validateName(key);
 		this.#root = resolve(root);
@@ -34,14 +39,8 @@ class MetadataNamespace<Keys extends Record<string, z.ZodType>> {
 		this.#keys = keys;
 	}
 
-	get<Key extends keyof Keys & string>(id: string, key: Key): z.output<Keys[Key]> | undefined;
-	get<Key extends keyof Keys & string>(id: string, key: Key, fallback: z.output<Keys[Key]>): z.output<Keys[Key]>;
-	get<Key extends keyof Keys & string>(
-		id: string,
-		key: Key,
-		fallback?: z.output<Keys[Key]>,
-	): z.output<Keys[Key]> | undefined {
-		const schema = this.#schema(key);
+	get<Key extends keyof Schemas & string>(id: string, key: Key): z.output<Schemas[Key]> {
+		const { schema, default: fallback } = this.#definition(key);
 		const path = this.#path(id, key);
 		let contents: string;
 		try {
@@ -62,11 +61,11 @@ class MetadataNamespace<Keys extends Record<string, z.ZodType>> {
 			return fallback;
 		}
 		const parsed = schema.safeParse(stored.value);
-		return parsed.success ? (parsed.data as z.output<Keys[Key]>) : fallback;
+		return parsed.success ? parsed.data : fallback;
 	}
 
-	set<Key extends keyof Keys & string>(id: string, key: Key, value: z.input<Keys[Key]>): void {
-		const schema = this.#schema(key);
+	set<Key extends keyof Schemas & string>(id: string, key: Key, value: z.input<Schemas[Key]>): void {
+		const { schema } = this.#definition(key);
 		const path = this.#path(id, key);
 		const parsed = schema.safeParse(value);
 		if (!parsed.success) throw new Error(`Invalid metadata value for ${this.#name}/${key}`, { cause: parsed.error });
@@ -87,8 +86,8 @@ class MetadataNamespace<Keys extends Record<string, z.ZodType>> {
 		}
 	}
 
-	delete<Key extends keyof Keys & string>(id: string, key: Key): void {
-		this.#schema(key);
+	delete<Key extends keyof Schemas & string>(id: string, key: Key): void {
+		this.#definition(key);
 		try {
 			fs.unlinkSync(this.#path(id, key));
 		} catch (error) {
@@ -101,7 +100,7 @@ class MetadataNamespace<Keys extends Record<string, z.ZodType>> {
 		fs.rmSync(this.#directory(id), { recursive: true, force: true });
 	}
 
-	#schema<Key extends keyof Keys & string>(key: Key): Keys[Key] {
+	#definition<Key extends keyof Schemas & string>(key: Key): Definitions<Schemas>[Key] {
 		if (!Object.hasOwn(this.#keys, key)) throw new Error(`Unknown metadata key: ${this.#name}/${key}`);
 		return this.#keys[key];
 	}
@@ -113,7 +112,7 @@ class MetadataNamespace<Keys extends Record<string, z.ZodType>> {
 		return join(this.#root, this.#name, hash);
 	}
 
-	#path(id: string, key: keyof Keys & string): string {
+	#path(id: string, key: keyof Schemas & string): string {
 		return join(this.#directory(id), `${key}.json`);
 	}
 }
@@ -125,7 +124,8 @@ export class MetadataStore {
 	constructor(ahpDir: string) {
 		if (!ahpDir) throw new Error("Metadata needs an explicit AHP directory");
 		const root = join(ahpDir, "metadata");
-		// Storage shapes only; absence and defaults belong to the session service.
-		this.sessions = new MetadataNamespace(root, "session", { archive: z.boolean() });
+		this.sessions = new MetadataNamespace(root, "session", {
+			archive: { schema: z.boolean(), default: false },
+		});
 	}
 }

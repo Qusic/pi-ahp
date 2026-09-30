@@ -18,8 +18,7 @@ function fixture(t: { after(cleanup: () => void): void }) {
 
 it("persists archive per session and cleans only the requested ID", (t) => {
 	const { root, ahpDir, sessions } = fixture(t);
-	assert.equal(sessions.get("same", "archive"), undefined);
-	assert.equal(sessions.get("same", "archive", false), false);
+	assert.equal(sessions.get("same", "archive"), false);
 	assert.deepEqual(readdirSync(root), [], "reads must not create directories");
 
 	sessions.set("same", "archive", true);
@@ -29,11 +28,11 @@ it("persists archive per session and cleans only the requested ID", (t) => {
 	assert.equal(reopened.sessions.get("other", "archive"), false);
 
 	sessions.delete("same", "archive");
-	assert.equal(reopened.sessions.get("same", "archive"), undefined);
+	assert.equal(reopened.sessions.get("same", "archive"), false);
 	sessions.set("same", "archive", true);
 	sessions.deleteId("same");
 	sessions.deleteId("same");
-	assert.equal(reopened.sessions.get("same", "archive"), undefined);
+	assert.equal(reopened.sessions.get("same", "archive"), false);
 	assert.equal(reopened.sessions.get("other", "archive"), false);
 });
 
@@ -66,7 +65,7 @@ it("rejects invalid new values and empty IDs without writing", (t) => {
 	assert.deepEqual(readdirSync(root), []);
 });
 
-it("uses fallback for missing, malformed or invalid stored values", (t) => {
+it("uses the declared default for missing, malformed or invalid stored values", (t) => {
 	const { directory, sessions } = fixture(t);
 	sessions.set("one", "archive", true);
 	const sessionDir = join(directory, "session", createHash("sha256").update("one").digest("hex"));
@@ -85,15 +84,14 @@ it("uses fallback for missing, malformed or invalid stored values", (t) => {
 		JSON.stringify({ namespace: "session", id: "one", key: "archive", value: "yes" }),
 	]) {
 		writeFileSync(file, contents);
-		assert.equal(sessions.get("one", "archive"), undefined);
-		assert.equal(sessions.get("one", "archive", false), false);
+		assert.equal(sessions.get("one", "archive"), false);
 		// A new valid write replaces malformed low-value metadata.
 		sessions.set("one", "archive", true);
 		assert.equal(sessions.get("one", "archive"), true);
 	}
 	writeFileSync(file, "{broken");
 	sessions.delete("one", "archive");
-	assert.equal(sessions.get("one", "archive"), undefined);
+	assert.equal(sessions.get("one", "archive"), false);
 });
 
 it("keeps I/O failures visible and never claims a failed write succeeded", (t) => {
@@ -104,7 +102,7 @@ it("keeps I/O failures visible and never claims a failed write succeeded", (t) =
 		throw readError;
 	});
 	try {
-		assert.throws(() => sessions.get("kept", "archive", false), { code: "EACCES", message: "read unavailable" });
+		assert.throws(() => sessions.get("kept", "archive"), { code: "EACCES", message: "read unavailable" });
 	} finally {
 		read.mock.restore();
 	}
