@@ -8,6 +8,9 @@
 
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 import { fauxAssistantMessage, type ImageContent } from "@earendil-works/pi-ai";
@@ -30,6 +33,7 @@ import { installRootChannel } from "../src/channels/root.ts";
 import { chatUri, sessionUri } from "../src/core/channels.ts";
 import { AhpHost } from "../src/core/host.ts";
 import type { PiBackend } from "../src/pi/chat-driver.ts";
+import { MetadataStore } from "../src/pi/metadata-store.ts";
 import { SessionRegistry } from "../src/pi/session-registry.ts";
 import { serveWebSocket } from "../src/transport/websocket.ts";
 import { must, turnError } from "./support/assertions.ts";
@@ -145,11 +149,13 @@ interface Fixture {
 }
 
 async function startFixture(): Promise<Fixture> {
+	const metadataDir = mkdtempSync(join(tmpdir(), "pi-ahp-driver-metadata-"));
 	const host = new AhpHost({ serverInfo: { name: "pi-ahp", version: "test" } });
 	installRootChannel(host, []);
 	const backend = new ScriptedBackend((text) => (text === "long running" ? [] : say(`echo: ${text}`)));
 	const sessions = new SessionRegistry({
 		host,
+		metadata: new MetadataStore(metadataDir),
 		createBackend: () => backend,
 		createSessionManager: inMemorySessionManagerFactory,
 	});
@@ -182,6 +188,7 @@ async function startFixture(): Promise<Fixture> {
 		async close() {
 			await client.shutdown();
 			await server.close();
+			rmSync(metadataDir, { recursive: true, force: true });
 		},
 	};
 }
@@ -518,11 +525,14 @@ describe("chat driver", () => {
 });
 
 describe("chat driver — backend failure", () => {
-	it("marks the session failed when the backend cannot start", async () => {
+	it("marks the session failed when the backend cannot start", async (t) => {
+		const metadataDir = mkdtempSync(join(tmpdir(), "pi-ahp-failed-metadata-"));
+		t.after(() => rmSync(metadataDir, { recursive: true, force: true }));
 		const host = new AhpHost();
 		installRootChannel(host, []);
 		const sessions = new SessionRegistry({
 			host,
+			metadata: new MetadataStore(metadataDir),
 			createSessionManager: inMemorySessionManagerFactory,
 			createBackend: () => {
 				throw new Error("no credentials");
@@ -541,7 +551,9 @@ describe("chat driver — backend failure", () => {
 		assert.match(state.creationError?.message ?? "", /no credentials/);
 	});
 
-	it("closes the turn when prompt() rejects before any agent event", async () => {
+	it("closes the turn when prompt() rejects before any agent event", async (t) => {
+		const metadataDir = mkdtempSync(join(tmpdir(), "pi-ahp-prompt-metadata-"));
+		t.after(() => rmSync(metadataDir, { recursive: true, force: true }));
 		const host = new AhpHost();
 		installRootChannel(host, []);
 		const backend: PiBackend = {
@@ -552,6 +564,7 @@ describe("chat driver — backend failure", () => {
 		};
 		const sessions = new SessionRegistry({
 			host,
+			metadata: new MetadataStore(metadataDir),
 			createBackend: () => backend,
 			createSessionManager: inMemorySessionManagerFactory,
 		});
@@ -603,7 +616,9 @@ describe("chat driver — backend failure", () => {
 });
 
 describe("steering message lifetime", () => {
-	it("clears the pending message once pi consumes it", async () => {
+	it("clears the pending message once pi consumes it", async (t) => {
+		const metadataDir = mkdtempSync(join(tmpdir(), "pi-ahp-steering-metadata-"));
+		t.after(() => rmSync(metadataDir, { recursive: true, force: true }));
 		// The failure this covers looks like a hang: pi injects the steering
 		// message into the run, but `ChatState.steeringMessage` never clears, so
 		// the client shows it as forever unsent even though the model got it.
@@ -634,6 +649,7 @@ describe("steering message lifetime", () => {
 
 		const sessions = new SessionRegistry({
 			host,
+			metadata: new MetadataStore(metadataDir),
 			createBackend: () => backend,
 			createSessionManager: inMemorySessionManagerFactory,
 		});

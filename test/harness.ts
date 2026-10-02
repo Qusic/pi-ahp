@@ -36,6 +36,8 @@ export interface Harness {
 	readonly url: string;
 	/** Present when the harness was started with `sessions: true`. */
 	readonly sessions?: SessionRegistry;
+	/** The same isolated sidecar used by registry, catalogue and hydration. */
+	readonly metadata?: MetadataStore;
 	/** Files disposal asked to delete, so tests can assert without touching disk. */
 	readonly deletedFiles: string[];
 	/** Opens a connected, not-yet-initialized client. */
@@ -70,14 +72,16 @@ export async function startHarness(
 
 	const deletedFiles: string[] = [];
 	let sessions: SessionRegistry | undefined;
+	let metadata: MetadataStore | undefined;
 	let ownedSessionRoot: string | undefined;
 	if (options.sessions) {
 		const sessionRoot = options.sessionRoot ?? mkdtempSync(join(tmpdir(), "pi-ahp-harness-"));
 		if (!options.sessionRoot) ownedSessionRoot = sessionRoot;
-		const metadata = new MetadataStore(join(sessionRoot, "ahp"));
+		metadata = new MetadataStore(join(sessionRoot, "ahp"));
 		const catalogue = new PiSessionCatalogue(sessionRoot, metadata);
 		const registry = new SessionRegistry({
 			host,
+			metadata,
 			defaultWorkingDirectory: options.workingDirectory ?? process.cwd(),
 			createSessionManager: persistentSessionManagerFactory(sessionRoot),
 			...(options.createBackend ? { createBackend: options.createBackend } : {}),
@@ -123,6 +127,7 @@ export async function startHarness(
 		server,
 		url,
 		...(sessions ? { sessions } : {}),
+		...(metadata ? { metadata } : {}),
 		deletedFiles,
 		async connectWith(query: string) {
 			const client = new AhpClient(await WebSocketTransport.connect(`${base}${query}`));

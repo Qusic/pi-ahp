@@ -212,13 +212,16 @@ export type ClientActionListener = (channel: URI, action: StateAction) => void;
 export type CommittedActionListener = (channel: URI, action: StateAction) => void;
 
 /**
- * Pre-commit check for actions a client dispatched.
+ * Checks a client action before effects, reduction or broadcast.
  *
- * Returns a reason to refuse the action, or `undefined` to accept it. This runs
- * *before* the reducer, which is the only point where refusing is meaningful:
- * once an action is applied and broadcast, every client has already moved on.
+ * Returns a reason to refuse the action, or `undefined` when this check passes.
+ * Passing validation alone does not accept the action: effects must succeed
+ * before reduction and broadcast.
  */
 export type ClientActionValidator = (channel: URI, action: StateAction, clientId: string) => string | undefined;
+
+/** Synchronous effects after validation; returning undefined rather than void excludes async callbacks. */
+export type ClientActionEffect = (channel: URI, action: StateAction, clientId: string) => undefined;
 
 /** Notified when the number of clients subscribed to a channel changes. */
 export type SubscriberCountListener = (channel: URI, count: number) => void;
@@ -284,6 +287,7 @@ export class AhpHost {
 	readonly #actionListeners = new Set<ClientActionListener>();
 	readonly #committedActionListeners = new Set<CommittedActionListener>();
 	readonly #actionValidators = new Set<ClientActionValidator>();
+	readonly #actionEffects = new Set<ClientActionEffect>();
 	readonly #subscriberListeners = new Set<SubscriberCountListener>();
 
 	constructor(options: HostOptions = {}) {
@@ -723,6 +727,14 @@ export class AhpHost {
 				return;
 			}
 		}
+		try {
+			for (const effect of this.#actionEffects) effect(channel, action, connection.clientId);
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			this.#log(`Client action effect failed for ${action.type} on ${channel}: ${String(error)}`);
+			this.#rejectAction(channel, action, origin, `Could not apply ${action.type}: ${message}`);
+			return;
+		}
 		this.#commit(channel, action, origin);
 		this.#emitClientAction(channel, action);
 	}
@@ -843,7 +855,7 @@ export class AhpHost {
 	}
 
 	/**
-	 * Registers a pre-commit check.
+	 * Registers a validator that runs before any client action effects.
 	 *
 	 * Needed whenever accepting an action would leave the host unable to carry
 	 * it out: applying it anyway would show the client a change the backend
@@ -852,6 +864,15 @@ export class AhpHost {
 	addClientActionValidator(validator: ClientActionValidator): () => void {
 		this.#actionValidators.add(validator);
 		return () => this.#actionValidators.delete(validator);
+	}
+
+	/**
+	 * Registers a synchronous effect after every validator passes, before reduction or broadcast.
+	 * Throwing rejects the action. Effects are not a transaction across multiple writers.
+	 */
+	addClientActionEffect(effect: ClientActionEffect): () => void {
+		this.#actionEffects.add(effect);
+		return () => this.#actionEffects.delete(effect);
 	}
 
 	#emitClientAction(channel: URI, action: StateAction): void {

@@ -21,7 +21,7 @@ import { chatUri, ROOT_CHANNEL, sessionUri } from "../src/core/channels.ts";
 import type { PiBackend } from "../src/pi/chat-driver.ts";
 import type { BackendFactory, SessionFileDeletionResult } from "../src/pi/session-registry.ts";
 import { type Harness, nextClientId, startHarness } from "./harness.ts";
-import { expectRpcError } from "./support/assertions.ts";
+import { expectRpcError, must } from "./support/assertions.ts";
 import { eventually } from "./support/async.ts";
 
 interface DisposalFixture {
@@ -151,6 +151,13 @@ describe("session disposal", () => {
 			});
 			assert.ok(await nextRejectedAction(subscription, dispatched.clientSeq));
 			assert.equal((fixture.harness.host.store.get(uri) as SessionState).title, titleBefore);
+			const archive = fixture.client.dispatch(uri, {
+				type: ActionType.SessionIsArchivedChanged,
+				isArchived: true,
+			});
+			assert.match((await nextRejectedAction(subscription, archive.clientSeq)) ?? "", /being disposed/u);
+			const id = must(fixture.harness.sessions?.get(uri)).sessionId;
+			assert.equal(must(fixture.harness.metadata).sessions.get(id, "archive"), false);
 
 			finishDeletion({ ok: true });
 			await Promise.all([first, second]);

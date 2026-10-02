@@ -470,6 +470,7 @@ it("hydrates the parent session when its changeset is subscribed directly", asyn
 	const catalogue = new PiSessionCatalogue(source.root, source.metadata);
 	const sessions = new SessionRegistry({
 		host,
+		metadata: source.metadata,
 		createSessionManager: persistentSessionManagerFactory(source.root),
 		findSessionFile: (sessionId) => catalogue.findSessionFile(sessionId),
 		deleteFile: () => ({ ok: true }),

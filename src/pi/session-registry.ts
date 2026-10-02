@@ -37,6 +37,7 @@ import { fileUriToPath } from "../core/uri.ts";
 import { ProtocolError } from "../protocol/errors.ts";
 import { ChatDriver, type PiBackend } from "./chat-driver.ts";
 import { messageRejectionReason } from "./message-input.ts";
+import type { MetadataStore } from "./metadata-store.ts";
 import { PI_PROVIDER } from "./provider.ts";
 import type { LiveSessionCatalogueEntry } from "./session-catalogue.ts";
 import { dispatchOlderTurns, truncationAnchor } from "./session-history.ts";
@@ -97,8 +98,7 @@ function unsupportedClientActionReason(action: StateAction): string | undefined 
 		case ActionType.SessionMcpServerStopRequested:
 			return "This host does not support MCP servers";
 		case ActionType.SessionIsReadChanged:
-		case ActionType.SessionIsArchivedChanged:
-			return "This host does not persist read or archive state";
+			return "This host does not persist read state";
 		case ActionType.SessionConfigChanged:
 			return "This session has no mutable configuration";
 		case ActionType.ChatToolCallConfirmed:
@@ -140,6 +140,7 @@ export interface SessionRegistryOptions {
 	readonly createBackend?: BackendFactory;
 	/** Explicit storage boundary; composition chooses durable or in-memory sessions. */
 	readonly createSessionManager: SessionManagerFactory;
+	readonly metadata: MetadataStore;
 	/** Seeds a new chat's draft so a client has a model selected from the start. */
 	readonly defaultSelection?: () => ModelSelection | undefined;
 	/** A failed result or rejection prevents protocol removal. */
@@ -194,6 +195,11 @@ export class SessionRegistry {
 		});
 
 		this.#host.addClientActionValidator((channel, action) => this.#validateClientAction(channel, action));
+		this.#host.addClientActionEffect((channel, action) => {
+			if (action.type !== ActionType.SessionIsArchivedChanged) return;
+			const session = this.#sessions.get(channel);
+			if (session) this.#options.metadata.sessions.set(session.sessionId, "archive", action.isArchived);
+		});
 	}
 
 	// ── Lookup ──────────────────────────────────────────────────────────────
@@ -536,6 +542,9 @@ export class SessionRegistry {
 		switch (action.type) {
 			case ActionType.SessionTitleChanged:
 				return typeof action.title === "string" ? undefined : "A session title must be a string";
+			case ActionType.SessionIsArchivedChanged:
+				if (typeof action.isArchived !== "boolean") return "The archive flag must be a boolean";
+				return this.#sessions.has(channel) ? undefined : "This session is unavailable";
 			case ActionType.ChatTurnStarted: {
 				if (typeof action.turnId !== "string" || typeof action.startedAt !== "string") {
 					return "A turn requires string turnId and startedAt fields";

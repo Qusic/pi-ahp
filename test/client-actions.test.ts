@@ -100,7 +100,7 @@ describe("pi client-action policy", () => {
 			nextAction(observerEvents, dispatched.clientSeq),
 		]);
 
-		assert.equal(sender.action.type, action.type);
+		assert.deepEqual(sender.action, action);
 		assert.equal(sender.origin?.clientSeq, dispatched.clientSeq);
 		assert.match(sender.rejectionReason ?? "", reason);
 		assert.equal(seenByObserver.serverSeq, sender.serverSeq);
@@ -168,6 +168,11 @@ describe("pi client-action policy", () => {
 			},
 			{
 				channel: chat,
+				action: { type: ActionType.SessionIsArchivedChanged, isArchived: true },
+				reason: /does not belong on a chat channel/,
+			},
+			{
+				channel: chat,
 				action: { type: ActionType.TerminalCleared },
 				reason: /does not belong on a chat channel/,
 			},
@@ -204,10 +209,7 @@ describe("pi client-action policy", () => {
 				{ type: ActionType.SessionMcpServerStartRequested, id: "mcp" },
 				{ type: ActionType.SessionMcpServerStopRequested, id: "mcp" },
 			]),
-			...rejected(session, /read or archive state/, [
-				{ type: ActionType.SessionIsReadChanged, isRead: false },
-				{ type: ActionType.SessionIsArchivedChanged, isArchived: true },
-			]),
+			...rejected(session, /read state/, [{ type: ActionType.SessionIsReadChanged, isRead: false }]),
 			...rejected(session, /no mutable configuration/, [
 				{ type: ActionType.SessionConfigChanged, config: { probe: true } },
 			]),
@@ -247,6 +249,11 @@ describe("pi client-action policy", () => {
 				channel: session,
 				action: { type: ActionType.SessionTitleChanged, title: 42 } as never,
 				reason: /title must be a string/,
+			},
+			{
+				channel: session,
+				action: { type: ActionType.SessionIsArchivedChanged, isArchived: "yes" } as never,
+				reason: /archive flag must be a boolean/,
 			},
 			{
 				channel: chat,

@@ -88,6 +88,7 @@ async function startFixture(before: number, after: number): Promise<Fixture> {
 	host.serve({ catalogue });
 	const sessions = new SessionRegistry({
 		host,
+		metadata,
 		defaultWorkingDirectory: workspace,
 		createSessionManager: persistentSessionManagerFactory(root),
 	});

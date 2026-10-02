@@ -138,6 +138,7 @@ export async function createPiHost(options: PiHostOptions): Promise<PiHost> {
 
 	const sessions = new SessionRegistry({
 		host,
+		metadata: options.metadata,
 		defaultWorkingDirectory: workingDirectory,
 		createBackend,
 		createSessionManager: options.sessionStorage.createSessionManager,

@@ -8,6 +8,7 @@ import { join } from "node:path";
 import { it } from "node:test";
 import { pathToFileURL } from "node:url";
 import {
+	ActionType,
 	type ChatState,
 	CompletionItemKind,
 	SessionLifecycle,
@@ -160,7 +161,14 @@ it("restores persisted archive in cold and live summaries without archiving the 
 	assert.equal(live.items.length, 1);
 	assert.equal(live.items[0]?.status, archivedStatus);
 	assert.equal(live.items[0]?.modifiedAt, modifiedAt);
-	assert.equal(createBackend.mock.callCount(), 0, "reading archived history must not start an agent");
+	client.dispatch(session, { type: ActionType.SessionIsArchivedChanged, isArchived: false });
+	await client.ping();
+	assert.equal(metadata.sessions.get(id, "archive"), false, "the composed writer must use the same sidecar");
+	assert.equal((built.host.store.get(session) as SessionState).status & SessionStatus.IsArchived, 0);
+	const unarchived = await client.request("listSessions", { channel: ROOT_CHANNEL });
+	assert.equal(unarchived.items[0]?.status, SessionStatus.Idle | SessionStatus.IsRead);
+	assert.equal(unarchived.items[0]?.modifiedAt, modifiedAt);
+	assert.equal(createBackend.mock.callCount(), 0, "browsing and archiving must not start an agent");
 	assert.deepEqual(readFileSync(file), history);
 	assert.equal(statSync(file).mtime.toISOString(), modifiedAt);
 });

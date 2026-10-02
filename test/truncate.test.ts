@@ -126,6 +126,7 @@ async function startFixture(options: { acceptTruncate?: boolean } = {}): Promise
 	};
 	const sessions = new SessionRegistry({
 		host,
+		metadata,
 		defaultWorkingDirectory: workspace,
 		createBackend: () => backend,
 		createSessionManager: persistentSessionManagerFactory(root),

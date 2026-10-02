@@ -73,6 +73,7 @@ export async function startHydratedSessionFixture(
 	const backend = new RecordingBackend();
 	const sessions = new SessionRegistry({
 		host,
+		metadata,
 		defaultWorkingDirectory: workspace,
 		createBackend: () => backend,
 		createSessionManager: persistentSessionManagerFactory(root),

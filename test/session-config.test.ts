@@ -20,6 +20,7 @@ import { installRootChannel } from "../src/channels/root.ts";
 import { chatUri, sessionUri } from "../src/core/channels.ts";
 import { AhpHost } from "../src/core/host.ts";
 import type { PiBackend } from "../src/pi/chat-driver.ts";
+import { MetadataStore } from "../src/pi/metadata-store.ts";
 import { THINKING_CONFIG_KEY } from "../src/pi/models.ts";
 import { PROJECT_TRUST_KEY, SessionConfigService } from "../src/pi/session-config.ts";
 import { SessionRegistry } from "../src/pi/session-registry.ts";
@@ -112,6 +113,8 @@ class SelectionRecordingBackend implements PiBackend {
 }
 
 describe("model selection", () => {
+	let metadataDir: string;
+	let metadata: MetadataStore;
 	let host: AhpHost;
 	let client: AhpClient;
 	let server: RunningServer;
@@ -119,11 +122,14 @@ describe("model selection", () => {
 	let chat: string;
 
 	before(async () => {
+		metadataDir = mkdtempSync(join(tmpdir(), "pi-ahp-selection-metadata-"));
+		metadata = new MetadataStore(metadataDir);
 		host = new AhpHost();
 		installRootChannel(host, []);
 		backend = new SelectionRecordingBackend();
 		const sessions = new SessionRegistry({
 			host,
+			metadata,
 			createBackend: () => backend,
 			createSessionManager: inMemorySessionManagerFactory,
 			// The backend is authoritative once it starts, including config values.
@@ -154,6 +160,7 @@ describe("model selection", () => {
 	after(async () => {
 		await client.shutdown();
 		await server.close();
+		rmSync(metadataDir, { recursive: true, force: true });
 	});
 
 	it("has a model selected before the agent has even started", () => {
@@ -163,6 +170,7 @@ describe("model selection", () => {
 		installRootChannel(host2, []);
 		const registry = new SessionRegistry({
 			host: host2,
+			metadata,
 			createSessionManager: inMemorySessionManagerFactory,
 			defaultSelection: () => ({ id: "seeded-model", config: { [THINKING_CONFIG_KEY]: "medium" } }),
 		});
