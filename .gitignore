@@ -2,3 +2,9 @@ result
 .direnv
 node_modules
 dist
+
+# Local-only vendored reference material (upstream AHP spec/guide copies).
+# The ahp-protocol/ copy is kept on disk for offline reading but never
+# committed, so contribution PRs stay clean. The provenance/regeneration note
+# (README.md) IS tracked. See docs/reference/README.md for regeneration steps.
+docs/reference/ahp-protocol/
