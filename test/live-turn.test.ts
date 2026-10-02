@@ -43,6 +43,7 @@ import { WebSocketTransport } from "@microsoft/agent-host-protocol/ws";
 import { chatUri, sessionUri } from "../src/core/channels.ts";
 import { createPiHost } from "../src/host/pi-host.ts";
 import { InProcessPiBackend } from "../src/pi/in-process-backend.ts";
+import { MetadataStore } from "../src/pi/metadata-store.ts";
 import { THINKING_CONFIG_KEY } from "../src/pi/models.ts";
 import { type RunningServer, serveWebSocket } from "../src/transport/websocket.ts";
 import { must, turnError } from "./support/assertions.ts";
@@ -143,11 +144,13 @@ describe("live turn", { skip: LIVE ? false : SKIP_REASON }, () => {
 			`live-test model discovery failed: ${[...refreshed.errors].map(([provider, error]) => `${provider}: ${error.message}`).join("; ")}`,
 		);
 
+		const metadata = new MetadataStore(join(root, "ahp"));
 		built = await createPiHost({
 			serverInfo: { name: "pi-ahp", version: "live-test" },
 			workingDirectory: workspace,
 			modelRuntime: discovery.modelRuntime,
-			sessionStorage: persistentSessionStorage(sessionRoot),
+			sessionStorage: persistentSessionStorage(sessionRoot, metadata),
+			metadata,
 			projectTrustPolicy: "never",
 			createBackend: async (session) => {
 				const backend = await InProcessPiBackend.create({

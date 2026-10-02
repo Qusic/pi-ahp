@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { it } from "node:test";
 import { fauxAssistantMessage } from "@earendil-works/pi-ai";
+import { MetadataStore } from "../src/pi/metadata-store.ts";
 import { createDefaultPiSessionStorage } from "../src/pi/session-storage.ts";
 
 it("keeps the default catalogue and Pi session writer on the same isolated profile", async (t) => {
@@ -19,7 +20,7 @@ it("keeps the default catalogue and Pi session writer on the same isolated profi
 		rmSync(workspace, { recursive: true, force: true });
 	});
 
-	const storage = createDefaultPiSessionStorage();
+	const storage = createDefaultPiSessionStorage(new MetadataStore(join(agentDir, "ahp")));
 	const sessionId = randomUUID();
 	const manager = storage.createSessionManager(workspace, sessionId);
 	manager.appendMessage({ role: "user", content: "hello", timestamp: Date.now() });

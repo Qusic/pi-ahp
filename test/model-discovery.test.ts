@@ -8,6 +8,7 @@ import type { ChatState, RootState } from "@microsoft/agent-host-protocol";
 import { chatUri, sessionUri } from "../src/core/channels.ts";
 import { createPiHost } from "../src/host/pi-host.ts";
 import { InProcessPiBackend } from "../src/pi/in-process-backend.ts";
+import { MetadataStore } from "../src/pi/metadata-store.ts";
 import { modelSelectionId } from "../src/pi/models.ts";
 import { persistentSessionStorage } from "./support/session-storage.ts";
 
@@ -61,9 +62,11 @@ it("advertises extension models and uses pi's configured default", async () => {
 			config: { thinkingLevel: "max" },
 		};
 		const sessionRoot = join(agentDir, "sessions");
+		const metadata = new MetadataStore(join(root, "ahp"));
 		const { host, sessions } = await createPiHost({
 			workingDirectory: workspace,
-			sessionStorage: persistentSessionStorage(sessionRoot),
+			sessionStorage: persistentSessionStorage(sessionRoot, metadata),
+			metadata,
 			deleteFile: () => ({ ok: true }),
 			createBackend: () => ({
 				subscribe: () => () => {},

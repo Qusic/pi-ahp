@@ -19,8 +19,10 @@ import {
 } from "@microsoft/agent-host-protocol";
 import { sessionUri } from "../src/core/channels.ts";
 import { pathToFileUri } from "../src/core/uri.ts";
+import { MetadataStore } from "../src/pi/metadata-store.ts";
 import { PiSessionCatalogue } from "../src/pi/session-catalogue.ts";
 import { type Harness, nextClientId, startHarness } from "./harness.ts";
+import { must } from "./support/assertions.ts";
 import { assertValid } from "./support/schema.ts";
 import { fixtureSessionDirectory } from "./support/session-files.ts";
 
@@ -73,11 +75,13 @@ function writeFakeSession(root: string, id: string, options: FakeSessionOptions)
 
 describe("session catalogue", () => {
 	let root: string;
+	let metadata: MetadataStore;
 	let catalogue: PiSessionCatalogue;
 	const ids: string[] = [];
 
 	before(() => {
 		root = mkdtempSync(join(tmpdir(), "pi-ahp-catalogue-"));
+		metadata = new MetadataStore(join(root, "ahp"));
 		// Interleave two working directories so the walk covers >1 session dir.
 		for (let i = 0; i < 5; i++) {
 			const id = randomUUID();
@@ -88,7 +92,7 @@ describe("session catalogue", () => {
 				mtimeSeconds: 1_700_000_000 + i,
 			});
 		}
-		catalogue = new PiSessionCatalogue(root);
+		catalogue = new PiSessionCatalogue(root, metadata);
 	});
 
 	after(() => {
@@ -159,7 +163,7 @@ describe("session catalogue", () => {
 	});
 
 	it("returns an empty catalogue when nothing exists yet", async () => {
-		const empty = new PiSessionCatalogue(join(root, "does-not-exist"));
+		const empty = new PiSessionCatalogue(join(root, "does-not-exist"), metadata);
 		assert.deepEqual(await empty.list(undefined, undefined), { items: [] });
 	});
 
@@ -172,7 +176,7 @@ describe("session catalogue", () => {
 				firstUserMessage: "cache me",
 				mtimeSeconds: 1_700_003_000,
 			});
-			const isolated = new PiSessionCatalogue(isolatedRoot);
+			const isolated = new PiSessionCatalogue(isolatedRoot, new MetadataStore(join(isolatedRoot, "ahp")));
 			await isolated.list(undefined, undefined);
 			assert.equal(await isolated.findSessionFile(id), file);
 
@@ -183,6 +187,43 @@ describe("session catalogue", () => {
 			rmSync(isolatedRoot, { recursive: true, force: true });
 		}
 	});
+});
+
+it("projects archive only for the requested page without changing ordering or timestamps", async (t) => {
+	const root = mkdtempSync(join(tmpdir(), "pi-ahp-catalogue-archive-"));
+	t.after(() => rmSync(root, { recursive: true, force: true }));
+	const metadata = new MetadataStore(join(root, "ahp"));
+	const catalogue = new PiSessionCatalogue(root, metadata);
+	writeFakeSession(root, "newer", { cwd: "/tmp/archive", firstUserMessage: "newer", mtimeSeconds: 200 });
+	writeFakeSession(root, "older", { cwd: "/tmp/archive", firstUserMessage: "older", mtimeSeconds: 100 });
+	const before = await catalogue.list(1, undefined);
+	const first = must(before.items[0]);
+	metadata.sessions.set("newer", "archive", true);
+	const reads = t.mock.method(metadata.sessions, "get");
+
+	const page = await catalogue.list(1, undefined);
+	assert.deepEqual(page, {
+		items: [{ ...first, status: first.status | SessionStatus.IsArchived }],
+		nextCursor: before.nextCursor,
+	});
+	assert.deepEqual(
+		reads.mock.calls.map((call) => call.arguments),
+		[["newer", "archive"]],
+	);
+
+	const next = await catalogue.list(1, must(page.nextCursor));
+	assert.equal(next.items.length, 1);
+	assert.equal(next.items[0]?.resource, sessionUri("older"));
+	assert.equal(next.items[0]?.status, SessionStatus.Idle | SessionStatus.IsRead);
+	assert.equal(next.items[0]?.modifiedAt, new Date(100_000).toISOString());
+	assert.equal(next.nextCursor, undefined);
+	assert.deepEqual(
+		reads.mock.calls.map((call) => call.arguments),
+		[
+			["newer", "archive"],
+			["older", "archive"],
+		],
+	);
 });
 
 describe("live session catalogue overlays", () => {
@@ -198,7 +239,7 @@ describe("live session catalogue overlays", () => {
 			modifiedAt: new Date(1000).toISOString(),
 		};
 		let reads = 0;
-		const pending = new PiSessionCatalogue(root).list(1, undefined, () => {
+		const pending = new PiSessionCatalogue(root, new MetadataStore(join(root, "ahp"))).list(1, undefined, () => {
 			reads++;
 			return [{ summary: current }];
 		});
@@ -219,17 +260,20 @@ describe("live session catalogue overlays", () => {
 			resource: sessionUri(id),
 			provider: "pi",
 			title: "Live",
-			status: SessionStatus.InProgress,
+			status: SessionStatus.InProgress | SessionStatus.IsArchived,
 			createdAt: new Date(0).toISOString(),
 			modifiedAt: new Date(200000).toISOString(),
 		};
-		const catalogue = new PiSessionCatalogue(root);
+		const metadata = new MetadataStore(join(root, "ahp"));
+		const reads = t.mock.method(metadata.sessions, "get");
+		const catalogue = new PiSessionCatalogue(root, metadata);
 		const source = () => [{ file, summary: live }];
 		assert.deepEqual(await catalogue.list(1, undefined, source), { items: [live] });
 		assert.equal(catalogue.fileFor(live.resource), undefined);
 		writeFakeSession(root, id, options);
 		assert.deepEqual(await catalogue.list(1, undefined, source), { items: [live] });
 		assert.equal(catalogue.fileFor(live.resource), file);
+		assert.equal(reads.mock.callCount(), 0, "live state must not be replaced by disk metadata");
 	});
 
 	it("orders and paginates live summaries without duplicating their files", async () => {
@@ -260,7 +304,7 @@ describe("live session catalogue overlays", () => {
 				{ file: replacedFile, summary: summary(replacedId, "live replacement", 400) },
 				{ summary: summary(liveOnlyId, "not on disk", 300) },
 			];
-			const catalogue = new PiSessionCatalogue(root);
+			const catalogue = new PiSessionCatalogue(root, new MetadataStore(join(root, "ahp")));
 
 			const first = await catalogue.list(2, undefined, () => live);
 			assert.equal(first.items.length, 2);

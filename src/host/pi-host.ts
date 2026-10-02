@@ -13,6 +13,7 @@ import { ChangesetService } from "../pi/changeset-service.ts";
 import { CompletionService, MENTION_TRIGGER } from "../pi/completions.ts";
 import { deleteSessionFile } from "../pi/delete-session.ts";
 import { InProcessPiBackend } from "../pi/in-process-backend.ts";
+import type { MetadataStore } from "../pi/metadata-store.ts";
 import { buildAgentInfo, modelSelectionId, THINKING_CONFIG_KEY } from "../pi/models.ts";
 import { ParcelWatchPool } from "../pi/parcel-watch-pool.ts";
 import { type ProjectTrustPolicy, resolveProjectTrust } from "../pi/project-trust.ts";
@@ -37,6 +38,8 @@ export interface PiHostOptions extends HostOptions {
 	readonly createBackend?: BackendFactory;
 	/** Explicit storage boundary; tests cannot accidentally fall back to user data. */
 	readonly sessionStorage: PiSessionStorage;
+	/** Explicit AHP sidecar, separate from Pi's session corpus. */
+	readonly metadata: MetadataStore;
 	/**
 	 * How to treat trust-gated pi resources in a session's working directory.
 	 *
@@ -146,6 +149,7 @@ export async function createPiHost(options: PiHostOptions): Promise<PiHost> {
 	const sessionHydrator = new SessionHydrator({
 		host,
 		catalogue,
+		metadata: options.metadata,
 		isLive: (session) => sessions.has(session),
 		isDisposing: (session) => sessions.isDisposing(session),
 		// Adopted without a backend; one starts on the first turn.

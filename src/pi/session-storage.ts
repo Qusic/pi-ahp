@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import { getAgentDir, SessionManager } from "@earendil-works/pi-coding-agent";
+import type { MetadataStore } from "./metadata-store.ts";
 import { PiSessionCatalogue } from "./session-catalogue.ts";
 
 /** Allocates pi's canonical history manager for a newly created session. */
@@ -21,9 +22,9 @@ const durableSessionManagerFactory: SessionManagerFactory = (workingDirectory, s
  * `getAgentDir()/sessions` root. Pi's separate session-dir precedence lives in
  * its CLI rather than an exported SDK resolver, so the host does not duplicate it.
  */
-export function createDefaultPiSessionStorage(): PiSessionStorage {
+export function createDefaultPiSessionStorage(metadata: MetadataStore): PiSessionStorage {
 	return {
-		catalogue: new PiSessionCatalogue(join(getAgentDir(), "sessions")),
+		catalogue: new PiSessionCatalogue(join(getAgentDir(), "sessions"), metadata),
 		createSessionManager: durableSessionManagerFactory,
 	};
 }

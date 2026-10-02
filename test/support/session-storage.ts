@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import { SessionManager } from "@earendil-works/pi-coding-agent";
+import type { MetadataStore } from "../../src/pi/metadata-store.ts";
 import { PiSessionCatalogue } from "../../src/pi/session-catalogue.ts";
 import type { PiSessionStorage, SessionManagerFactory } from "../../src/pi/session-storage.ts";
 
@@ -10,9 +11,9 @@ export function persistentSessionManagerFactory(sessionRoot: string): SessionMan
 }
 
 /** A paired catalogue and writer rooted entirely inside one fixture. */
-export function persistentSessionStorage(sessionRoot: string): PiSessionStorage {
+export function persistentSessionStorage(sessionRoot: string, metadata: MetadataStore): PiSessionStorage {
 	return {
-		catalogue: new PiSessionCatalogue(sessionRoot),
+		catalogue: new PiSessionCatalogue(sessionRoot, metadata),
 		createSessionManager: persistentSessionManagerFactory(sessionRoot),
 	};
 }

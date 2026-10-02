@@ -35,6 +35,7 @@ import { createPiHost, type PiHost } from "../src/host/pi-host.ts";
 import { ChangesetService } from "../src/pi/changeset-service.ts";
 import { piChangesetUri } from "../src/pi/changeset-uri.ts";
 import { GitChanges } from "../src/pi/git-changes.ts";
+import { MetadataStore } from "../src/pi/metadata-store.ts";
 import { PiSessionCatalogue } from "../src/pi/session-catalogue.ts";
 import { SessionHydrator } from "../src/pi/session-hydrator.ts";
 import { SessionRegistry } from "../src/pi/session-registry.ts";
@@ -95,10 +96,12 @@ describe("Git changesets", () => {
 		appendFileSync(join(workspace, "tab\tname.txt"), "tab dirty\n");
 		writeFileSync(join(workspace, "untracked.txt"), "untracked\n");
 
+		const metadata = new MetadataStore(join(sessionRoot, "ahp"));
 		built = await createPiHost({
 			workingDirectory: workspace,
 			modelRuntime: { getAvailable: async () => [] },
-			sessionStorage: persistentSessionStorage(sessionRoot),
+			sessionStorage: persistentSessionStorage(sessionRoot, metadata),
+			metadata,
 			createBackend: () => ({
 				subscribe: () => () => {},
 				prompt: async () => {},
@@ -397,10 +400,12 @@ it("resumes changeset updates when durable session deletion fails", async () => 
 	git(workspace, "commit", "-qm", "base");
 	appendFileSync(file, "before failure\n");
 	let deletionAttempts = 0;
+	const metadata = new MetadataStore(join(sessionRoot, "ahp"));
 	const built = await createPiHost({
 		workingDirectory: workspace,
 		modelRuntime: { getAvailable: async () => [] },
-		sessionStorage: persistentSessionStorage(sessionRoot),
+		sessionStorage: persistentSessionStorage(sessionRoot, metadata),
+		metadata,
 		createBackend: () => ({
 			subscribe: () => () => {},
 			prompt: async () => {},
@@ -462,7 +467,7 @@ it("hydrates the parent session when its changeset is subscribed directly", asyn
 
 	const host = new AhpHost();
 	installRootChannel(host, []);
-	const catalogue = new PiSessionCatalogue(source.root);
+	const catalogue = new PiSessionCatalogue(source.root, source.metadata);
 	const sessions = new SessionRegistry({
 		host,
 		createSessionManager: persistentSessionManagerFactory(source.root),
@@ -472,6 +477,7 @@ it("hydrates the parent session when its changeset is subscribed directly", asyn
 	const sessionHydrator = new SessionHydrator({
 		host,
 		catalogue,
+		metadata: source.metadata,
 		isLive: (session) => sessions.has(session),
 		isDisposing: (session) => sessions.isDisposing(session),
 		adopt: (session) => void sessions.adopt(session),

@@ -201,7 +201,7 @@ describe("renaming a hydrated session", () => {
 			await fixture.client.ping();
 			assert.equal((fixture.host.store.get(uri) as { title?: string }).title, "Archived work");
 
-			const file = await new PiSessionCatalogue(fixture.root).findSessionFile(fixture.sessionId);
+			const file = await new PiSessionCatalogue(fixture.root, fixture.metadata).findSessionFile(fixture.sessionId);
 			assert.ok(file);
 			assert.equal(SessionManager.open(file).getSessionName(), "Archived work");
 		} finally {

@@ -22,10 +22,10 @@ it("persists archive per session and cleans only the requested ID", (t) => {
 	assert.deepEqual(readdirSync(root), [], "reads must not create directories");
 
 	sessions.set("same", "archive", true);
-	sessions.set("other", "archive", false);
+	sessions.set("other", "archive", true);
 	const reopened = new MetadataStore(ahpDir);
 	assert.equal(reopened.sessions.get("same", "archive"), true);
-	assert.equal(reopened.sessions.get("other", "archive"), false);
+	assert.equal(reopened.sessions.get("other", "archive"), true);
 
 	sessions.delete("same", "archive");
 	assert.equal(reopened.sessions.get("same", "archive"), false);
@@ -33,7 +33,7 @@ it("persists archive per session and cleans only the requested ID", (t) => {
 	sessions.deleteId("same");
 	sessions.deleteId("same");
 	assert.equal(reopened.sessions.get("same", "archive"), false);
-	assert.equal(reopened.sessions.get("other", "archive"), false);
+	assert.equal(reopened.sessions.get("other", "archive"), true);
 });
 
 it("hashes session IDs, validates record identity and protects private files", (t) => {

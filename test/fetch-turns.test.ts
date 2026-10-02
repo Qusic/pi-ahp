@@ -19,6 +19,7 @@ import { WebSocketTransport } from "@microsoft/agent-host-protocol/ws";
 import { installRootChannel } from "../src/channels/root.ts";
 import { chatUri, sessionUri } from "../src/core/channels.ts";
 import { AhpHost } from "../src/core/host.ts";
+import { MetadataStore } from "../src/pi/metadata-store.ts";
 import { PiSessionCatalogue } from "../src/pi/session-catalogue.ts";
 import { SessionHydrator } from "../src/pi/session-hydrator.ts";
 import { SessionRegistry } from "../src/pi/session-registry.ts";
@@ -82,7 +83,8 @@ async function startFixture(before: number, after: number): Promise<Fixture> {
 
 	const host = new AhpHost();
 	installRootChannel(host, []);
-	const catalogue = new PiSessionCatalogue(root);
+	const metadata = new MetadataStore(join(root, "ahp"));
+	const catalogue = new PiSessionCatalogue(root, metadata);
 	host.serve({ catalogue });
 	const sessions = new SessionRegistry({
 		host,
@@ -93,6 +95,7 @@ async function startFixture(before: number, after: number): Promise<Fixture> {
 		hydrator: new SessionHydrator({
 			host,
 			catalogue,
+			metadata,
 			isLive: (uri) => sessions.has(uri),
 			isDisposing: (uri) => sessions.isDisposing(uri),
 			adopt: (session) => void sessions.adopt(session),

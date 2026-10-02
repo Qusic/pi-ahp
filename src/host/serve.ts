@@ -3,7 +3,9 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { getAhpDir } from "../core/ahp-dir.ts";
 import { pathToFileUri } from "../core/uri.ts";
+import { MetadataStore } from "../pi/metadata-store.ts";
 import { createDefaultPiSessionStorage } from "../pi/session-storage.ts";
 import { type RunningServer, serveWebSocket } from "../transport/websocket.ts";
 import { createPiHost } from "./pi-host.ts";
@@ -33,6 +35,7 @@ export interface ServeOptions {
 }
 
 export async function startHost(options: ServeOptions): Promise<RunningServer> {
+	const metadata = new MetadataStore(getAhpDir());
 	const {
 		host: ahpHost,
 		changesets,
@@ -42,7 +45,8 @@ export async function startHost(options: ServeOptions): Promise<RunningServer> {
 		serverInfo: { name: NAME, version: VERSION },
 		defaultDirectory: pathToFileUri(options.workingDirectory),
 		workingDirectory: options.workingDirectory,
-		sessionStorage: createDefaultPiSessionStorage(),
+		sessionStorage: createDefaultPiSessionStorage(metadata),
+		metadata,
 		...(options.log ? { log: options.log } : {}),
 	});
 

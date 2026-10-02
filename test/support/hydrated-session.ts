@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { AgentSessionEvent } from "@earendil-works/pi-coding-agent";
@@ -10,78 +10,13 @@ import { installRootChannel } from "../../src/channels/root.ts";
 import { ROOT_CHANNEL } from "../../src/core/channels.ts";
 import { AhpHost } from "../../src/core/host.ts";
 import type { PiBackend } from "../../src/pi/chat-driver.ts";
+import { MetadataStore } from "../../src/pi/metadata-store.ts";
 import { PiSessionCatalogue } from "../../src/pi/session-catalogue.ts";
 import { SessionHydrator } from "../../src/pi/session-hydrator.ts";
 import { type SessionFileDeletionResult, SessionRegistry } from "../../src/pi/session-registry.ts";
 import { type RunningServer, serveWebSocket } from "../../src/transport/websocket.ts";
-import { ONE_PIXEL_PNG } from "./images.ts";
-import { fixtureSessionDirectory } from "./session-files.ts";
+import { writeSessionFixture } from "./session-files.ts";
 import { persistentSessionManagerFactory } from "./session-storage.ts";
-
-/** Writes a pi session file containing one full turn with a tool call. */
-function writeSession(root: string, id: string, cwd: string, includeImage: boolean): void {
-	const directory = fixtureSessionDirectory(root, cwd);
-
-	const at = "2026-01-01T00:00:00.000Z";
-	let parentId: string | null = null;
-	const lines: string[] = [JSON.stringify({ type: "session", id, parentId: null, timestamp: at, version: 3, cwd })];
-	const push = (entry: Record<string, unknown>): void => {
-		const entryId = randomUUID();
-		lines.push(JSON.stringify({ ...entry, id: entryId, parentId, timestamp: at }));
-		parentId = entryId;
-	};
-
-	push({
-		type: "message",
-		message: {
-			role: "user",
-			content: includeImage
-				? [
-						{ type: "text", text: "Read note.txt" },
-						{ type: "image", data: ONE_PIXEL_PNG, mimeType: "image/png" },
-					]
-				: "Read note.txt",
-			timestamp: 0,
-		},
-	});
-	push({
-		type: "message",
-		message: {
-			role: "assistant",
-			content: [
-				{ type: "thinking", thinking: "I should read it." },
-				{ type: "toolCall", id: "tc-1", name: "read", arguments: { path: "note.txt" } },
-			],
-			usage: { input: 10, output: 5, cacheRead: 0 },
-			provider: "fixture",
-			model: "test-model",
-			timestamp: 0,
-		},
-	});
-	push({
-		type: "message",
-		message: {
-			role: "toolResult",
-			toolCallId: "tc-1",
-			toolName: "read",
-			content: [{ type: "text", text: "ALPHA" }],
-			timestamp: 0,
-		},
-	});
-	push({
-		type: "message",
-		message: {
-			role: "assistant",
-			content: [{ type: "text", text: "It says ALPHA." }],
-			provider: "fixture",
-			model: "test-model",
-			timestamp: 0,
-		},
-	});
-	push({ type: "message", message: { role: "user", content: "Thanks", timestamp: 0 } });
-
-	writeFileSync(join(directory, `2026-01-01T00-00-00-000Z_${id}.jsonl`), `${lines.join("\n")}\n`);
-}
 
 /** Records what a resumed session actually asks the agent to do. */
 export class RecordingBackend implements PiBackend {
@@ -112,6 +47,7 @@ export interface HydratedSessionFixture {
 	readonly sessionId: string;
 	readonly root: string;
 	readonly workspace: string;
+	readonly metadata: MetadataStore;
 	readonly deletedFiles: string[];
 	readonly backend: RecordingBackend;
 	connectAsVSCode(): Promise<AhpClient>;
@@ -127,11 +63,12 @@ export async function startHydratedSessionFixture(
 	const root = mkdtempSync(join(tmpdir(), "pi-ahp-hydrate-"));
 	const workspace = mkdtempSync(join(tmpdir(), "pi ahp hydrate cwd-"));
 	const sessionId = randomUUID();
-	writeSession(root, sessionId, workspace, options.includeImage ?? false);
+	writeSessionFixture(root, sessionId, workspace, options.includeImage);
 
 	const host = new AhpHost();
 	installRootChannel(host, []);
-	const catalogue = new PiSessionCatalogue(root);
+	const metadata = new MetadataStore(join(root, "ahp"));
+	const catalogue = new PiSessionCatalogue(root, metadata);
 	const deletedFiles: string[] = [];
 	const backend = new RecordingBackend();
 	const sessions = new SessionRegistry({
@@ -156,6 +93,7 @@ export async function startHydratedSessionFixture(
 		hydrator: new SessionHydrator({
 			host,
 			catalogue,
+			metadata,
 			isLive: (session) => sessions.has(session),
 			isDisposing: (session) => sessions.isDisposing(session),
 			adopt: (session) => void sessions.adopt(session),
@@ -181,6 +119,7 @@ export async function startHydratedSessionFixture(
 		sessionId,
 		root,
 		workspace,
+		metadata,
 		deletedFiles,
 		backend,
 		async connectAsVSCode() {

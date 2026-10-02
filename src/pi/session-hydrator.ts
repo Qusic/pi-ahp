@@ -24,6 +24,7 @@ import { chatIdFromUri, chatUri, isChatChannel, sessionIdFromUri, sessionUri } f
 import type { AhpHost, ChannelHydrator } from "../core/host.ts";
 import { pathToFileUri } from "../core/uri.ts";
 import { rebuildTurnsFromSession } from "./history.ts";
+import type { MetadataStore } from "./metadata-store.ts";
 import { modelSelectionId, THINKING_CONFIG_KEY } from "./models.ts";
 import { PI_PROVIDER } from "./provider.ts";
 import type { PiSessionCatalogue } from "./session-catalogue.ts";
@@ -33,6 +34,7 @@ import { initialTurnsCursor } from "./turn-paging.ts";
 export interface SessionHydratorOptions {
 	readonly host: AhpHost;
 	readonly catalogue: PiSessionCatalogue;
+	readonly metadata: MetadataStore;
 	/** Sessions this host already has live; those must never be reloaded over. */
 	readonly isLive: (sessionChannel: URI) => boolean;
 	/** Prevents a disk session from becoming live while its removal is pending. */
@@ -148,6 +150,8 @@ export class SessionHydrator implements ChannelHydrator {
 		// Read, for the same reason the catalogue reports read — see
 		// `readSessionSummary`. The reducer still clears the bit if a turn starts.
 		const status = SessionStatus.Idle | SessionStatus.IsRead;
+		// Read before registering either channel: an I/O failure must not leave a partial pair.
+		const archived = this.#options.metadata.sessions.get(sessionId, "archive");
 
 		// Which model this conversation was last using. The agent starts only on
 		// the first new turn, so without seeding it here the client's model
@@ -184,7 +188,7 @@ export class SessionHydrator implements ChannelHydrator {
 		const sessionState: SessionState = {
 			provider: PI_PROVIDER,
 			title,
-			status,
+			status: status | (archived ? SessionStatus.IsArchived : 0),
 			// The transcript is genuinely available, so the session is ready. It
 			// simply has no agent attached until someone starts a turn.
 			lifecycle: SessionLifecycle.Ready,

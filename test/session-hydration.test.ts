@@ -13,11 +13,13 @@ import { utimesSync } from "node:fs";
 import { after, before, describe, it } from "node:test";
 import {
 	type ChatState,
+	JsonRpcErrorCodes,
 	MessageAttachmentKind,
 	ResponsePartKind,
 	type RootState,
 	SessionLifecycle,
 	type SessionState,
+	SessionStatus,
 	ToolCallStatus,
 	TurnState,
 } from "@microsoft/agent-host-protocol";
@@ -27,7 +29,7 @@ import { AhpHost } from "../src/core/host.ts";
 import { pathToFileUri } from "../src/core/uri.ts";
 import { PiSessionCatalogue } from "../src/pi/session-catalogue.ts";
 import { SessionHydrator } from "../src/pi/session-hydrator.ts";
-import { must } from "./support/assertions.ts";
+import { expectRpcError, must } from "./support/assertions.ts";
 import { type HydratedSessionFixture, startHydratedSessionFixture } from "./support/hydrated-session.ts";
 import { ONE_PIXEL_PNG } from "./support/images.ts";
 import { assertValid } from "./support/schema.ts";
@@ -140,7 +142,7 @@ describe("opening a session from the catalogue", () => {
 
 	it("coalesces concurrent session and chat hydration", async () => {
 		const source = await startHydratedSessionFixture();
-		const catalogue = new BlockingCatalogue(source.root);
+		const catalogue = new BlockingCatalogue(source.root, source.metadata);
 		try {
 			const host = new AhpHost();
 			const live = new Set<string>();
@@ -148,6 +150,7 @@ describe("opening a session from the catalogue", () => {
 			const hydrator = new SessionHydrator({
 				host,
 				catalogue,
+				metadata: source.metadata,
 				isLive: (session) => live.has(session),
 				isDisposing: () => false,
 				adopt: (session) => {
@@ -175,10 +178,34 @@ describe("opening a session from the catalogue", () => {
 	});
 });
 
+it("surfaces metadata I/O failures without partially hydrating and can retry afterwards", async (t) => {
+	const fixture = await startHydratedSessionFixture();
+	t.after(() => fixture.close());
+	const unavailable = t.mock.method(fixture.metadata.sessions, "get", () => {
+		throw Object.assign(new Error("metadata read unavailable"), { code: "EACCES" });
+	});
+	const session = sessionUri(fixture.sessionId);
+	const listError = await expectRpcError(
+		fixture.client.request("listSessions", { channel: ROOT_CHANNEL }),
+		JsonRpcErrorCodes.InternalError,
+	);
+	assert.match(listError.message, /metadata read unavailable/u);
+	const subscribeError = await expectRpcError(fixture.client.subscribe(session), JsonRpcErrorCodes.InternalError);
+	assert.match(subscribeError.message, /metadata read unavailable/u);
+	assert.equal(fixture.host.store.has(session), false);
+	assert.equal(fixture.host.store.has(chatUri(fixture.sessionId)), false);
+
+	unavailable.mock.restore();
+	const { result } = await fixture.client.subscribe(session);
+	const state = must(result.snapshot).state as SessionState;
+	assert.equal(state.lifecycle, SessionLifecycle.Ready);
+	assert.equal(state.status & SessionStatus.IsArchived, 0);
+});
+
 it("preserves catalogue modifiedAt when a disk session becomes a live overlay", async () => {
 	const fixture = await startHydratedSessionFixture();
 	try {
-		const file = must(await new PiSessionCatalogue(fixture.root).findSessionFile(fixture.sessionId));
+		const file = must(await new PiSessionCatalogue(fixture.root, fixture.metadata).findSessionFile(fixture.sessionId));
 		const timestamp = new Date("2025-06-01T12:00:00.000Z");
 		utimesSync(file, timestamp, timestamp);
 		const before = await fixture.client.request("listSessions", { channel: ROOT_CHANNEL });
