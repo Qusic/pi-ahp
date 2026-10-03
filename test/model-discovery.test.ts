@@ -89,7 +89,7 @@ it("advertises extension models and uses pi's configured default", async () => {
 		});
 
 		const id = "default-selection";
-		sessions.create({ channel: sessionUri(id) });
+		await sessions.create({ channel: sessionUri(id) });
 		assert.deepEqual((host.store.get(chatUri(id)) as ChatState).draft?.model, selection);
 
 		backend = await InProcessPiBackend.create({

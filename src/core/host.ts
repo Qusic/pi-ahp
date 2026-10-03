@@ -162,6 +162,8 @@ export interface HostCapabilities {
 	readonly turnPaging?: TurnPagingHandler;
 	/** Loads a channel that exists durably but is not yet in memory. */
 	readonly hydrator?: ChannelHydrator;
+	/** Handles selected session metadata actions without materializing a cold session. */
+	readonly sessionMetadataRouter?: SessionMetadataActionRouter;
 }
 
 export interface HostOptions {
@@ -222,6 +224,19 @@ export type ClientActionValidator = (channel: URI, action: StateAction, clientId
 
 /** Synchronous effects after validation; returning undefined rather than void excludes async callbacks. */
 export type ClientActionEffect = (channel: URI, action: StateAction, clientId: string) => undefined;
+
+/**
+ * Return false for actions that use ordinary routing. For a handled action, confirm
+ * the session exists (live or on disk), then call apply("session") at most once
+ * while holding any per-session ordering. apply runs the usual validation,
+ * effects and echo synchronously (reducing live state when present); its result
+ * says whether the action was accepted.
+ */
+export type SessionMetadataActionRouter = (
+	channel: URI,
+	action: StateAction,
+	apply: (kind: "session") => boolean,
+) => false | void | Promise<void>;
 
 /** Notified when the number of clients subscribed to a channel changes. */
 export type SubscriberCountListener = (channel: URI, count: number) => void;
@@ -704,39 +719,80 @@ export class AhpHost {
 			this.#log("Ignoring malformed dispatchAction");
 			return;
 		}
-		// Spec: an action naming a channel that does not exist is silently
-		// ignored — no echo, no rejection.
-		if (!this.#store.has(channel)) {
-			this.#log(`Ignoring action for unknown channel: ${channel}`);
-			return;
-		}
 		const origin = { clientId: connection.clientId, clientSeq: params.clientSeq };
-		if (!isClientDispatchable(action as never)) {
-			this.#rejectAction(channel, action, origin, `Action is not client-dispatchable: ${action.type}`);
-			return;
-		}
-		const kind = this.#store.kindOf(channel);
-		if (kind && !actionBelongsToChannel(action.type, kind)) {
-			this.#rejectAction(channel, action, origin, `${action.type} does not belong on a ${kind} channel`);
-			return;
-		}
-		for (const validator of this.#actionValidators) {
-			const reason = validator(channel, action, connection.clientId);
-			if (reason !== undefined) {
-				this.#rejectAction(channel, action, origin, reason);
+		const router = this.#capabilities.sessionMetadataRouter;
+		if (router) {
+			let applyInvoked = false;
+			const failed = (error: unknown): void => {
+				const message = error instanceof Error ? error.message : String(error);
+				this.#log(`Client action ${applyInvoked ? "application" : "routing"} failed for ${channel}: ${String(error)}`);
+				// Once apply has run, it may have persisted and sequenced the action. Never contradict it.
+				if (!applyInvoked) this.#rejectAction(channel, action, origin, `Could not route ${action.type}: ${message}`);
+			};
+			try {
+				const routed = router(channel, action, (kind) => {
+					applyInvoked = true;
+					return this.#applyClientAction(channel, action, origin, kind);
+				});
+				if (routed !== false) {
+					if (routed instanceof Promise) void routed.catch(failed);
+					return;
+				}
+			} catch (error) {
+				failed(error);
 				return;
 			}
 		}
+		this.#applyClientAction(channel, action, origin);
+	}
+
+	#applyClientAction(
+		channel: URI,
+		action: StateAction,
+		origin: NonNullable<ActionEnvelope["origin"]>,
+		resolvedKind?: "session",
+	): boolean {
+		// A resolved durable target need not have an in-memory StateStore entry.
+		// Genuinely absent targets are still silently ignored, never echoed as rejections.
+		if (!resolvedKind && !this.#store.has(channel)) {
+			this.#log(`Ignoring action for unknown channel: ${channel}`);
+			return false;
+		}
+		if (!isClientDispatchable(action as never)) {
+			this.#rejectAction(channel, action, origin, `Action is not client-dispatchable: ${action.type}`);
+			return false;
+		}
+		const kind = this.#store.kindOf(channel) ?? resolvedKind;
+		if (kind && !actionBelongsToChannel(action.type, kind)) {
+			this.#rejectAction(channel, action, origin, `${action.type} does not belong on a ${kind} channel`);
+			return false;
+		}
+		for (const validator of this.#actionValidators) {
+			let reason: string | undefined;
+			try {
+				reason = validator(channel, action, origin.clientId);
+			} catch (error) {
+				const message = error instanceof Error ? error.message : String(error);
+				this.#log(`Client action validation failed for ${action.type} on ${channel}: ${String(error)}`);
+				this.#rejectAction(channel, action, origin, `Could not validate ${action.type}: ${message}`);
+				return false;
+			}
+			if (reason !== undefined) {
+				this.#rejectAction(channel, action, origin, reason);
+				return false;
+			}
+		}
 		try {
-			for (const effect of this.#actionEffects) effect(channel, action, connection.clientId);
+			for (const effect of this.#actionEffects) effect(channel, action, origin.clientId);
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
 			this.#log(`Client action effect failed for ${action.type} on ${channel}: ${String(error)}`);
 			this.#rejectAction(channel, action, origin, `Could not apply ${action.type}: ${message}`);
-			return;
+			return false;
 		}
 		this.#commit(channel, action, origin);
 		this.#emitClientAction(channel, action);
+		return true;
 	}
 
 	/**
@@ -753,7 +809,8 @@ export class AhpHost {
 	}
 
 	#commit(channel: URI, action: StateAction, origin: ActionEnvelope["origin"]): void {
-		this.#store.apply(channel, action);
+		// Durable-only targets were updated by their effect and have no state tree to reduce.
+		if (this.#store.has(channel)) this.#store.apply(channel, action);
 		const envelope: ActionEnvelope = {
 			channel,
 			action,
@@ -783,8 +840,12 @@ export class AhpHost {
 	/** Sends a channel-scoped message to every client subscribed to that channel. */
 	#broadcast(channel: URI, message: JsonRpcNotification): void {
 		for (const connection of this.#connections) {
-			if (connection.isSubscribed(channel)) {
+			if (!connection.isSubscribed(channel)) continue;
+			try {
 				connection.send(message);
+			} catch (error) {
+				// One broken subscriber cannot undo an action already reduced and sequenced.
+				this.#log(`Could not send ${message.method} on ${channel}: ${String(error)}`);
 			}
 		}
 	}

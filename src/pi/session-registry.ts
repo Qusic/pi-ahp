@@ -23,7 +23,9 @@ import {
 	type ModelSelection,
 	PendingMessageKind,
 	ResponsePartKind,
+	type SessionIsArchivedChangedAction,
 	type SessionState,
+	SessionStatus,
 	type SessionSummary,
 	type StateAction,
 	type URI,
@@ -32,7 +34,7 @@ import { installDefaultChat, syncChatSummary } from "../channels/chat.ts";
 import { notifySessionAdded, notifySessionRemoved, notifySessionSummaryChanged } from "../channels/root.ts";
 import { aggregateSessionChats, initialSessionState, sessionSummaryOf } from "../channels/session.ts";
 import { chatUri, ROOT_CHANNEL, sessionIdFromUri } from "../core/channels.ts";
-import type { AhpHost } from "../core/host.ts";
+import type { AhpHost, SessionMetadataActionRouter } from "../core/host.ts";
 import { fileUriToPath } from "../core/uri.ts";
 import { ProtocolError } from "../protocol/errors.ts";
 import { ChatDriver, type PiBackend } from "./chat-driver.ts";
@@ -41,6 +43,7 @@ import type { MetadataStore } from "./metadata-store.ts";
 import { PI_PROVIDER } from "./provider.ts";
 import type { LiveSessionCatalogueEntry } from "./session-catalogue.ts";
 import { dispatchOlderTurns, truncationAnchor } from "./session-history.ts";
+import { SessionOperations } from "./session-operations.ts";
 import type { SessionManagerFactory } from "./session-storage.ts";
 import { fallbackSessionTitle, NEW_SESSION_TITLE } from "./session-title.ts";
 
@@ -156,12 +159,13 @@ export type SessionDeletionCommittedListener = (sessionId: string) => void | Pro
 export class SessionRegistry {
 	readonly #options: SessionRegistryOptions;
 	readonly #host: AhpHost;
+	readonly #operations = new SessionOperations();
 	readonly #sessions = new Map<URI, LiveSession>();
 	readonly #byChat = new Map<URI, LiveSession>();
 	/** Last root-catalog value used as a diff baseline; never authoritative state. */
 	readonly #summaryBaselines = new Map<URI, SessionSummary>();
 	/** Coalesces duplicate disposal requests and blocks new work during deletion. */
-	readonly #disposals = new Map<URI, Promise<void>>();
+	readonly #disposals = new Map<string, Promise<void>>();
 	/** Prevents projection-generated session actions from recursively republishing. */
 	readonly #projectingSessions = new Set<URI>();
 	readonly #sessionAvailableListeners = new Set<SessionAvailableListener>();
@@ -197,8 +201,8 @@ export class SessionRegistry {
 		this.#host.addClientActionValidator((channel, action) => this.#validateClientAction(channel, action));
 		this.#host.addClientActionEffect((channel, action) => {
 			if (action.type !== ActionType.SessionIsArchivedChanged) return;
-			const session = this.#sessions.get(channel);
-			if (session) this.#options.metadata.sessions.set(session.sessionId, "archive", action.isArchived);
+			const id = sessionIdFromUri(channel, [PI_PROVIDER]);
+			if (id) this.#options.metadata.sessions.set(id, "archive", action.isArchived);
 		});
 	}
 
@@ -217,7 +221,62 @@ export class SessionRegistry {
 	}
 
 	isDisposing(uri: URI): boolean {
-		return this.#disposals.has(uri);
+		const id = sessionIdFromUri(uri, [PI_PROVIDER]);
+		return id !== undefined && this.#disposals.has(id);
+	}
+
+	/** Shared with hydration so old disk materialization cannot outlive deletion or ID reuse. */
+	get operations(): SessionOperations {
+		return this.#operations;
+	}
+
+	/** Archive is the only cold metadata action supported today; other actions use core routing. */
+	readonly routeMetadataAction: SessionMetadataActionRouter = (channel, action, apply) => {
+		if (action.type !== ActionType.SessionIsArchivedChanged) return false;
+		const id = sessionIdFromUri(channel, [PI_PROVIDER]);
+		if (!id) return false;
+		// Refusing new work on a loaded target must not wait for its deletion to settle.
+		if (this.#sessions.has(channel) && this.#disposals.has(id)) {
+			apply("session");
+			return;
+		}
+		return this.#operations.run<void>(id, () => {
+			if (this.#sessions.has(channel)) {
+				apply("session");
+				return;
+			}
+			return this.#archiveCold(channel, id, action, apply);
+		});
+	};
+
+	async #archiveCold(
+		channel: URI,
+		id: string,
+		action: SessionIsArchivedChangedAction,
+		apply: (kind: "session") => boolean,
+	): Promise<void> {
+		const file = await this.#options.findSessionFile?.(id);
+		// Creation or adoption may have won before this queued operation began its lookup.
+		if (this.#sessions.has(channel)) {
+			apply("session");
+			return;
+		}
+		if (!file) return;
+		if (this.isDisposing(channel) || typeof action.isArchived !== "boolean") {
+			apply("session"); // Let the ordinary validators echo their refusal.
+			return;
+		}
+		const previous = this.#options.metadata.sessions.get(id, "archive");
+		if (apply("session") && previous !== action.isArchived) {
+			try {
+				notifySessionSummaryChanged(this.#host, channel, {
+					status: SessionStatus.Idle | SessionStatus.IsRead | (action.isArchived ? SessionStatus.IsArchived : 0),
+				});
+			} catch (error) {
+				// Publication failure cannot turn an already-accepted action into a rejection.
+				this.#options.log?.(`session summary publication failed for ${channel}: ${String(error)}`);
+			}
+		}
 	}
 
 	/** Observes sessions after their registry and protocol channels exist. */
@@ -252,20 +311,27 @@ export class SessionRegistry {
 	 * Returns as soon as the channel exists; readiness arrives later as a
 	 * `session/ready` action on that channel.
 	 */
-	create(request: CreateSessionRequest): void {
+	create(request: CreateSessionRequest): void | Promise<void> {
 		const uri = request.channel;
 		// Only canonical and provider-alias URIs can be recovered after a host restart.
 		const sessionId = sessionIdFromUri(uri, [PI_PROVIDER]);
 		if (!sessionId) {
 			throw ProtocolError.invalidParams(`Not a session URI: ${uri}`);
 		}
-		if (this.#disposals.has(uri) || this.#sessions.has(uri) || this.#host.store.has(uri)) {
+		if (this.#disposals.has(sessionId) || this.#byChat.has(chatUri(sessionId)) || this.#host.store.has(uri)) {
 			throw ProtocolError.sessionAlreadyExists(uri);
 		}
 		if (request.provider !== undefined && request.provider !== PI_PROVIDER) {
 			throw ProtocolError.providerNotFound(request.provider);
 		}
+		return this.#operations.run<void>(sessionId, () => this.#createOnce(request, sessionId));
+	}
 
+	#createOnce(request: CreateSessionRequest, sessionId: string): void {
+		const uri = request.channel;
+		if (this.#disposals.has(sessionId) || this.#byChat.has(chatUri(sessionId)) || this.#host.store.has(uri)) {
+			throw ProtocolError.sessionAlreadyExists(uri);
+		}
 		const requested = request.workingDirectories?.[0];
 		const workingDirectory = requested
 			? fileUriToPath(requested)
@@ -273,12 +339,11 @@ export class SessionRegistry {
 
 		const title = NEW_SESSION_TITLE;
 		const createdAt = new Date().toISOString();
-		// A provider-alias URI still needs the session reducer.
-		this.#host.store.create(uri, initialSessionState(PI_PROVIDER, title, workingDirectory), "session");
-
 		// pi withholds the session file until an assistant message exists; the
 		// manager still owns the target directory and in-memory entry tree now.
 		const sessionManager = this.#options.createSessionManager(workingDirectory, sessionId);
+		// A provider-alias URI still needs the session reducer.
+		this.#host.store.create(uri, initialSessionState(PI_PROVIDER, title, workingDirectory), "session");
 		const chatChannel = installDefaultChat(this.#host, uri, sessionId, title, this.#options.defaultSelection?.());
 
 		const session: LiveSession = {
@@ -342,18 +407,22 @@ export class SessionRegistry {
 	 * trash-then-unlink path pi's own `/resume` delete uses.
 	 */
 	dispose(uri: URI): Promise<void> {
-		const pending = this.#disposals.get(uri);
+		const id = sessionIdFromUri(uri, [PI_PROVIDER]);
+		if (!id || (this.#host.store.kindOf(uri) !== undefined && this.#host.store.kindOf(uri) !== "session")) {
+			return Promise.reject(ProtocolError.sessionNotFound(uri));
+		}
+		const pending = this.#disposals.get(id);
 		if (pending) {
 			return pending;
 		}
 
 		// Defer the work so the gate is installed before backend shutdown can emit
 		// events or any other message can observe the transition.
-		const operation = Promise.resolve().then(() => this.#disposeOnce(uri));
-		this.#disposals.set(uri, operation);
+		const operation = Promise.resolve().then(() => this.#operations.run(id, () => this.#disposeOnce(uri)));
+		this.#disposals.set(id, operation);
 		const clear = (): void => {
-			if (this.#disposals.get(uri) === operation) {
-				this.#disposals.delete(uri);
+			if (this.#disposals.get(id) === operation) {
+				this.#disposals.delete(id);
 			}
 		};
 		void operation.then(clear, clear);
@@ -416,6 +485,13 @@ export class SessionRegistry {
 			}
 			const message = error instanceof Error ? error.message : String(error);
 			throw new Error(`Could not dispose session ${uri}: ${message}`);
+		}
+
+		// Pi removal cannot be rolled back. Report sidecar cleanup failure, then finish disposal.
+		try {
+			this.#options.metadata.sessions.deleteId(sessionId);
+		} catch (error) {
+			this.#options.log?.(`metadata cleanup failed for ${uri}: ${String(error)}`);
 		}
 
 		// Durable deletion is now committed. Protocol children disappear before
@@ -529,7 +605,7 @@ export class SessionRegistry {
 
 	#validateClientAction(channel: URI, action: StateAction): string | undefined {
 		const session = this.#sessions.get(channel) ?? this.#byChat.get(channel);
-		if (this.#disposals.has(channel) || (session && this.#disposals.has(session.uri))) {
+		if (this.isDisposing(channel) || (session && this.#disposals.has(session.sessionId))) {
 			return "This session is being disposed";
 		}
 
@@ -544,7 +620,7 @@ export class SessionRegistry {
 				return typeof action.title === "string" ? undefined : "A session title must be a string";
 			case ActionType.SessionIsArchivedChanged:
 				if (typeof action.isArchived !== "boolean") return "The archive flag must be a boolean";
-				return this.#sessions.has(channel) ? undefined : "This session is unavailable";
+				return sessionIdFromUri(channel, [PI_PROVIDER]) ? undefined : "This session is unavailable";
 			case ActionType.ChatTurnStarted: {
 				if (typeof action.turnId !== "string" || typeof action.startedAt !== "string") {
 					return "A turn requires string turnId and startedAt fields";
@@ -633,7 +709,7 @@ export class SessionRegistry {
 		// An action accepted before disposal may have been waiting for lazy
 		// backend startup. On failure it still belongs to the surviving session;
 		// on success there is no session left to mutate.
-		const disposal = this.#disposals.get(session.uri);
+		const disposal = this.#disposals.get(session.sessionId);
 		if (disposal) {
 			try {
 				await disposal;

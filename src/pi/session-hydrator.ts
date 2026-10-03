@@ -28,6 +28,7 @@ import type { MetadataStore } from "./metadata-store.ts";
 import { modelSelectionId, THINKING_CONFIG_KEY } from "./models.ts";
 import { PI_PROVIDER } from "./provider.ts";
 import type { PiSessionCatalogue } from "./session-catalogue.ts";
+import type { SessionOperations } from "./session-operations.ts";
 import { sessionDisplayTitle } from "./session-title.ts";
 import { initialTurnsCursor } from "./turn-paging.ts";
 
@@ -35,6 +36,7 @@ export interface SessionHydratorOptions {
 	readonly host: AhpHost;
 	readonly catalogue: PiSessionCatalogue;
 	readonly metadata: MetadataStore;
+	readonly operations: SessionOperations;
 	/** Sessions this host already has live; those must never be reloaded over. */
 	readonly isLive: (sessionChannel: URI) => boolean;
 	/** Prevents a disk session from becoming live while its removal is pending. */
@@ -98,7 +100,7 @@ export class SessionHydrator implements ChannelHydrator {
 			return this.#options.host.store.has(channel);
 		}
 
-		const hydration = this.#hydrateSession(sessionId, session);
+		const hydration = this.#options.operations.run(sessionId, () => this.#hydrateSession(sessionId, session));
 		this.#hydrations.set(sessionId, hydration);
 		try {
 			await hydration;
@@ -111,6 +113,7 @@ export class SessionHydrator implements ChannelHydrator {
 	}
 
 	async #hydrateSession(sessionId: string, session: URI): Promise<void> {
+		if (this.#options.isLive(session) || this.#options.isDisposing(session)) return;
 		const chat = chatUri(sessionId);
 		const file = await this.#options.catalogue.findSessionFile(sessionId);
 		if (!file) {

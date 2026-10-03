@@ -479,6 +479,7 @@ it("hydrates the parent session when its changeset is subscribed directly", asyn
 		host,
 		catalogue,
 		metadata: source.metadata,
+		operations: sessions.operations,
 		isLive: (session) => sessions.has(session),
 		isDisposing: (session) => sessions.isDisposing(session),
 		adopt: (session) => void sessions.adopt(session),

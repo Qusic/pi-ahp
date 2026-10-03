@@ -105,7 +105,8 @@ Currently supported protocol versions: **0.9.0**
 | Tool catalogue and client tools | 🟡 | Show available pi tools and let connected clients contribute tools |
 | pi customizations | 🟡 | Show and configure loaded extensions, skills, and prompt templates |
 | Terminal command detection | 🟡 | Group terminal output by command and exit status |
-| Persistent read and archive controls | 🔴 | pi sessions do not store this metadata |
+| Persistent archive controls | 🟢 | Host-owned metadata, stored separately from pi session files |
+| Persistent read controls | 🟡 | Historical sessions are currently reported as read |
 | Multiple chats or working directories | 🔴 | A pi session has one active branch and cwd; branches are not simultaneous AHP chats |
 | Custom agents | 🔴 | pi sub-agents are extension tools rather than selectable agents |
 | Elicitation | 🔴 | pi extension dialogs are not persisted as turn input |

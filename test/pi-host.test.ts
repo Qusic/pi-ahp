@@ -150,6 +150,14 @@ it("restores persisted archive in cold and live summaries without archiving the 
 	assert.equal(cold.items[0]?.modifiedAt, modifiedAt);
 	assert.equal(built.host.store.has(session), false, "listing must not hydrate the session");
 	assert.equal(built.host.store.has(chat), false);
+	for (const isArchived of [false, true]) {
+		client.dispatch(session, { type: ActionType.SessionIsArchivedChanged, isArchived });
+		await client.ping();
+		await built.sessions.operations.run(id, () => undefined);
+		assert.equal(metadata.sessions.get(id, "archive"), isArchived, "the product router must reach cold history");
+		assert.equal(built.host.store.has(session), false);
+		assert.equal(built.host.store.has(chat), false);
+	}
 
 	const subscribed = await client.subscribe(session);
 	const state = must(subscribed.result.snapshot).state as SessionState;

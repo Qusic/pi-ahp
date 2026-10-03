@@ -151,6 +151,7 @@ export async function createPiHost(options: PiHostOptions): Promise<PiHost> {
 		host,
 		catalogue,
 		metadata: options.metadata,
+		operations: sessions.operations,
 		isLive: (session) => sessions.has(session),
 		isDisposing: (session) => sessions.isDisposing(session),
 		// Adopted without a backend; one starts on the first turn.
@@ -179,6 +180,7 @@ export async function createPiHost(options: PiHostOptions): Promise<PiHost> {
 	});
 
 	host.serve({
+		sessionMetadataRouter: sessions.routeMetadataAction,
 		catalogue: {
 			list: (limit, cursor) => catalogue.list(limit, cursor, () => sessions.catalogueOverrides()),
 		},
@@ -201,10 +203,10 @@ export async function createPiHost(options: PiHostOptions): Promise<PiHost> {
 			},
 		},
 		sessions: {
-			create(params: CreateSessionParams): void {
+			create(params: CreateSessionParams): void | Promise<void> {
 				// The registry's narrower structural type makes the unsupported optional
 				// fields explicit: config, activeClient, and progressToken are ignored.
-				sessions.create(params);
+				return sessions.create(params);
 			},
 			async dispose(channel: URI): Promise<void> {
 				const sessionId = sessions.get(channel)?.sessionId;

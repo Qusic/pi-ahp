@@ -29,6 +29,7 @@ import { AhpHost } from "../src/core/host.ts";
 import { pathToFileUri } from "../src/core/uri.ts";
 import { PiSessionCatalogue } from "../src/pi/session-catalogue.ts";
 import { SessionHydrator } from "../src/pi/session-hydrator.ts";
+import { SessionOperations } from "../src/pi/session-operations.ts";
 import { expectRpcError, must } from "./support/assertions.ts";
 import { type HydratedSessionFixture, startHydratedSessionFixture } from "./support/hydrated-session.ts";
 import { ONE_PIXEL_PNG } from "./support/images.ts";
@@ -151,6 +152,7 @@ describe("opening a session from the catalogue", () => {
 				host,
 				catalogue,
 				metadata: source.metadata,
+				operations: new SessionOperations(),
 				isLive: (session) => live.has(session),
 				isDisposing: () => false,
 				adopt: (session) => {

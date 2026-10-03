@@ -88,6 +88,7 @@ export async function startHydratedSessionFixture(
 		findSessionFile: (id) => catalogue.findSessionFile(id),
 	});
 	host.serve({
+		sessionMetadataRouter: sessions.routeMetadataAction,
 		catalogue: {
 			list: (limit, cursor) => catalogue.list(limit, cursor, () => sessions.catalogueOverrides()),
 		},
@@ -95,6 +96,7 @@ export async function startHydratedSessionFixture(
 			host,
 			catalogue,
 			metadata,
+			operations: sessions.operations,
 			isLive: (session) => sessions.has(session),
 			isDisposing: (session) => sessions.isDisposing(session),
 			adopt: (session) => void sessions.adopt(session),

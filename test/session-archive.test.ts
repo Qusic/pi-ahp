@@ -2,10 +2,8 @@
 
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import fs, { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, utimesSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { it, type TestContext } from "node:test";
+import fs, { existsSync, readFileSync, statSync } from "node:fs";
+import { it } from "node:test";
 import {
 	ActionType,
 	type ChatState,
@@ -15,90 +13,10 @@ import {
 	SessionStatus,
 	SUPPORTED_PROTOCOL_VERSIONS,
 } from "@microsoft/agent-host-protocol";
-import type { Subscription, SubscriptionEvent } from "@microsoft/agent-host-protocol/client";
-import { chatUri, ROOT_CHANNEL, sessionUri } from "../src/core/channels.ts";
-import { type Harness, nextClientId, startHarness } from "./harness.ts";
+import { ROOT_CHANNEL, sessionUri } from "../src/core/channels.ts";
+import { nextClientId, startHarness } from "./harness.ts";
+import { archiveSessionFixture as fixture, nextArchiveEvent as nextEvent } from "./support/archive-session.ts";
 import { must } from "./support/assertions.ts";
-import { writeSessionFixture } from "./support/session-files.ts";
-
-async function nextEvent(subscription: Subscription): Promise<SubscriptionEvent> {
-	let timer: ReturnType<typeof setTimeout> | undefined;
-	try {
-		const result = await Promise.race([
-			subscription.next(),
-			new Promise<never>((_, reject) => {
-				timer = setTimeout(() => reject(new Error("timed out waiting for an archive event")), 2_000);
-				timer.unref();
-			}),
-		]);
-		assert.equal(result.done, false, "subscription must remain open");
-		return result.value;
-	} finally {
-		clearTimeout(timer);
-	}
-}
-
-async function fixture(t: TestContext) {
-	const root = mkdtempSync(join(tmpdir(), "pi-ahp-archive-action-"));
-	const workspace = join(root, "workspace");
-	const sessionRoot = join(root, "sessions");
-	let harness: Harness | undefined;
-	t.after(async () => {
-		try {
-			await harness?.dispose();
-		} finally {
-			rmSync(root, { recursive: true, force: true });
-		}
-	});
-	mkdirSync(workspace);
-	const id = randomUUID();
-	const file = writeSessionFixture(sessionRoot, id, workspace);
-	const timestamp = new Date("2025-06-01T12:00:00.000Z");
-	utimesSync(file, timestamp, timestamp);
-	const history = readFileSync(file);
-	const createBackend = t.mock.fn(() => {
-		throw new Error("archiving must not start an agent");
-	});
-	const options = { sessions: true, sessionRoot, workingDirectory: workspace, createBackend };
-	harness = await startHarness(options);
-	const metadata = must(harness.metadata);
-	const client = await harness.connect();
-	const observer = await harness.connect();
-	const clientId = nextClientId();
-	await client.initialize({
-		clientId,
-		protocolVersions: SUPPORTED_PROTOCOL_VERSIONS,
-		initialSubscriptions: [ROOT_CHANNEL],
-	});
-	await observer.initialize({ clientId: nextClientId(), protocolVersions: SUPPORTED_PROTOCOL_VERSIONS });
-	const session = sessionUri(id);
-	const chat = chatUri(id);
-	await Promise.all([client.subscribe(session), observer.subscribe(session)]);
-	const initialHost = harness.host;
-	return {
-		id,
-		file,
-		history,
-		timestamp,
-		metadata,
-		client,
-		observer,
-		clientId,
-		session,
-		chat,
-		initialHost,
-		createBackend,
-		connect: () => must(harness).connect(),
-		async restart() {
-			await harness?.dispose();
-			harness = undefined;
-			harness = await startHarness(options);
-			const fresh = await harness.connect();
-			await fresh.initialize({ clientId: nextClientId(), protocolVersions: SUPPORTED_PROTOCOL_VERSIONS });
-			return fresh;
-		},
-	};
-}
 
 it("persists ordered archive toggles without disturbing an active chat and restores them after restart", async (t) => {
 	const f = await fixture(t);
@@ -201,6 +119,54 @@ it("persists ordered archive toggles without disturbing an active chat and resto
 	assert.equal(statSync(f.file).mtime.toISOString(), f.timestamp.toISOString());
 });
 
+it("a broken subscriber cannot reject a persisted archive or prevent other subscribers from seeing it", async (t) => {
+	const f = await fixture(t);
+	const broken = f.initialHost.accept({
+		send(message) {
+			if ("method" in message && message.method === "action") throw new Error("subscriber send failed");
+		},
+		close() {},
+		onMessage() {},
+		onClose() {},
+	});
+	broken.subscribe(f.session);
+	// Connect after the broken transport to prove delivery continues past it.
+	const downstream = await f.connect();
+	await downstream.initialize({ clientId: nextClientId(), protocolVersions: SUPPORTED_PROTOCOL_VERSIONS });
+	await downstream.subscribe(f.session);
+	const senderEvents = f.client.attachSubscription(f.session);
+	const observerEvents = f.observer.attachSubscription(f.session);
+	const downstreamEvents = downstream.attachSubscription(f.session);
+	const rootEvents = f.client.attachSubscription(ROOT_CHANNEL);
+	const previousSeq = f.initialHost.serverSeq;
+	const action = { type: ActionType.SessionIsArchivedChanged, isArchived: true } as const;
+	const dispatched = f.client.dispatch(f.session, action);
+	const sender = await nextEvent(senderEvents);
+	const observer = await nextEvent(observerEvents);
+	const delivered = await nextEvent(downstreamEvents);
+	assert.ok(sender.type === "action");
+	assert.ok(observer.type === "action");
+	assert.ok(delivered.type === "action");
+	assert.deepEqual(sender.params.action, action);
+	assert.deepEqual(sender.params.origin, { clientId: f.clientId, clientSeq: dispatched.clientSeq });
+	assert.equal(sender.params.rejectionReason, undefined);
+	assert.equal(sender.params.serverSeq, previousSeq + 1);
+	assert.deepEqual(observer.params, sender.params);
+	assert.deepEqual(delivered.params, sender.params);
+	const summary = await nextEvent(rootEvents);
+	assert.ok(summary.type === "sessionSummaryChanged");
+	assert.deepEqual(summary.params, {
+		channel: ROOT_CHANNEL,
+		session: f.session,
+		changes: { status: SessionStatus.Idle | SessionStatus.IsRead | SessionStatus.IsArchived },
+	});
+	assert.equal(f.metadata.sessions.get(f.id, "archive"), true);
+	assert.equal(
+		(f.initialHost.store.get(f.session) as SessionState).status & SessionStatus.IsArchived,
+		SessionStatus.IsArchived,
+	);
+});
+
 it("does not persist when a later validator refuses archive", async (t) => {
 	const f = await fixture(t);
 	const before = structuredClone(f.initialHost.store.get(f.session));
@@ -276,4 +242,35 @@ it("rejects a failed overwrite without success effects and retains the rejection
 	});
 	assert.ok(replay.type === ReconnectResultType.Replay);
 	assert.deepEqual(replay.actions, [rejected.params]);
+});
+
+it("archives a new live session before Pi has written its JSONL file", async (t) => {
+	const harness = await startHarness({ sessions: true });
+	t.after(() => harness.dispose());
+	const client = await harness.connect();
+	const clientId = nextClientId();
+	await client.initialize({ clientId, protocolVersions: SUPPORTED_PROTOCOL_VERSIONS });
+	const id = randomUUID();
+	const session = sessionUri(id);
+	await client.request("createSession", { channel: session });
+	const file = must(harness.sessions?.get(session)?.sessionManager.getSessionFile());
+	assert.equal(existsSync(file), false);
+	await client.subscribe(session);
+	const events = client.attachSubscription(session);
+	const action = { type: ActionType.SessionIsArchivedChanged, isArchived: true } as const;
+	const dispatched = client.dispatch(session, action);
+	const accepted = await nextEvent(events);
+	assert.ok(accepted.type === "action");
+	assert.deepEqual(accepted.params.action, action);
+	assert.deepEqual(accepted.params.origin, { clientId, clientSeq: dispatched.clientSeq });
+	assert.equal(accepted.params.rejectionReason, undefined);
+	assert.equal(must(harness.metadata).sessions.get(id, "archive"), true);
+	assert.equal(
+		(harness.host.store.get(session) as SessionState).status & SessionStatus.IsArchived,
+		SessionStatus.IsArchived,
+	);
+	const listed = await client.request("listSessions", { channel: ROOT_CHANNEL });
+	const summary = must(listed.items.find((item) => item.resource === session));
+	assert.equal(summary.status & SessionStatus.IsArchived, SessionStatus.IsArchived);
+	assert.equal(existsSync(file), false, "archiving must not flush Pi history");
 });

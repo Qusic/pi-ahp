@@ -142,6 +142,7 @@ async function startFixture(options: { acceptTruncate?: boolean } = {}): Promise
 			host,
 			catalogue,
 			metadata,
+			operations: sessions.operations,
 			isLive: (uri) => sessions.has(uri),
 			isDisposing: (uri) => sessions.isDisposing(uri),
 			adopt: (session) => void sessions.adopt(session),
