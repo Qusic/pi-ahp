@@ -70,6 +70,9 @@ function dimension(value: number | undefined, fallback: number, name: string): n
 }
 
 function defaultShell(): string {
+	if (process.platform === "win32") {
+		return process.env.SHELL || process.env.COMSPEC || "cmd.exe";
+	}
 	try {
 		return userInfo().shell || process.env.SHELL || "sh";
 	} catch {
