@@ -49,20 +49,20 @@
 		"prepack": "pnpm run build"
 	},
 	"dependencies": {
-		"@earendil-works/pi-ai": "0.87.1",
-		"@earendil-works/pi-coding-agent": "0.87.1",
+		"@earendil-works/pi-ai": "1.0.0",
+		"@earendil-works/pi-coding-agent": "1.0.0",
 		"@microsoft/agent-host-protocol": "0.9.0",
-		"@parcel/watcher": "^2.5.6",
+		"@parcel/watcher": "^2.6.0",
 		"chokidar": "^5.0.0",
 		"mime": "^4.1.0",
 		"node-pty": "^1.2.0-beta.15",
-		"ws": "^8.21.3",
-		"zod": "^4.4.3"
+		"ws": "^8.22.0",
+		"zod": "^4.6.5"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^2.5.14",
-		"@types/node": "^24.13.6",
-		"@types/ws": "^8.18.1",
+		"@biomejs/biome": "^2.5.15",
+		"@types/node": "^24.19.1",
+		"@types/ws": "^8.18.2",
 		"ajv": "^8.20.0",
 		"semantic-release": "^25.0.9",
 		"typescript": "^7.0.2"
