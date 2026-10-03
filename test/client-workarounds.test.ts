@@ -28,6 +28,39 @@ async function expectVscodeDisposalRefusal(request: Promise<unknown>): Promise<v
 	assert.match(error.message, /session was kept/u);
 }
 
+async function nextEvent(
+	subscription: { [Symbol.asyncIterator](): AsyncIterator<{ type: string; params?: unknown }> },
+	predicate: (event: { type: string; params?: unknown }) => boolean,
+	timeoutMs = 1_000,
+): Promise<{ type: string; params?: unknown }> {
+	const timer = new Promise<never>((_, reject) => {
+		const handle = setTimeout(() => reject(new Error("timed out waiting for an event")), timeoutMs);
+		handle.unref?.();
+	});
+	const next = (async () => {
+		for await (const event of subscription) {
+			if (predicate(event)) {
+				return event;
+			}
+		}
+		throw new Error("subscription ended early");
+	})();
+	return Promise.race([next, timer]);
+}
+
+async function assertNoEvent(
+	subscription: { [Symbol.asyncIterator](): AsyncIterator<{ type: string; params?: unknown }> },
+	predicate: (event: { type: string; params?: unknown }) => boolean,
+	waitMs = 150,
+): Promise<void> {
+	try {
+		await nextEvent(subscription, predicate, waitMs);
+		assert.fail("expected no matching event, but received one");
+	} catch (error) {
+		assert.match((error as Error).message, /timed out waiting for an event/u);
+	}
+}
+
 async function initialSnapshotResources(
 	server: RunningServer,
 	clientId: string,
@@ -179,6 +212,133 @@ describe("VS Code session disposal workaround", () => {
 			await expectVscodeDisposalRefusal(client.request("disposeSession", { channel: resource }));
 
 			assert.equal(fixture.host.store.has(sessionUri(id)), true);
+		} finally {
+			await fixture.close();
+		}
+	});
+
+	it("hides an empty provisional session from VS Code's root announcements and listing", async () => {
+		const fixture = await startHydratedSessionFixture();
+		try {
+			const client = await fixture.connectAsVSCode();
+			await client.subscribe(ROOT_CHANNEL);
+			const rootSub = client.attachSubscription(ROOT_CHANNEL);
+			const id = randomUUID();
+			const resource = `pi:/${id}`;
+
+			await client.request("createSession", { channel: resource });
+
+			await assertNoEvent(rootSub, (event) => event.type === "sessionAdded");
+			const listed = await client.request("listSessions", { channel: ROOT_CHANNEL });
+			assert.equal(
+				listed.items.some((item) => item.resource === resource),
+				false,
+				"empty provisional session should be hidden from listSessions",
+			);
+		} finally {
+			await fixture.close();
+		}
+	});
+
+	it("announces a provisional session to VS Code once it materializes", async () => {
+		const fixture = await startHydratedSessionFixture();
+		try {
+			const client = await fixture.connectAsVSCode();
+			await client.subscribe(ROOT_CHANNEL);
+			const rootSub = client.attachSubscription(ROOT_CHANNEL);
+			const id = randomUUID();
+			const resource = `pi:/${id}`;
+			const chat = `ahp-chat://default/${Buffer.from(resource).toString("base64url")}`;
+
+			await client.request("createSession", { channel: resource });
+			await assertNoEvent(rootSub, (event) => event.type === "sessionAdded");
+
+			client.dispatch(chat, {
+				type: ActionType.ChatTurnStarted,
+				turnId: "first-turn",
+				startedAt: new Date().toISOString(),
+				message: { text: "hello", origin: { kind: MessageKind.User } },
+			});
+
+			const event = await nextEvent(rootSub, (candidate) => candidate.type === "sessionAdded");
+			const summary = (event.params as { summary: { resource: string } }).summary;
+			assert.equal(summary.resource, resource);
+
+			const listed = await client.request("listSessions", { channel: ROOT_CHANNEL });
+			assert.equal(
+				listed.items.some((item) => item.resource === resource),
+				true,
+				"materialized session should appear in listSessions",
+			);
+		} finally {
+			await fixture.close();
+		}
+	});
+
+	it("suppresses root/sessionRemoved when VS Code disposes an unmaterialized provisional session", async () => {
+		const fixture = await startHydratedSessionFixture();
+		try {
+			const client = await fixture.connectAsVSCode();
+			await client.subscribe(ROOT_CHANNEL);
+			const rootSub = client.attachSubscription(ROOT_CHANNEL);
+			const id = randomUUID();
+			const resource = `pi:/${id}`;
+
+			await client.request("createSession", { channel: resource });
+			await client.request("disposeSession", { channel: resource });
+
+			await assertNoEvent(rootSub, (event) => event.type === "sessionRemoved");
+			assert.equal(fixture.host.store.has(sessionUri(id)), false);
+		} finally {
+			await fixture.close();
+		}
+	});
+
+	it("immediately announces a session created with imported conversation to VS Code", async () => {
+		const fixture = await startHydratedSessionFixture();
+		try {
+			const client = await fixture.connectAsVSCode();
+			await client.subscribe(ROOT_CHANNEL);
+			const rootSub = client.attachSubscription(ROOT_CHANNEL);
+			const id = randomUUID();
+			const resource = `pi:/${id}`;
+
+			await client.request("createSession", { channel: resource, importConversation: true } as never);
+
+			const event = await nextEvent(rootSub, (candidate) => candidate.type === "sessionAdded");
+			const summary = (event.params as { summary: { resource: string } }).summary;
+			assert.equal(summary.resource, resource);
+
+			const listed = await client.request("listSessions", { channel: ROOT_CHANNEL });
+			assert.equal(
+				listed.items.some((item) => item.resource === resource),
+				true,
+			);
+		} finally {
+			await fixture.close();
+		}
+	});
+
+	it("immediately announces empty sessions to non-VS Code clients", async () => {
+		const fixture = await startHydratedSessionFixture();
+		try {
+			const client = fixture.client;
+			await client.subscribe(ROOT_CHANNEL);
+			const rootSub = client.attachSubscription(ROOT_CHANNEL);
+			const id = randomUUID();
+			const resource = sessionUri(id);
+
+			await client.request("createSession", { channel: resource });
+
+			const event = await nextEvent(rootSub, (candidate) => candidate.type === "sessionAdded");
+			const summary = (event.params as { summary: { resource: string } }).summary;
+			assert.equal(summary.resource, resource);
+
+			const listed = await client.request("listSessions", { channel: ROOT_CHANNEL });
+			assert.equal(
+				listed.items.some((item) => item.resource === resource),
+				true,
+			);
 		} finally {
 			await fixture.close();
 		}
