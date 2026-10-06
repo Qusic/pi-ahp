@@ -36,7 +36,7 @@
             owner = "microsoft";
             repo = "agent-host-protocol";
             rev = "spec/v${version}";
-            hash = "sha256-PzI0oEOIADtQPANmZQ8Z4O2r7znXYhoPjSAFUOpE+JM=";
+            hash = "sha256-G7Hm2Ew6/cRx5M3Sx9K1dQ2T3hnviaqbLAFb/LM8a/U=";
             passthru.src = final.ahp-spec;
           };
 
@@ -58,7 +58,7 @@
               inherit (finalAttrs) src;
               inherit pnpm;
               fetcherVersion = 4;
-              hash = "sha256-3184jkx9JaKbvPJFENR4oWntdokbl7NXoi7ClSmxWog=";
+              hash = "sha256-u5xHdD+LZOWc+4fZGfUySO3Z96JpZTXWTJO7gAfVg5I=";
             };
 
             __structuredAttrs = true;

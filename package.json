@@ -51,7 +51,7 @@
 	"dependencies": {
 		"@earendil-works/pi-ai": "1.0.0",
 		"@earendil-works/pi-coding-agent": "1.0.0",
-		"@microsoft/agent-host-protocol": "0.9.0",
+		"@microsoft/agent-host-protocol": "1.0.0",
 		"@parcel/watcher": "^2.6.0",
 		"chokidar": "^5.0.0",
 		"mime": "^4.1.0",

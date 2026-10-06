@@ -1,8 +1,8 @@
 diff --git a/dist/types/channels-automation/state.d.ts b/dist/types/channels-automation/state.d.ts
-index e60572397bfc729a092ec1186f068855b2d9dbf8..5413e76aa04150a56638197b1bfb5441a3164658 100644
+index ca19ef9bb5a905b7b472eeed17cfaf8009a49ea9..845774c194b51a93cf6295160149a459b26baac0 100644
 --- a/dist/types/channels-automation/state.d.ts
 +++ b/dist/types/channels-automation/state.d.ts
-@@ -21,7 +21,7 @@ import type { AgentSelection } from '../channels-session/state.js';
+@@ -21,7 +21,7 @@ import type { AgentSelection, ClientPluginCustomization, PluginCustomization } f
   * @category Automation State
   * @nonexhaustive
   */
@@ -29,6 +29,15 @@ index e60572397bfc729a092ec1186f068855b2d9dbf8..5413e76aa04150a56638197b1bfb5441
      /** A portable recurring {@link AutomationSchedule}. */
      Schedule = "schedule",
      /** A host-defined external event discovered from trigger definitions. */
+@@ -170,7 +170,7 @@ export type AutomationTrigger = AutomationScheduleTrigger | AutomationEventTrigg
+  * @category Automation State
+  * @exhaustive
+  */
+-export declare const enum AutomationDisableConditionKind {
++export declare enum AutomationDisableConditionKind {
+     /** Stop scheduling after a fixed number of scheduled runs. */
+     AfterRuns = "afterRuns",
+     /** Stop scheduling once a wall-clock date passes. */
 diff --git a/dist/types/channels-automation-run/state.d.ts b/dist/types/channels-automation-run/state.d.ts
 index 8712442c3ab49bf8856cac03986718f9e6acbdcb..10fab085ce35595633751c21492ba20b1fe78b7d 100644
 --- a/dist/types/channels-automation-run/state.d.ts
@@ -65,7 +74,7 @@ index 2c28f5dd15342202d401855f734ccfe69db75c87..209317e36edc19a54c19afafea0189f0
      Resource = "resource",
      /** Operation acts on a line range within a single file. */
 diff --git a/dist/types/channels-changeset/state.d.ts b/dist/types/channels-changeset/state.d.ts
-index 6078dd40f88635cac42e419036d0bb2f562dae8f..e95bc1026d6714fffb2725f347984b485a2519ae 100644
+index 93fc115308fb0518a66ae9e0aec0fa153480defa..6b3a1915cd6c9e485b145c68ae73fe9fd95281bb 100644
 --- a/dist/types/channels-changeset/state.d.ts
 +++ b/dist/types/channels-changeset/state.d.ts
 @@ -99,7 +99,7 @@ export interface ChangesetCapabilities {
@@ -74,10 +83,10 @@ index 6078dd40f88635cac42e419036d0bb2f562dae8f..e95bc1026d6714fffb2725f347984b48
   */
 -export declare const enum ChangesetStatus {
 +export declare enum ChangesetStatus {
-     /** The server is still computing the contents of this changeset. */
+     /** The server is computing this changeset for the first time. */
      Computing = "computing",
-     /** The changeset has been fully computed and is up-to-date. */
-@@ -186,7 +186,7 @@ export interface ChangesetFile {
+     /**
+@@ -192,7 +192,7 @@ export interface ChangesetFile {
   * @category Changesets
   * @nonexhaustive
   */
@@ -86,7 +95,7 @@ index 6078dd40f88635cac42e419036d0bb2f562dae8f..e95bc1026d6714fffb2725f347984b48
      /**
       * The operation is ready to be invoked. This is the default when
       * {@link ChangesetOperation.status} is omitted.
-@@ -210,7 +210,7 @@ export declare const enum ChangesetOperationStatus {
+@@ -216,7 +216,7 @@ export declare const enum ChangesetOperationStatus {
   * @category Changesets
   * @nonexhaustive
   */
@@ -96,7 +105,7 @@ index 6078dd40f88635cac42e419036d0bb2f562dae8f..e95bc1026d6714fffb2725f347984b48
      Changeset = "changeset",
      /** Applies to a single file within the changeset. */
 diff --git a/dist/types/channels-chat/commands.d.ts b/dist/types/channels-chat/commands.d.ts
-index 03984863c0c964f4497d8d6186767bda893f7efe..ec6195529a4041beeb00c9edddce56d6a1e19cdc 100644
+index 7dc8751bfe070a2c7fb5be36a8215935ff2f0555..fa0bfae1aa7b3372799dc9bf2ce4e49dd90fdf30 100644
 --- a/dist/types/channels-chat/commands.d.ts
 +++ b/dist/types/channels-chat/commands.d.ts
 @@ -10,7 +10,7 @@ import type { Message, SideChatSelection } from './state.js';
@@ -108,11 +117,29 @@ index 03984863c0c964f4497d8d6186767bda893f7efe..ec6195529a4041beeb00c9edddce56d6
      /** Copy source history through the referenced turn into the new chat. */
      Fork = "fork",
      /** Supply source context without copying it into the new chat's visible history. */
+@@ -115,7 +115,7 @@ export interface CreateChatParams extends BaseParams {
+  * @category Commands
+  * @nonexhaustive
+  */
+-export declare const enum ChatMoveDestinationKind {
++export declare enum ChatMoveDestinationKind {
+     /** Move the source chat subtree into an existing session. */
+     Session = "session",
+     /** Move the source chat subtree into a newly allocated session. */
 diff --git a/dist/types/channels-chat/state.d.ts b/dist/types/channels-chat/state.d.ts
-index 9ce412a09e26f97276eee3187f800ce3fa292f8f..4403c20d2d99130f4cf871b8e9e910ebf5df78a8 100644
+index fcec301b1c6eca307d84fc927c30ac3da3c95cf5..9b211ecca785d08e26ec249f38bfe41f69516c13 100644
 --- a/dist/types/channels-chat/state.d.ts
 +++ b/dist/types/channels-chat/state.d.ts
-@@ -135,7 +135,7 @@ export interface ChatSummary {
+@@ -198,7 +198,7 @@ export interface ChatSummary {
+  * @category Background Work
+  * @nonexhaustive
+  */
+-export declare const enum BackgroundWorkKind {
++export declare enum BackgroundWorkKind {
+     /** A shell command that continues after its initiating tool call returns. */
+     Shell = "shell",
+     /** A subagent running in the background. */
+@@ -272,7 +272,7 @@ export type BackgroundWork = BackgroundShellWork | BackgroundSubagentWork;
   * @category Chat State
   * @nonexhaustive
   */
@@ -121,7 +148,7 @@ index 9ce412a09e26f97276eee3187f800ce3fa292f8f..4403c20d2d99130f4cf871b8e9e910eb
      /** User created the chat explicitly (e.g. via the host UI). */
      User = "user",
      /** Forked from an existing chat at a specific turn. */
-@@ -227,7 +227,7 @@ export type ChatOrigin = {
+@@ -365,7 +365,7 @@ export type ChatOrigin = {
   * @category Chat State
   * @exhaustive
   */
@@ -130,7 +157,7 @@ index 9ce412a09e26f97276eee3187f800ce3fa292f8f..4403c20d2d99130f4cf871b8e9e910eb
      /** User can send messages and watch (default when absent) */
      Full = "full",
      /** User can watch but not send messages */
-@@ -241,7 +241,7 @@ export declare const enum ChatInteractivity {
+@@ -379,7 +379,7 @@ export declare const enum ChatInteractivity {
   * @category Pending Message Types
   * @exhaustive
   */
@@ -139,7 +166,7 @@ index 9ce412a09e26f97276eee3187f800ce3fa292f8f..4403c20d2d99130f4cf871b8e9e910eb
      /** Injected into the current turn at a convenient point */
      Steering = "steering",
      /** Sent automatically as a new turn after the current turn finishes */
-@@ -268,7 +268,7 @@ export interface PendingMessage {
+@@ -406,7 +406,7 @@ export interface PendingMessage {
   * @category Chat Input Types
   * @exhaustive
   */
@@ -148,7 +175,7 @@ index 9ce412a09e26f97276eee3187f800ce3fa292f8f..4403c20d2d99130f4cf871b8e9e910eb
      Accept = "accept",
      Decline = "decline",
      Cancel = "cancel"
-@@ -279,7 +279,7 @@ export declare const enum ChatInputResponseKind {
+@@ -417,7 +417,7 @@ export declare const enum ChatInputResponseKind {
   * @category Chat Input Types
   * @nonexhaustive
   */
@@ -157,7 +184,7 @@ index 9ce412a09e26f97276eee3187f800ce3fa292f8f..4403c20d2d99130f4cf871b8e9e910eb
      Text = "text",
      Number = "number",
      Integer = "integer",
-@@ -402,7 +402,7 @@ export interface ChatInputRequest {
+@@ -540,7 +540,7 @@ export interface ChatInputRequest {
   * @category Chat Input Types
   * @nonexhaustive
   */
@@ -166,7 +193,7 @@ index 9ce412a09e26f97276eee3187f800ce3fa292f8f..4403c20d2d99130f4cf871b8e9e910eb
      Text = "text",
      Number = "number",
      Boolean = "boolean",
-@@ -458,7 +458,7 @@ export interface ChatInputSkipped {
+@@ -596,7 +596,7 @@ export interface ChatInputSkipped {
   * @category Chat Input Types
   * @exhaustive
   */
@@ -175,7 +202,7 @@ index 9ce412a09e26f97276eee3187f800ce3fa292f8f..4403c20d2d99130f4cf871b8e9e910eb
      Draft = "draft",
      Submitted = "submitted",
      Skipped = "skipped"
-@@ -475,7 +475,7 @@ export type ChatInputAnswer = ChatInputAnswered | ChatInputSkipped;
+@@ -613,7 +613,7 @@ export type ChatInputAnswer = ChatInputAnswered | ChatInputSkipped;
   * @category Turn Types
   * @exhaustive
   */
@@ -184,7 +211,7 @@ index 9ce412a09e26f97276eee3187f800ce3fa292f8f..4403c20d2d99130f4cf871b8e9e910eb
      Complete = "complete",
      Cancelled = "cancelled",
      Error = "error"
-@@ -486,7 +486,7 @@ export declare const enum TurnState {
+@@ -624,7 +624,7 @@ export declare const enum TurnState {
   * @category Turn Types
   * @nonexhaustive
   */
@@ -193,7 +220,7 @@ index 9ce412a09e26f97276eee3187f800ce3fa292f8f..4403c20d2d99130f4cf871b8e9e910eb
      /** A simple, opaque attachment whose representation is described by the producer. */
      Simple = "simple",
      /** An attachment whose data is embedded inline as a base64 string. */
-@@ -793,7 +793,7 @@ export type MessageAttachment = SimpleMessageAttachment | MessageEmbeddedResourc
+@@ -931,7 +931,7 @@ export type MessageAttachment = SimpleMessageAttachment | MessageEmbeddedResourc
   * @category Response Parts
   * @nonexhaustive
   */
@@ -202,7 +229,7 @@ index 9ce412a09e26f97276eee3187f800ce3fa292f8f..4403c20d2d99130f4cf871b8e9e910eb
      Markdown = "markdown",
      ContentRef = "contentRef",
      ToolCall = "toolCall",
-@@ -935,7 +935,7 @@ export interface SystemNotificationResponsePart {
+@@ -1073,7 +1073,7 @@ export interface SystemNotificationResponsePart {
   * @category Tool Call Types
   * @nonexhaustive
   */
@@ -211,7 +238,7 @@ index 9ce412a09e26f97276eee3187f800ce3fa292f8f..4403c20d2d99130f4cf871b8e9e910eb
      Streaming = "streaming",
      PendingConfirmation = "pending-confirmation",
      Running = "running",
-@@ -959,7 +959,7 @@ export declare const enum ToolCallStatus {
+@@ -1097,7 +1097,7 @@ export declare const enum ToolCallStatus {
   * @category Tool Call Types
   * @nonexhaustive
   */
@@ -220,7 +247,7 @@ index 9ce412a09e26f97276eee3187f800ce3fa292f8f..4403c20d2d99130f4cf871b8e9e910eb
      NotNeeded = "not-needed",
      UserAction = "user-action",
      Setting = "setting"
-@@ -970,7 +970,7 @@ export declare const enum ToolCallConfirmationReason {
+@@ -1108,7 +1108,7 @@ export declare const enum ToolCallConfirmationReason {
   * @category Tool Call Types
   * @nonexhaustive
   */
@@ -229,7 +256,7 @@ index 9ce412a09e26f97276eee3187f800ce3fa292f8f..4403c20d2d99130f4cf871b8e9e910eb
      Judge = "judge"
  }
  /**
-@@ -979,7 +979,7 @@ export declare const enum ToolCallRiskAssessmentKind {
+@@ -1117,7 +1117,7 @@ export declare const enum ToolCallRiskAssessmentKind {
   * @category Tool Call Types
   * @nonexhaustive
   */
@@ -238,7 +265,7 @@ index 9ce412a09e26f97276eee3187f800ce3fa292f8f..4403c20d2d99130f4cf871b8e9e910eb
      Loading = "loading",
      Complete = "complete"
  }
-@@ -1015,7 +1015,7 @@ export type ToolCallRiskAssessment = ToolCallRiskAssessmentLoadingState | ToolCa
+@@ -1153,7 +1153,7 @@ export type ToolCallRiskAssessment = ToolCallRiskAssessmentLoadingState | ToolCa
   * @category Tool Call Types
   * @exhaustive
   */
@@ -247,7 +274,7 @@ index 9ce412a09e26f97276eee3187f800ce3fa292f8f..4403c20d2d99130f4cf871b8e9e910eb
      Denied = "denied",
      Skipped = "skipped",
      ResultDenied = "result-denied"
-@@ -1026,7 +1026,7 @@ export declare const enum ToolCallCancellationReason {
+@@ -1164,7 +1164,7 @@ export declare const enum ToolCallCancellationReason {
   * @category Tool Call Types
   * @nonexhaustive
   */
@@ -256,7 +283,7 @@ index 9ce412a09e26f97276eee3187f800ce3fa292f8f..4403c20d2d99130f4cf871b8e9e910eb
      Approve = "approve",
      Deny = "deny"
  }
-@@ -1059,7 +1059,7 @@ export interface ConfirmationOption {
+@@ -1197,7 +1197,7 @@ export interface ConfirmationOption {
   * @category Tool Call Types
   * @nonexhaustive
   */
@@ -265,7 +292,7 @@ index 9ce412a09e26f97276eee3187f800ce3fa292f8f..4403c20d2d99130f4cf871b8e9e910eb
      Client = "client",
      MCP = "mcp"
  }
-@@ -1340,7 +1340,7 @@ export type ToolCallConfirmationState = ToolCallPendingConfirmationState | ToolC
+@@ -1476,7 +1476,7 @@ export type ToolCallConfirmationState = ToolCallPendingConfirmationState | ToolC
   * @category Tool Result Content
   * @nonexhaustive
   */
@@ -288,7 +315,7 @@ index 35736c916d0d33948dd44a7e4bc03234d6ae1162..c96477bd811ec7897e47d01ade53e2a7
      Updated = "updated",
      Deleted = "deleted"
 diff --git a/dist/types/channels-root/state.d.ts b/dist/types/channels-root/state.d.ts
-index b66f78e9e312103a48779fe7cd8403b187419959..1206e3084739935db65760420737d82199980394 100644
+index d0316cad132dff57f1a6652a760c882f36ce7932..d74453df39ab5b842a9c3b5e02f5eb8e4a651e49 100644
 --- a/dist/types/channels-root/state.d.ts
 +++ b/dist/types/channels-root/state.d.ts
 @@ -14,7 +14,7 @@ import type { Customization } from '../channels-session/state.js';
@@ -314,7 +341,7 @@ index f414070fd5e0cec138b911a76d2fd2a0b835d318..b0dd8b2430f7ffe4fa8223961397cc7d
       * Completions for the text of a {@link Message} the user is composing.
       * Each returned item carries an attachment that gets associated with the
 diff --git a/dist/types/channels-session/state.d.ts b/dist/types/channels-session/state.d.ts
-index ef657ff5168821e0ed04b410ebbe06160331aa31..76668ff403a47fca4685f9956afaec9177c1d03a 100644
+index 19f7ce17fec7472d09fe65903c5806d877897c4f..d92b4f04e2404a3567d0914fe7c898a285b64008 100644
 --- a/dist/types/channels-session/state.d.ts
 +++ b/dist/types/channels-session/state.d.ts
 @@ -15,7 +15,7 @@ import type { ConfigPropertySchema, ErrorInfo, Icon, ProtectedResourceMetadata,
@@ -344,7 +371,7 @@ index ef657ff5168821e0ed04b410ebbe06160331aa31..76668ff403a47fca4685f9956afaec91
      /** The session was created as part of an automation run. */
      Automation = "automation"
  }
-@@ -259,7 +259,7 @@ export interface SessionActiveClient {
+@@ -263,7 +263,7 @@ export interface SessionActiveClient {
   * @category Session Input Types
   * @nonexhaustive
   */
@@ -353,7 +380,7 @@ index ef657ff5168821e0ed04b410ebbe06160331aa31..76668ff403a47fca4685f9956afaec91
      /** A user-facing elicitation mirrored from an unresolved chat response part. */
      ChatInput = "chatInput",
      /** A tool call awaiting parameter- or result-confirmation. */
-@@ -622,7 +622,7 @@ export interface ToolAnnotations {
+@@ -674,7 +674,7 @@ export interface ToolAnnotations {
   * @category Customization Types
   * @nonexhaustive
   */
@@ -362,7 +389,7 @@ index ef657ff5168821e0ed04b410ebbe06160331aa31..76668ff403a47fca4685f9956afaec91
      Plugin = "plugin",
      Directory = "directory",
      Agent = "agent",
-@@ -638,7 +638,7 @@ export declare const enum CustomizationType {
+@@ -690,7 +690,7 @@ export declare const enum CustomizationType {
   * @category Customization Types
   * @nonexhaustive
   */
@@ -371,7 +398,7 @@ index ef657ff5168821e0ed04b410ebbe06160331aa31..76668ff403a47fca4685f9956afaec91
      Global = "global",
      Workspace = "workspace",
      Session = "session"
-@@ -710,7 +710,7 @@ interface CustomizationBase {
+@@ -762,7 +762,7 @@ interface CustomizationBase {
   * @category Customization Types
   * @exhaustive
   */
@@ -380,7 +407,7 @@ index ef657ff5168821e0ed04b410ebbe06160331aa31..76668ff403a47fca4685f9956afaec91
      Loading = "loading",
      Loaded = "loaded",
      Degraded = "degraded",
-@@ -1165,7 +1165,7 @@ export type Customization = PluginCustomization | DirectoryCustomization | McpSe
+@@ -1217,7 +1217,7 @@ export type Customization = PluginCustomization | DirectoryCustomization | McpSe
   * @category MCP Server State
   * @nonexhaustive
   */
@@ -389,7 +416,7 @@ index ef657ff5168821e0ed04b410ebbe06160331aa31..76668ff403a47fca4685f9956afaec91
      /** Server has been registered but is not yet running. */
      Starting = "starting",
      /** Server is running and serving requests. */
-@@ -1191,7 +1191,7 @@ export declare const enum McpServerStatus {
+@@ -1243,7 +1243,7 @@ export declare const enum McpServerStatus {
   * @category MCP Server State
   * @nonexhaustive
   */
@@ -421,10 +448,10 @@ index b331660025e7e3ddb51ec5e0648a1748b5f9ad3c..4bcd7141a82f10000578b7605960997a
      Session = "session"
  }
 diff --git a/dist/types/common/actions.d.ts b/dist/types/common/actions.d.ts
-index 54b2da295b7a99192719ef4dbac79c8ea728b8f7..a5aca6854da794a378fac1ff29dff9d9fbfa5efe 100644
+index ca7d6af4d6f07c3deb38939be0caf57e062bfea0..599da167045737745db536b9a384058785d644a0 100644
 --- a/dist/types/common/actions.d.ts
 +++ b/dist/types/common/actions.d.ts
-@@ -21,7 +21,7 @@ import type { AutomationRunLifecycleChangedAction, AutomationRunSessionSetAction
+@@ -22,7 +22,7 @@ import type { AutomationRunLifecycleChangedAction, AutomationRunSessionSetAction
   * @category Actions
   * @nonexhaustive
   */
@@ -434,10 +461,10 @@ index 54b2da295b7a99192719ef4dbac79c8ea728b8f7..a5aca6854da794a378fac1ff29dff9d9
      RootActiveSessionsChanged = "root/activeSessionsChanged",
      SessionReady = "session/ready",
 diff --git a/dist/types/common/commands.d.ts b/dist/types/common/commands.d.ts
-index 7d0ae25e6df2379e84553509a5033945d7d4c34a..daa35c58346c541280e770d42b214b12aac5b5ac 100644
+index 5d3abed01585b0f00302156ef1f26c29c49aabb4..e8ac5a4a77c7408852c9f700600119430e19a256 100644
 --- a/dist/types/common/commands.d.ts
 +++ b/dist/types/common/commands.d.ts
-@@ -363,7 +363,7 @@ export interface PingParams extends BaseParams {
+@@ -381,7 +381,7 @@ export interface PingParams extends BaseParams {
   * @category Commands
   * @exhaustive
   */
@@ -446,7 +473,7 @@ index 7d0ae25e6df2379e84553509a5033945d7d4c34a..daa35c58346c541280e770d42b214b12
      Replay = "replay",
      Snapshot = "snapshot"
  }
-@@ -534,7 +534,7 @@ export interface DispatchActionParams {
+@@ -552,7 +552,7 @@ export interface DispatchActionParams {
   * @category Commands
   * @exhaustive
   */
@@ -455,7 +482,7 @@ index 7d0ae25e6df2379e84553509a5033945d7d4c34a..daa35c58346c541280e770d42b214b12
      Base64 = "base64",
      Utf8 = "utf-8"
  }
-@@ -620,7 +620,7 @@ export interface ResourceReadResult {
+@@ -638,7 +638,7 @@ export interface ResourceReadResult {
   * @category Commands
   * @exhaustive
   */
@@ -464,7 +491,7 @@ index 7d0ae25e6df2379e84553509a5033945d7d4c34a..daa35c58346c541280e770d42b214b12
      Truncate = "truncate",
      Append = "append",
      Insert = "insert"
-@@ -909,7 +909,7 @@ export interface ResourceMoveResult {
+@@ -927,7 +927,7 @@ export interface ResourceMoveResult {
   * @category Commands
   * @nonexhaustive
   */
@@ -474,7 +501,7 @@ index 7d0ae25e6df2379e84553509a5033945d7d4c34a..daa35c58346c541280e770d42b214b12
      Directory = "directory",
      Symlink = "symlink"
 diff --git a/dist/types/common/notifications.d.ts b/dist/types/common/notifications.d.ts
-index cdbc405b4fc4860baabfc67031eaf4deaf4221ac..88d29219b7e45e0254033af946d22b180360fc24 100644
+index c75a97450864d2134052c7ec04301c92b5299d2f..aa61ec9a95c3d4092c5144b0346ac5e4263d0a56 100644
 --- a/dist/types/common/notifications.d.ts
 +++ b/dist/types/common/notifications.d.ts
 @@ -11,7 +11,7 @@ import type { ProtectedResourceMetadata, URI } from './state.js';
@@ -485,4 +512,4 @@ index cdbc405b4fc4860baabfc67031eaf4deaf4221ac..88d29219b7e45e0254033af946d22b18
 +export declare enum AuthRequiredReason {
      /** The client has not yet authenticated for the resource */
      Required = "required",
-     /** A previously valid token has expired or been revoked */
+     /**

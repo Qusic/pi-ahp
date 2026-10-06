@@ -1,39 +1,41 @@
 /**
  * Protocol version negotiation.
  *
- * The client offers `InitializeParams.protocolVersions` most-preferred first;
- * the server picks the first entry it can speak and echoes it back as
+ * The client offers `InitializeParams.protocolVersions`; the server picks the
+ * highest compatible SemVer entry and echoes it back as
  * `InitializeResult.protocolVersion`. If there is no overlap the server MUST
  * return `UnsupportedProtocolVersion` (-32005) rather than a result.
  *
  * @see https://microsoft.github.io/agent-host-protocol/specification/versioning
  */
 
-import { AhpErrorCodes, PROTOCOL_VERSION } from "@microsoft/agent-host-protocol";
+import {
+	AhpErrorCodes,
+	SUPPORTED_PROTOCOL_VERSIONS,
+	negotiateProtocolVersion as selectProtocolVersion,
+} from "@microsoft/agent-host-protocol";
 import { ProtocolError } from "./errors.ts";
 
-/** Generated wire models do not down-convert required fields across minor versions. */
-const HOST_SUPPORTED_VERSIONS: readonly string[] = [PROTOCOL_VERSION];
-
 /**
- * Picks the client's most-preferred version that this host also speaks.
+ * Supports the SDK's released 1.0 and 0.9 compatibility baselines. No 1.0-only
+ * actions or fields are published yet, so both clients see the same 0.9 surface.
  *
  * @throws {ProtocolError} `UnsupportedProtocolVersion` when there is no overlap.
- *   The error `data` advertises what the host can speak so the client can
- *   decide whether to downgrade.
  */
 export function negotiateProtocolVersion(offered: readonly string[] | undefined): string {
 	if (!Array.isArray(offered) || offered.length === 0 || offered.some((version) => typeof version !== "string")) {
 		throw ProtocolError.invalidParams("initialize requires a non-empty protocolVersions array of strings");
 	}
-	for (const candidate of offered) {
-		if (HOST_SUPPORTED_VERSIONS.includes(candidate)) {
-			return candidate;
-		}
+	let selected: string | undefined;
+	try {
+		selected = selectProtocolVersion(offered);
+	} catch {
+		throw ProtocolError.invalidParams("protocolVersions must contain valid MAJOR.MINOR.PATCH versions");
 	}
+	if (selected) return selected;
 	throw new ProtocolError(
 		AhpErrorCodes.UnsupportedProtocolVersion,
 		`No mutually supported protocol version. Offered: ${offered.join(", ")}`,
-		{ supportedVersions: [...HOST_SUPPORTED_VERSIONS] },
+		{ supportedVersions: [...SUPPORTED_PROTOCOL_VERSIONS] },
 	);
 }

@@ -124,6 +124,7 @@ describe("pi client-action policy", () => {
 			ActionType.SessionCustomizationToggled,
 			ActionType.SessionMcpServerStartRequested,
 			ActionType.SessionMcpServerStopRequested,
+			ActionType.SessionMcpServerBackgroundRequested,
 			ActionType.SessionIsReadChanged,
 			ActionType.SessionIsArchivedChanged,
 			ActionType.SessionConfigChanged,
@@ -140,6 +141,8 @@ describe("pi client-action policy", () => {
 			ActionType.ChatPendingMessageRemoved,
 			ActionType.ChatQueuedMessagesReordered,
 			ActionType.ChatDraftChanged,
+			ActionType.ChatIsReadChanged,
+			ActionType.ChatIsArchivedChanged,
 			ActionType.ChatInputAnswerChanged,
 			ActionType.ChatInputCompleted,
 			ActionType.ChatTruncated,
@@ -208,8 +211,11 @@ describe("pi client-action policy", () => {
 			...rejected(session, /MCP servers/, [
 				{ type: ActionType.SessionMcpServerStartRequested, id: "mcp" },
 				{ type: ActionType.SessionMcpServerStopRequested, id: "mcp" },
+				{ type: ActionType.SessionMcpServerBackgroundRequested, id: "mcp" },
 			]),
 			...rejected(session, /read state/, [{ type: ActionType.SessionIsReadChanged, isRead: false }]),
+			...rejected(chat, /read state/, [{ type: ActionType.ChatIsReadChanged, isRead: false }]),
+			...rejected(chat, /archives sessions, not chats/, [{ type: ActionType.ChatIsArchivedChanged, isArchived: true }]),
 			...rejected(session, /no mutable configuration/, [
 				{ type: ActionType.SessionConfigChanged, config: { probe: true } },
 			]),

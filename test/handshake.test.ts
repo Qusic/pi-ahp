@@ -6,12 +6,14 @@
 
 import assert from "node:assert/strict";
 import { after, before, describe, it } from "node:test";
-import type { RootState } from "@microsoft/agent-host-protocol";
+import type { RootState, SessionState } from "@microsoft/agent-host-protocol";
 import {
 	ActionType,
 	AhpErrorCodes,
 	JsonRpcErrorCodes,
 	PROTOCOL_VERSION,
+	ReconnectResultType,
+	SessionStatus,
 	SUPPORTED_PROTOCOL_VERSIONS,
 } from "@microsoft/agent-host-protocol";
 import { initialSessionState } from "../src/channels/session.ts";
@@ -30,7 +32,8 @@ describe("handshake", () => {
 		await harness.dispose();
 	});
 
-	it("negotiates the client's most-preferred supported version", async () => {
+	it("negotiates the current version without following future SDK versions implicitly", async () => {
+		assert.deepEqual(SUPPORTED_PROTOCOL_VERSIONS, ["1.0.0", "0.9.0"]);
 		const client = await harness.connect();
 		const result = await client.initialize({
 			clientId: nextClientId(),
@@ -54,14 +57,61 @@ describe("handshake", () => {
 		assert.equal(result.automations, undefined);
 	});
 
-	it("ignores versions it does not know before the current one", async () => {
+	it("still serves a 0.9-only client's snapshots and actions", async () => {
+		const client = await harness.connect();
+		const clientId = nextClientId();
+		const result = await client.initialize({
+			clientId,
+			protocolVersions: ["0.9.0"],
+			initialSubscriptions: [ROOT_CHANNEL],
+		});
+		assert.equal(result.protocolVersion, "0.9.0");
+		assert.equal(result.snapshots[0]?.resource, ROOT_CHANNEL);
+
+		const session = sessionUri("old-client-action");
+		harness.host.store.create(session, initialSessionState("pi", "Before", "/tmp"), "session");
+		const { result: subscribed, subscription } = await client.subscribe(session);
+		assert.equal((must(subscribed.snapshot).state as SessionState).status, SessionStatus.Idle);
+		const sent = client.dispatch(session, { type: ActionType.SessionTitleChanged, title: "After" });
+		const event = await subscription.next();
+		assert.ok(!event.done && event.value.type === "action");
+		assert.equal(event.value.params.origin?.clientSeq, sent.clientSeq);
+		assert.equal(event.value.params.rejectionReason, undefined);
+		assert.deepEqual(event.value.params.action, { type: ActionType.SessionTitleChanged, title: "After" });
+
+		const lastSeenServerSeq = event.value.params.serverSeq;
+		await client.shutdown();
+		harness.host.dispatchServerAction(session, { type: ActionType.SessionTitleChanged, title: "Offline" });
+		const resumed = await harness.connect();
+		const replay = await resumed.reconnect({
+			clientId,
+			lastSeenServerSeq,
+			subscriptions: [ROOT_CHANNEL, session],
+		});
+		assert.ok(replay.type === ReconnectResultType.Replay);
+		assert.deepEqual(
+			replay.actions.map((envelope) => envelope.action),
+			[{ type: ActionType.SessionTitleChanged, title: "Offline" }],
+		);
+	});
+
+	it("chooses the highest compatible offer regardless of client order", async () => {
 		const client = await harness.connect();
 		const result = await client.initialize({
 			clientId: nextClientId(),
-			protocolVersions: ["99.0.0", PROTOCOL_VERSION],
+			protocolVersions: ["0.9.0", PROTOCOL_VERSION],
+		});
+		assert.equal(result.protocolVersion, PROTOCOL_VERSION);
+	});
+
+	it("accepts compatible patch versions and ignores unsupported offers", async () => {
+		const client = await harness.connect();
+		const result = await client.initialize({
+			clientId: nextClientId(),
+			protocolVersions: ["0.9.1", "99.0.0", "1.0.1"],
 		});
 
-		assert.equal(result.protocolVersion, PROTOCOL_VERSION);
+		assert.equal(result.protocolVersion, "1.0.1");
 	});
 
 	it("rejects an older wire model with UnsupportedProtocolVersion", async () => {
@@ -71,7 +121,7 @@ describe("handshake", () => {
 			AhpErrorCodes.UnsupportedProtocolVersion,
 		);
 		const data = error.data as { supportedVersions?: string[] } | undefined;
-		assert.deepEqual(data?.supportedVersions, [PROTOCOL_VERSION]);
+		assert.deepEqual(data?.supportedVersions, ["1.0.0", "0.9.0"]);
 	});
 
 	it("returns a snapshot for each initialSubscription in the same round-trip", async () => {
@@ -118,6 +168,8 @@ describe("handshake", () => {
 		const client = await harness.connect();
 		for (const invalid of [
 			{ protocolVersions: [42] },
+			{ protocolVersions: ["01.0.0"] },
+			{ protocolVersions: ["1.0.0", "1.0.0-beta.1"] },
 			{ clientInfo: { name: 42 } },
 			{ locale: 42 },
 			{ capabilities: [] },

@@ -99,9 +99,13 @@ function unsupportedClientActionReason(action: StateAction): string | undefined 
 			return "This host does not support customizations";
 		case ActionType.SessionMcpServerStartRequested:
 		case ActionType.SessionMcpServerStopRequested:
+		case ActionType.SessionMcpServerBackgroundRequested:
 			return "This host does not support MCP servers";
 		case ActionType.SessionIsReadChanged:
+		case ActionType.ChatIsReadChanged:
 			return "This host does not persist read state";
+		case ActionType.ChatIsArchivedChanged:
+			return "This host archives sessions, not chats";
 		case ActionType.SessionConfigChanged:
 			return "This session has no mutable configuration";
 		case ActionType.ChatToolCallConfirmed:

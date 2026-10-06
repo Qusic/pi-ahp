@@ -1,7 +1,12 @@
-/** Exhaustive contract for the AHP 0.9 command surface this product exposes. */
+/** Exhaustive contract for the AHP command surface this product exposes. */
 
 import { after, before, describe, it } from "node:test";
-import { type CommandMap, JsonRpcErrorCodes, SUPPORTED_PROTOCOL_VERSIONS } from "@microsoft/agent-host-protocol";
+import {
+	ChatMoveDestinationKind,
+	type CommandMap,
+	JsonRpcErrorCodes,
+	SUPPORTED_PROTOCOL_VERSIONS,
+} from "@microsoft/agent-host-protocol";
 import type { AhpClient } from "@microsoft/agent-host-protocol/client";
 import { ROOT_CHANNEL } from "../src/core/channels.ts";
 import { type Harness, nextClientId, startHarness } from "./harness.ts";
@@ -22,6 +27,7 @@ const COMMAND_POLICY = {
 	createSession: implemented("session"),
 	disposeSession: implemented("session"),
 	createChat: unsupported("session"),
+	moveChat: unsupported("chat"),
 	disposeChat: unsupported("chat"),
 	createTerminal: implemented("terminal"),
 	disposeTerminal: implemented("terminal"),
@@ -53,6 +59,7 @@ type UnsupportedMethod = {
 
 const UNSUPPORTED_REQUESTS: { [M in UnsupportedMethod]: CommandMap[M]["params"] } = {
 	createChat: { channel: "ahp-session:/session", chat: "ahp-chat:/chat" },
+	moveChat: { channel: "ahp-chat:/chat", destination: { kind: ChatMoveDestinationKind.NewSession } },
 	disposeChat: { channel: "ahp-chat:/chat" },
 	authenticate: { channel: ROOT_CHANNEL, resource: "https://example.com", token: "opaque" },
 	invokeChangesetOperation: { channel: "ahp-changeset:/changes", operationId: "apply" },

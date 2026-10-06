@@ -86,7 +86,7 @@ Agent Console connects with the direct URL printed by `pi-ahp`, or through a tun
 
 The following is a high-level mapping to the [official AHP specification](https://microsoft.github.io/agent-host-protocol/specification/overview).
 
-Currently supported protocol versions: **0.9.0**
+Currently supported protocol versions: **1.0.0 and 0.9.0**
 
 🟢 Supported · 🟡 Planned · 🔴 Out of scope
 
