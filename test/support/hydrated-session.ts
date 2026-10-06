@@ -50,7 +50,7 @@ export interface HydratedSessionFixture {
 	readonly metadata: MetadataStore;
 	readonly deletedFiles: string[];
 	readonly backend: RecordingBackend;
-	connectAsVSCode(): Promise<AhpClient>;
+	connectAsVSCode(protocolVersions?: readonly string[]): Promise<AhpClient>;
 	close(): Promise<void>;
 }
 
@@ -125,14 +125,14 @@ export async function startHydratedSessionFixture(
 		metadata,
 		deletedFiles,
 		backend,
-		async connectAsVSCode() {
+		async connectAsVSCode(protocolVersions = SUPPORTED_PROTOCOL_VERSIONS) {
 			const other = new AhpClient(await WebSocketTransport.connect(`ws://127.0.0.1:${server.port}`));
 			other.connect();
 			clients.push(other);
 			await other.request("initialize", {
 				channel: ROOT_CHANNEL,
 				clientId: `vscode-client-${clients.length}`,
-				protocolVersions: [...SUPPORTED_PROTOCOL_VERSIONS],
+				protocolVersions: [...protocolVersions],
 				clientInfo: { name: "vscode-editor-window", title: "VS Code" },
 			});
 			return other;

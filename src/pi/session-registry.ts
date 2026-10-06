@@ -837,6 +837,9 @@ export class SessionRegistry {
 		if (!previous || current.title !== previous.title) changes.title = current.title;
 		if (!previous || current.status !== previous.status) changes.status = current.status;
 		if (!previous || current.modifiedAt !== previous.modifiedAt) changes.modifiedAt = current.modifiedAt;
+		if (current.chats && JSON.stringify(current.chats) !== JSON.stringify(previous?.chats))
+			changes.chats = current.chats;
+		if (current.defaultChat && current.defaultChat !== previous?.defaultChat) changes.defaultChat = current.defaultChat;
 		this.#summaryBaselines.set(session.uri, current);
 		if (Object.keys(changes).length > 0) {
 			notifySessionSummaryChanged(this.#host, session.uri, changes);

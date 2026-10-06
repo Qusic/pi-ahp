@@ -112,6 +112,8 @@ export function sessionSummaryOf(
 		// update shape cannot distinguish "clear" from "unchanged" on JSON wire.
 		createdAt,
 		modifiedAt: aggregate.modifiedAt ?? createdAt,
+		chats: state.chats.map(({ resource, title }) => ({ resource, title })),
+		...(state.defaultChat ? { defaultChat: state.defaultChat } : {}),
 		...(state.workingDirectories ? { workingDirectories: state.workingDirectories } : {}),
 		...(meta ? { _meta: meta } : {}),
 	};

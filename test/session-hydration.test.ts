@@ -60,12 +60,19 @@ describe("opening a session from the catalogue", () => {
 	});
 
 	it("hydrates a catalogued session and counts it as active", async () => {
-		const { result } = await fixture.client.subscribe(sessionUri(fixture.sessionId));
+		const session = sessionUri(fixture.sessionId);
+		const cold = must((await fixture.client.request("listSessions", { channel: ROOT_CHANNEL })).items[0]);
+		const { result } = await fixture.client.subscribe(session);
 		const state = result.snapshot?.state as SessionState;
 
 		assert.equal(state.lifecycle, SessionLifecycle.Ready);
 		assert.equal(state.chats.length, 1);
 		assert.equal(state.defaultChat, chatUri(fixture.sessionId));
+		assert.equal(cold.defaultChat, state.defaultChat);
+		assert.deepEqual(cold.chats, [{ resource: state.defaultChat, title: state.chats[0]?.title }]);
+		const live = must((await fixture.client.request("listSessions", { channel: ROOT_CHANNEL })).items[0]);
+		assert.deepEqual(live.chats, cold.chats);
+		assert.equal(live.defaultChat, cold.defaultChat);
 		assert.deepEqual(state.workingDirectories, [pathToFileUri(fixture.workspace)]);
 		assertValid("state", "SessionState", state);
 		assert.equal((fixture.host.store.get(ROOT_CHANNEL) as RootState).activeSessions, 1);

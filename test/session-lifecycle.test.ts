@@ -20,6 +20,7 @@ import {
 	MessageKind,
 	SessionLifecycle,
 	type SessionState,
+	type SessionSummary,
 	SUPPORTED_PROTOCOL_VERSIONS,
 } from "@microsoft/agent-host-protocol";
 import { type AhpClient, RpcError, type Subscription } from "@microsoft/agent-host-protocol/client";
@@ -154,13 +155,16 @@ describe("session lifecycle", () => {
 	it("announces the new session on the root channel", async () => {
 		const client = await initialized();
 		const rootSubscription = client.attachSubscription(ROOT_CHANNEL);
-		const uri = sessionUri(randomUUID());
+		const id = randomUUID();
+		const uri = sessionUri(id);
 
 		await client.request("createSession", { channel: uri });
 
 		const event = await nextEvent(rootSubscription, (candidate) => candidate.type === "sessionAdded");
-		const params = event.params as { summary: { resource: string } };
+		const params = event.params as { summary: SessionSummary };
 		assert.equal(params.summary.resource, uri);
+		assert.equal(params.summary.defaultChat, chatUri(id));
+		assert.deepEqual(params.summary.chats, [{ resource: chatUri(id), title: params.summary.title }]);
 		assertValid("state", "SessionSummary", params.summary);
 	});
 

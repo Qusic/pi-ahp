@@ -17,7 +17,7 @@ import {
 	type SessionSummary,
 	SUPPORTED_PROTOCOL_VERSIONS,
 } from "@microsoft/agent-host-protocol";
-import { sessionUri } from "../src/core/channels.ts";
+import { chatUri, sessionUri } from "../src/core/channels.ts";
 import { pathToFileUri } from "../src/core/uri.ts";
 import { MetadataStore } from "../src/pi/metadata-store.ts";
 import { PiSessionCatalogue } from "../src/pi/session-catalogue.ts";
@@ -146,10 +146,15 @@ describe("session catalogue", () => {
 
 		const result = await catalogue.list(1, undefined);
 		// Same rule pi's own /resume picker uses: `name ?? firstMessage`.
-		assert.equal(result.items[0]?.title, "Nightly refactor");
+		const namedSummary = must(result.items[0]);
+		assert.equal(namedSummary.title, "Nightly refactor");
+		assert.equal(namedSummary.defaultChat, chatUri(named));
+		assert.deepEqual(namedSummary.chats, [{ resource: chatUri(named), title: "Nightly refactor" }]);
 
-		const unnamed = await catalogue.list(2, undefined);
-		assert.equal(unnamed.items[1]?.title, "Message number 4");
+		const unnamed = must((await catalogue.list(2, undefined)).items[1]);
+		assert.equal(unnamed.title, "Message number 4");
+		assert.equal(unnamed.defaultChat, chatUri(must(ids[4])));
+		assert.deepEqual(unnamed.chats, [{ resource: unnamed.defaultChat, title: unnamed.title }]);
 	});
 
 	it("skips files that are not readable pi sessions", async () => {

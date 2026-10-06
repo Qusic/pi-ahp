@@ -61,8 +61,8 @@ describe("client URI dialects over the wire", () => {
 		await fixture.close();
 	});
 
-	it("answers VS Code at the URIs it computes for itself", async () => {
-		const client = await fixture.connectAsVSCode();
+	it("answers VS Code 0.9 at the URIs it computes for itself", async () => {
+		const client = await fixture.connectAsVSCode(["0.9.0"]);
 		const providerSession = `pi:/${fixture.sessionId}`;
 		const derived = `ahp-chat://default/${Buffer.from(providerSession).toString("base64url")}`;
 
@@ -70,6 +70,10 @@ describe("client URI dialects over the wire", () => {
 		const sessionState = session.result.snapshot?.state as SessionState;
 		assert.equal(session.result.snapshot?.resource, providerSession);
 		assert.equal(sessionState.defaultChat, derived);
+		const listed = await client.request("listSessions", { channel: ROOT_CHANNEL });
+		const summary = must(listed.items.find((item) => item.resource === providerSession));
+		assert.equal(summary.defaultChat, derived);
+		assert.deepEqual(summary.chats, [{ resource: derived, title: summary.title }]);
 
 		const { result } = await client.subscribe(derived);
 		const state = must(result.snapshot).state as ChatState;

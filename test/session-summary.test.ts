@@ -238,7 +238,15 @@ describe("session summary over the wire", () => {
 		await f.start();
 		assert.deepEqual(f.changes(), [
 			{ channel: ROOT_CHANNEL, session: f.alias, changes: { title: "go" } },
-			{ channel: ROOT_CHANNEL, session: f.alias, changes: { status: SessionStatus.InProgress, modifiedAt: START } },
+			{
+				channel: ROOT_CHANNEL,
+				session: f.alias,
+				changes: {
+					status: SessionStatus.InProgress,
+					modifiedAt: START,
+					chats: [{ resource: f.chat, title: "go" }],
+				},
+			},
 		]);
 		const actions = f.envelopes();
 		assert.equal(actions.length, 3);
@@ -262,6 +270,8 @@ describe("session summary over the wire", () => {
 		assert.equal(live.title, "go");
 		assert.equal(live.status, SessionStatus.InProgress);
 		assert.equal(live.modifiedAt, START);
+		assert.equal(live.defaultChat, f.chat);
+		assert.deepEqual(live.chats, [{ resource: f.chat, title: "go" }]);
 		assert.equal("activity" in live, false);
 		const other = await f.harness.connect();
 		await other.initialize({ clientId: nextClientId(), protocolVersions: SUPPORTED_PROTOCOL_VERSIONS });

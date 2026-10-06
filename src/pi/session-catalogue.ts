@@ -15,7 +15,7 @@ import { readdir, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { SessionManager } from "@earendil-works/pi-coding-agent";
 import { type ListSessionsResult, SessionStatus, type SessionSummary, type URI } from "@microsoft/agent-host-protocol";
-import { sessionUri } from "../core/channels.ts";
+import { chatUri, sessionUri } from "../core/channels.ts";
 import { pathToFileUri } from "../core/uri.ts";
 import { ProtocolError } from "../protocol/errors.ts";
 import type { MetadataStore } from "./metadata-store.ts";
@@ -180,10 +180,12 @@ function readSessionSummary(file: SessionFile, metadata: MetadataStore): Session
 	}
 
 	const cwd = manager.getCwd();
+	const title = sessionDisplayTitle(manager.getSessionName(), firstUserMessage);
+	const chat = chatUri(sessionId);
 	return {
 		resource: sessionUri(sessionId),
 		provider: PI_PROVIDER,
-		title: sessionDisplayTitle(manager.getSessionName(), firstUserMessage),
+		title,
 		// Pi has no read state; cold sessions remain reported as read.
 		status:
 			SessionStatus.Idle |
@@ -191,6 +193,8 @@ function readSessionSummary(file: SessionFile, metadata: MetadataStore): Session
 			(metadata.sessions.get(sessionId, "archive") ? SessionStatus.IsArchived : 0),
 		createdAt: createdAt ?? new Date(file.mtimeMs).toISOString(),
 		modifiedAt: new Date(file.mtimeMs).toISOString(),
+		chats: [{ resource: chat, title }],
+		defaultChat: chat,
 		...(cwd ? { workingDirectories: [pathToFileUri(cwd)] } : {}),
 		_meta: { piSessionFile: file.path },
 	};
