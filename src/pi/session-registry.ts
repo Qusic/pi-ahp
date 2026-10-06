@@ -23,7 +23,6 @@ import {
 	type ModelSelection,
 	PendingMessageKind,
 	ResponsePartKind,
-	type SessionIsArchivedChangedAction,
 	type SessionState,
 	SessionStatus,
 	type SessionSummary,
@@ -101,11 +100,10 @@ function unsupportedClientActionReason(action: StateAction): string | undefined 
 		case ActionType.SessionMcpServerStopRequested:
 		case ActionType.SessionMcpServerBackgroundRequested:
 			return "This host does not support MCP servers";
-		case ActionType.SessionIsReadChanged:
 		case ActionType.ChatIsReadChanged:
-			return "This host does not persist read state";
+			return "This host supports read state only at the session level";
 		case ActionType.ChatIsArchivedChanged:
-			return "This host archives sessions, not chats";
+			return "This host supports archive state only at the session level";
 		case ActionType.SessionConfigChanged:
 			return "This session has no mutable configuration";
 		case ActionType.ChatToolCallConfirmed:
@@ -118,6 +116,22 @@ function unsupportedClientActionReason(action: StateAction): string | undefined 
 			return "This host does not support interactive input requests";
 		case ActionType.ChatTurnResume:
 			return "This host cannot resume an errored turn";
+		default:
+			return undefined;
+	}
+}
+
+interface SessionMetadataFlag {
+	readonly key: "archive" | "read";
+	readonly value: boolean;
+}
+
+function sessionMetadataFlag(action: StateAction): SessionMetadataFlag | undefined {
+	switch (action.type) {
+		case ActionType.SessionIsArchivedChanged:
+			return { key: "archive", value: action.isArchived };
+		case ActionType.SessionIsReadChanged:
+			return { key: "read", value: action.isRead };
 		default:
 			return undefined;
 	}
@@ -204,9 +218,10 @@ export class SessionRegistry {
 
 		this.#host.addClientActionValidator((channel, action) => this.#validateClientAction(channel, action));
 		this.#host.addClientActionEffect((channel, action) => {
-			if (action.type !== ActionType.SessionIsArchivedChanged) return;
+			const flag = sessionMetadataFlag(action);
+			if (!flag) return;
 			const id = sessionIdFromUri(channel, [PI_PROVIDER]);
-			if (id) this.#options.metadata.sessions.set(id, "archive", action.isArchived);
+			if (id) this.#options.metadata.sessions.set(id, flag.key, flag.value);
 		});
 	}
 
@@ -234,9 +249,10 @@ export class SessionRegistry {
 		return this.#operations;
 	}
 
-	/** Archive is the only cold metadata action supported today; other actions use core routing. */
+	/** Session read/archive can be persisted without hydrating cold history. */
 	readonly routeMetadataAction: SessionMetadataActionRouter = (channel, action, apply) => {
-		if (action.type !== ActionType.SessionIsArchivedChanged) return false;
+		const flag = sessionMetadataFlag(action);
+		if (!flag) return false;
 		const id = sessionIdFromUri(channel, [PI_PROVIDER]);
 		if (!id) return false;
 		// Refusing new work on a loaded target must not wait for its deletion to settle.
@@ -249,14 +265,14 @@ export class SessionRegistry {
 				apply("session");
 				return;
 			}
-			return this.#archiveCold(channel, id, action, apply);
+			return this.#updateColdMetadata(channel, id, flag, apply);
 		});
 	};
 
-	async #archiveCold(
+	async #updateColdMetadata(
 		channel: URI,
 		id: string,
-		action: SessionIsArchivedChangedAction,
+		flag: SessionMetadataFlag,
 		apply: (kind: "session") => boolean,
 	): Promise<void> {
 		const file = await this.#options.findSessionFile?.(id);
@@ -266,15 +282,23 @@ export class SessionRegistry {
 			return;
 		}
 		if (!file) return;
-		if (this.isDisposing(channel) || typeof action.isArchived !== "boolean") {
+		if (this.isDisposing(channel) || typeof flag.value !== "boolean") {
 			apply("session"); // Let the ordinary validators echo their refusal.
 			return;
 		}
-		const previous = this.#options.metadata.sessions.get(id, "archive");
-		if (apply("session") && previous !== action.isArchived) {
+		const previous = this.#options.metadata.sessions.get(id, flag.key);
+		if (previous === flag.value) {
+			apply("session");
+			return;
+		}
+		const other = this.#options.metadata.sessions.get(id, flag.key === "read" ? "archive" : "read");
+		if (apply("session")) {
+			const isRead = flag.key === "read" ? flag.value : other;
+			const isArchived = flag.key === "archive" ? flag.value : other;
 			try {
 				notifySessionSummaryChanged(this.#host, channel, {
-					status: SessionStatus.Idle | SessionStatus.IsRead | (action.isArchived ? SessionStatus.IsArchived : 0),
+					status:
+						SessionStatus.Idle | (isRead ? SessionStatus.IsRead : 0) | (isArchived ? SessionStatus.IsArchived : 0),
 				});
 			} catch (error) {
 				// Publication failure cannot turn an already-accepted action into a rejection.
@@ -624,6 +648,9 @@ export class SessionRegistry {
 				return typeof action.title === "string" ? undefined : "A session title must be a string";
 			case ActionType.SessionIsArchivedChanged:
 				if (typeof action.isArchived !== "boolean") return "The archive flag must be a boolean";
+				return sessionIdFromUri(channel, [PI_PROVIDER]) ? undefined : "This session is unavailable";
+			case ActionType.SessionIsReadChanged:
+				if (typeof action.isRead !== "boolean") return "The read flag must be a boolean";
 				return sessionIdFromUri(channel, [PI_PROVIDER]) ? undefined : "This session is unavailable";
 			case ActionType.ChatTurnStarted: {
 				if (typeof action.turnId !== "string" || typeof action.startedAt !== "string") {

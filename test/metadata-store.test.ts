@@ -16,23 +16,28 @@ function fixture(t: { after(cleanup: () => void): void }) {
 	return { root, ahpDir, directory: join(ahpDir, "metadata"), sessions: store.sessions };
 }
 
-it("persists archive per session and cleans only the requested ID", (t) => {
+it("persists archive and read per session and cleans only the requested ID", (t) => {
 	const { root, ahpDir, sessions } = fixture(t);
 	assert.equal(sessions.get("same", "archive"), false);
+	assert.equal(sessions.get("same", "read"), false);
 	assert.deepEqual(readdirSync(root), [], "reads must not create directories");
 
 	sessions.set("same", "archive", true);
+	sessions.set("same", "read", true);
 	sessions.set("other", "archive", true);
 	const reopened = new MetadataStore(ahpDir);
 	assert.equal(reopened.sessions.get("same", "archive"), true);
+	assert.equal(reopened.sessions.get("same", "read"), true);
 	assert.equal(reopened.sessions.get("other", "archive"), true);
 
 	sessions.delete("same", "archive");
 	assert.equal(reopened.sessions.get("same", "archive"), false);
+	assert.equal(reopened.sessions.get("same", "read"), true);
 	sessions.set("same", "archive", true);
 	sessions.deleteId("same");
 	sessions.deleteId("same");
 	assert.equal(reopened.sessions.get("same", "archive"), false);
+	assert.equal(reopened.sessions.get("same", "read"), false);
 	assert.equal(reopened.sessions.get("other", "archive"), true);
 });
 

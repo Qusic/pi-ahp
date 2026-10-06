@@ -126,6 +126,7 @@ export class MetadataStore {
 		const root = join(ahpDir, "metadata");
 		this.sessions = new MetadataNamespace(root, "session", {
 			archive: { schema: z.boolean(), default: false },
+			read: { schema: z.boolean(), default: false },
 		});
 	}
 }

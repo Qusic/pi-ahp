@@ -142,7 +142,7 @@ it("restores persisted archive in cold and live summaries without archiving the 
 
 	const session = sessionUri(id);
 	const chat = chatUri(id);
-	const archivedStatus = SessionStatus.Idle | SessionStatus.IsRead | SessionStatus.IsArchived;
+	const archivedStatus = SessionStatus.Idle | SessionStatus.IsArchived;
 	const cold = await client.request("listSessions", { channel: ROOT_CHANNEL });
 	assert.equal(cold.items.length, 1);
 	assert.equal(cold.items[0]?.resource, session);
@@ -174,7 +174,7 @@ it("restores persisted archive in cold and live summaries without archiving the 
 	assert.equal(metadata.sessions.get(id, "archive"), false, "the composed writer must use the same sidecar");
 	assert.equal((built.host.store.get(session) as SessionState).status & SessionStatus.IsArchived, 0);
 	const unarchived = await client.request("listSessions", { channel: ROOT_CHANNEL });
-	assert.equal(unarchived.items[0]?.status, SessionStatus.Idle | SessionStatus.IsRead);
+	assert.equal(unarchived.items[0]?.status, SessionStatus.Idle);
 	assert.equal(unarchived.items[0]?.modifiedAt, modifiedAt);
 	assert.equal(createBackend.mock.callCount(), 0, "browsing and archiving must not start an agent");
 	assert.deepEqual(readFileSync(file), history);

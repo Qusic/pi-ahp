@@ -213,19 +213,24 @@ it("projects archive only for the requested page without changing ordering or ti
 	});
 	assert.deepEqual(
 		reads.mock.calls.map((call) => call.arguments),
-		[["newer", "archive"]],
+		[
+			["newer", "read"],
+			["newer", "archive"],
+		],
 	);
 
 	const next = await catalogue.list(1, must(page.nextCursor));
 	assert.equal(next.items.length, 1);
 	assert.equal(next.items[0]?.resource, sessionUri("older"));
-	assert.equal(next.items[0]?.status, SessionStatus.Idle | SessionStatus.IsRead);
+	assert.equal(next.items[0]?.status, SessionStatus.Idle);
 	assert.equal(next.items[0]?.modifiedAt, new Date(100_000).toISOString());
 	assert.equal(next.nextCursor, undefined);
 	assert.deepEqual(
 		reads.mock.calls.map((call) => call.arguments),
 		[
+			["newer", "read"],
 			["newer", "archive"],
+			["older", "read"],
 			["older", "archive"],
 		],
 	);

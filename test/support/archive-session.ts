@@ -60,7 +60,7 @@ export async function archiveSessionFixture(
 	utimesSync(file, timestamp, timestamp);
 	const history = readFileSync(file);
 	const createBackend = t.mock.fn(() => {
-		throw new Error("archiving must not start an agent");
+		throw new Error("session metadata actions must not start an agent");
 	});
 	const hostOptions = {
 		sessions: true,

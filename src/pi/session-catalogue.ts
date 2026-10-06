@@ -186,10 +186,9 @@ function readSessionSummary(file: SessionFile, metadata: MetadataStore): Session
 		resource: sessionUri(sessionId),
 		provider: PI_PROVIDER,
 		title,
-		// Pi has no read state; cold sessions remain reported as read.
 		status:
 			SessionStatus.Idle |
-			SessionStatus.IsRead |
+			(metadata.sessions.get(sessionId, "read") ? SessionStatus.IsRead : 0) |
 			(metadata.sessions.get(sessionId, "archive") ? SessionStatus.IsArchived : 0),
 		createdAt: createdAt ?? new Date(file.mtimeMs).toISOString(),
 		modifiedAt: new Date(file.mtimeMs).toISOString(),

@@ -20,9 +20,9 @@ import { must } from "./support/assertions.ts";
 
 it("persists ordered archive toggles without disturbing an active chat and restores them after restart", async (t) => {
 	const f = await fixture(t);
-	const idle = SessionStatus.Idle | SessionStatus.IsRead;
+	const idle = SessionStatus.Idle;
 	const archivedStatus = idle | SessionStatus.IsArchived;
-	const running = SessionStatus.InProgress | SessionStatus.IsRead;
+	const running = SessionStatus.InProgress;
 	// Model already-running work without attaching an agent or writing Pi history.
 	f.initialHost.dispatchServerAction(f.chat, {
 		type: ActionType.ChatTurnStarted,
@@ -113,7 +113,7 @@ it("persists ordered archive toggles without disturbing an active chat and resto
 	const chat = await fresh.subscribe(f.chat);
 	const chatSnapshot = must(chat.result.snapshot);
 	assert.equal(chatSnapshot.resource, f.chat);
-	assert.equal((chatSnapshot.state as ChatState).status, idle);
+	assert.equal((chatSnapshot.state as ChatState).status, SessionStatus.Idle | SessionStatus.IsRead);
 	assert.equal(f.createBackend.mock.callCount(), 0);
 	assert.deepEqual(readFileSync(f.file), f.history);
 	assert.equal(statSync(f.file).mtime.toISOString(), f.timestamp.toISOString());
@@ -158,7 +158,7 @@ it("a broken subscriber cannot reject a persisted archive or prevent other subsc
 	assert.deepEqual(summary.params, {
 		channel: ROOT_CHANNEL,
 		session: f.session,
-		changes: { status: SessionStatus.Idle | SessionStatus.IsRead | SessionStatus.IsArchived },
+		changes: { status: SessionStatus.Idle | SessionStatus.IsArchived },
 	});
 	assert.equal(f.metadata.sessions.get(f.id, "archive"), true);
 	assert.equal(
@@ -244,7 +244,7 @@ it("rejects a failed overwrite without success effects and retains the rejection
 	assert.deepEqual(replay.actions, [rejected.params]);
 });
 
-it("archives a new live session before Pi has written its JSONL file", async (t) => {
+it("archives and marks a new live session read before Pi has written its JSONL file", async (t) => {
 	const harness = await startHarness({ sessions: true });
 	t.after(() => harness.dispose());
 	const client = await harness.connect();
@@ -265,12 +265,17 @@ it("archives a new live session before Pi has written its JSONL file", async (t)
 	assert.deepEqual(accepted.params.origin, { clientId, clientSeq: dispatched.clientSeq });
 	assert.equal(accepted.params.rejectionReason, undefined);
 	assert.equal(must(harness.metadata).sessions.get(id, "archive"), true);
-	assert.equal(
-		(harness.host.store.get(session) as SessionState).status & SessionStatus.IsArchived,
-		SessionStatus.IsArchived,
-	);
+	const read = { type: ActionType.SessionIsReadChanged, isRead: true } as const;
+	client.dispatch(session, read);
+	const readEcho = await nextEvent(events);
+	assert.ok(readEcho.type === "action");
+	assert.deepEqual(readEcho.params.action, read);
+	assert.equal(readEcho.params.rejectionReason, undefined);
+	assert.equal(must(harness.metadata).sessions.get(id, "read"), true);
+	const flags = SessionStatus.IsArchived | SessionStatus.IsRead;
+	assert.equal((harness.host.store.get(session) as SessionState).status & flags, flags);
 	const listed = await client.request("listSessions", { channel: ROOT_CHANNEL });
 	const summary = must(listed.items.find((item) => item.resource === session));
-	assert.equal(summary.status & SessionStatus.IsArchived, SessionStatus.IsArchived);
-	assert.equal(existsSync(file), false, "archiving must not flush Pi history");
+	assert.equal(summary.status & flags, flags);
+	assert.equal(existsSync(file), false, "metadata actions must not flush Pi history");
 });

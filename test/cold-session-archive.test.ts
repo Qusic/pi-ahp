@@ -18,7 +18,7 @@ import { archiveSessionFixture, nextArchiveEvent, withArchiveTimeout } from "./s
 import { expectRpcError, must } from "./support/assertions.ts";
 import { writeSessionFixture } from "./support/session-files.ts";
 
-const IDLE = SessionStatus.Idle | SessionStatus.IsRead;
+const IDLE = SessionStatus.Idle;
 const ARCHIVED = IDLE | SessionStatus.IsArchived;
 
 it("archives and unarchives cold history without materializing it, and suppresses no-op summary updates", async (t) => {

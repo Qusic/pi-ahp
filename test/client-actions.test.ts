@@ -213,9 +213,12 @@ describe("pi client-action policy", () => {
 				{ type: ActionType.SessionMcpServerStopRequested, id: "mcp" },
 				{ type: ActionType.SessionMcpServerBackgroundRequested, id: "mcp" },
 			]),
-			...rejected(session, /read state/, [{ type: ActionType.SessionIsReadChanged, isRead: false }]),
-			...rejected(chat, /read state/, [{ type: ActionType.ChatIsReadChanged, isRead: false }]),
-			...rejected(chat, /archives sessions, not chats/, [{ type: ActionType.ChatIsArchivedChanged, isArchived: true }]),
+			...rejected(chat, /read state only at the session level/, [
+				{ type: ActionType.ChatIsReadChanged, isRead: false },
+			]),
+			...rejected(chat, /archive state only at the session level/, [
+				{ type: ActionType.ChatIsArchivedChanged, isArchived: true },
+			]),
 			...rejected(session, /no mutable configuration/, [
 				{ type: ActionType.SessionConfigChanged, config: { probe: true } },
 			]),

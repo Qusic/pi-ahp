@@ -150,10 +150,11 @@ export class SessionHydrator implements ChannelHydrator {
 			return;
 		}
 
-		// Read, for the same reason the catalogue reports read — see
-		// `readSessionSummary`. The reducer still clears the bit if a turn starts.
-		const status = SessionStatus.Idle | SessionStatus.IsRead;
-		// Read before registering either channel: an I/O failure must not leave a partial pair.
+		// Chat read state is independent of the persisted session flag; starting a
+		// turn still clears the chat bit without changing the session's read state.
+		const chatStatus = SessionStatus.Idle | SessionStatus.IsRead;
+		// Load session flags before registering either channel so I/O failure cannot leave a partial pair.
+		const read = this.#options.metadata.sessions.get(sessionId, "read");
 		const archived = this.#options.metadata.sessions.get(sessionId, "archive");
 
 		// Which model this conversation was last using. The agent starts only on
@@ -180,7 +181,7 @@ export class SessionHydrator implements ChannelHydrator {
 		const chatState: ChatState = {
 			resource: chat,
 			title,
-			status,
+			status: chatStatus,
 			modifiedAt,
 			turns,
 			...(turnsNextCursor ? { turnsNextCursor } : {}),
@@ -191,7 +192,7 @@ export class SessionHydrator implements ChannelHydrator {
 		const sessionState: SessionState = {
 			provider: PI_PROVIDER,
 			title,
-			status: status | (archived ? SessionStatus.IsArchived : 0),
+			status: SessionStatus.Idle | (read ? SessionStatus.IsRead : 0) | (archived ? SessionStatus.IsArchived : 0),
 			// The transcript is genuinely available, so the session is ready. It
 			// simply has no agent attached until someone starts a turn.
 			lifecycle: SessionLifecycle.Ready,

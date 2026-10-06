@@ -29,40 +29,43 @@ describe("read state after hydration", () => {
 		await fixture.close();
 	});
 
-	it("reports every catalogue entry as read", async () => {
+	it("defaults a catalogued session to unread", async () => {
 		const list = await fixture.client.request("listSessions", { channel: ROOT_CHANNEL });
-		assert.ok((must(list.items[0]).status & SessionStatus.IsRead) !== 0);
+		assert.equal(must(list.items[0]).status & SessionStatus.IsRead, 0);
 	});
 
-	it("reports a hydrated session as read", async () => {
+	it("hydrates a session as unread by default", async () => {
 		const { result } = await fixture.client.subscribe(sessionUri(fixture.sessionId));
 		const state = result.snapshot?.state as SessionState;
-		assert.ok((state.status & SessionStatus.IsRead) !== 0);
+		assert.equal(state.status & SessionStatus.IsRead, 0);
 		assert.equal(state.title, "Read note.txt");
 	});
 
-	it("keeps session-owned read state when a starting turn marks the chat unread", async () => {
-		const chat = chatUri(fixture.sessionId);
-		await fixture.client.subscribe(chat);
-		const before = (fixture.host.store.get(chat) as ChatState).status;
+	it("keeps session-owned read state when a starting turn marks the chat unread", async (t) => {
+		const fresh = await startHydratedSessionFixture();
+		t.after(() => fresh.close());
+		const sessionChannel = sessionUri(fresh.sessionId);
+		fresh.client.dispatch(sessionChannel, { type: ActionType.SessionIsReadChanged, isRead: true });
+		await fresh.client.ping();
+		const chat = chatUri(fresh.sessionId);
+		await fresh.client.subscribe(chat);
+		const before = (fresh.host.store.get(chat) as ChatState).status;
 		assert.ok((before & SessionStatus.IsRead) !== 0);
 
-		fixture.client.dispatch(chat, {
+		fresh.client.dispatch(chat, {
 			type: ActionType.ChatTurnStarted,
 			turnId: "t-unread",
 			startedAt: new Date().toISOString(),
 			message: { text: "hi", origin: { kind: MessageKind.User } },
 		});
-		await fixture.client.ping();
+		await fresh.client.ping();
 
-		assert.equal((fixture.host.store.get(chat) as ChatState).status & SessionStatus.IsRead, 0);
-		const session = fixture.host.store.get(sessionUri(fixture.sessionId)) as SessionState;
+		assert.equal((fresh.host.store.get(chat) as ChatState).status & SessionStatus.IsRead, 0);
+		const session = fresh.host.store.get(sessionChannel) as SessionState;
 		assert.notEqual(session.status & SessionStatus.IsRead, 0);
-		const list = await fixture.client.request("listSessions", { channel: ROOT_CHANNEL });
-		assert.notEqual(
-			must(list.items.find((item) => item.resource === sessionUri(fixture.sessionId))).status & SessionStatus.IsRead,
-			0,
-		);
+		assert.equal(fresh.metadata.sessions.get(fresh.sessionId, "read"), true);
+		const list = await fresh.client.request("listSessions", { channel: ROOT_CHANNEL });
+		assert.notEqual(must(list.items.find((item) => item.resource === sessionChannel)).status & SessionStatus.IsRead, 0);
 	});
 });
 
