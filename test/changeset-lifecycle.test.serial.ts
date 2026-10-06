@@ -118,6 +118,7 @@ class ControlledGit implements GitChangesBackend {
 	readonly workspace: GitWorkspace;
 	computeCalls = 0;
 	failCompute = false;
+	emptyResult = false;
 	blockFirstCompute = true;
 
 	constructor(workspace: GitWorkspace) {
@@ -147,6 +148,7 @@ class ControlledGit implements GitChangesBackend {
 					.finally(() => signal?.removeEventListener("abort", aborted));
 			});
 		}
+		if (this.emptyResult) return [];
 		const uri = pathToFileURL(join(this.workspace.cwd, "result.txt")).toString();
 		return [{ id: uri, edit: { after: { uri, content: { uri } }, diff: { added: version, removed: 0 } } }];
 	}
@@ -261,6 +263,51 @@ async function startControlledFixture(
 		},
 	};
 }
+
+it("recomputes after a completed empty result, including after a failed refresh", async () => {
+	const fixture = await startControlledFixture();
+	fixture.git.emptyResult = true;
+	const statuses: ChangesetStatus[] = [];
+	const stop = fixture.host.onActionCommitted((channel, action) => {
+		if (channel === fixture.channel && action.type === ActionType.ChangesetStatusChanged) {
+			statuses.push(action.status);
+		}
+	});
+	try {
+		await fixture.client.subscribe(fixture.channel);
+		await fixture.git.computeStarted.promise;
+		const first = fixture.host.store.get(fixture.channel) as ChangesetState;
+		assert.equal(first.status, ChangesetStatus.Computing);
+		assert.deepEqual(first.files, []);
+		fixture.git.computeGate.resolve();
+		await eventually("the empty changeset to become ready", () => {
+			const state = fixture.host.store.get(fixture.channel) as ChangesetState | undefined;
+			return state?.status === ChangesetStatus.Ready && state.files.length === 0;
+		});
+		statuses.length = 0;
+
+		fixture.git.failCompute = true;
+		fixture.recursive.current.change(join(fixture.workspace, "failed-refresh.txt"));
+		await eventually("the refresh to fail", () => {
+			return (fixture.host.store.get(fixture.channel) as ChangesetState | undefined)?.status === ChangesetStatus.Error;
+		});
+		assert.deepEqual(statuses, [ChangesetStatus.Recomputing, ChangesetStatus.Error]);
+		assert.deepEqual((fixture.host.store.get(fixture.channel) as ChangesetState).files, []);
+		statuses.length = 0;
+
+		fixture.git.failCompute = false;
+		fixture.git.emptyResult = false;
+		fixture.recursive.current.change(join(fixture.workspace, "retry.txt"));
+		await eventually("the retry to become ready", () => {
+			const state = fixture.host.store.get(fixture.channel) as ChangesetState | undefined;
+			return state?.status === ChangesetStatus.Ready && state.files.length === 1;
+		});
+		assert.deepEqual(statuses, [ChangesetStatus.Recomputing, ChangesetStatus.Ready]);
+	} finally {
+		stop();
+		await fixture.close();
+	}
+});
 
 it("observes changed ignore rules during a scan without rebuilding the watcher", async () => {
 	const fixture = await startControlledFixture();
@@ -484,8 +531,14 @@ it("keeps the one-shot changeset when the recursive source cannot start", async 
 	}
 });
 
-it("publishes an explicit error when Git cannot compute the changeset", async () => {
+it("retries an initial failure as computing, without a completed result", async () => {
 	const fixture = await startControlledFixture({ failCompute: true, blockFirstCompute: false });
+	const statuses: ChangesetStatus[] = [];
+	const stop = fixture.host.onActionCommitted((channel, action) => {
+		if (channel === fixture.channel && action.type === ActionType.ChangesetStatusChanged) {
+			statuses.push(action.status);
+		}
+	});
 	try {
 		await fixture.client.subscribe(fixture.channel);
 		await eventually("the failed changeset", () => {
@@ -494,7 +547,15 @@ it("publishes an explicit error when Git cannot compute the changeset", async ()
 		const state = fixture.host.store.get(fixture.channel) as ChangesetState;
 		assert.equal(state.error?.errorType, "gitChangesFailed");
 		assert.equal(state.error?.message, "Git diff failed");
+		statuses.length = 0;
+		fixture.git.failCompute = false;
+		fixture.recursive.current.change(join(fixture.workspace, "retry.txt"));
+		await eventually("the first successful changeset", () => {
+			return (fixture.host.store.get(fixture.channel) as ChangesetState | undefined)?.status === ChangesetStatus.Ready;
+		});
+		assert.deepEqual(statuses, [ChangesetStatus.Computing, ChangesetStatus.Ready]);
 	} finally {
+		stop();
 		await fixture.close();
 	}
 });

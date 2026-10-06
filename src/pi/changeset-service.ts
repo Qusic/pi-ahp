@@ -99,6 +99,8 @@ export class ChangesetService implements ChannelHydrator {
 	readonly #git: GitChangesBackend;
 	readonly #parcelPool: ParcelWatchPool;
 	readonly #entries = new Map<string, SessionEntry>();
+	/** A completed snapshot may be empty, and remains available after a failed refresh. */
+	readonly #completed = new Set<URI>();
 	readonly #stateEvictions = new Map<URI, NodeJS.Timeout>();
 	readonly #unhookSubscribers: () => void;
 	readonly #unhookActions: () => void;
@@ -438,10 +440,11 @@ export class ChangesetService implements ChannelHydrator {
 			for (const kind of kinds) {
 				const channel = piChangesetUri(entry.session.sessionId, kind);
 				const state = this.#host.store.get(channel) as ChangesetState | undefined;
-				if (state?.status !== ChangesetStatus.Computing) {
+				const status = this.#completed.has(channel) ? ChangesetStatus.Recomputing : ChangesetStatus.Computing;
+				if (state?.status !== status) {
 					this.#host.dispatchServerAction(channel, {
 						type: ActionType.ChangesetStatusChanged,
-						status: ChangesetStatus.Computing,
+						status,
 					});
 				}
 			}
@@ -469,6 +472,7 @@ export class ChangesetService implements ChannelHydrator {
 				type: ActionType.ChangesetStatusChanged,
 				status: ChangesetStatus.Ready,
 			});
+			this.#completed.add(channel);
 		} catch (error) {
 			if (abort.signal.aborted || !this.#canPublish(entry, abort) || !this.#host.store.has(channel)) return;
 			this.#host.dispatchServerAction(channel, {
@@ -624,6 +628,7 @@ export class ChangesetService implements ChannelHydrator {
 	}
 
 	#disposeChannel(channel: URI): void {
+		this.#completed.delete(channel);
 		this.#cancelStateEviction(channel);
 		if (!this.#host.store.has(channel)) return;
 		this.#host.dispatchServerAction(channel, { type: ActionType.ChangesetCleared });
