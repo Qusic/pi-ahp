@@ -10,6 +10,7 @@
 
 import {
 	type ActionEnvelope,
+	AhpErrorCodes,
 	type CommandMap,
 	type CompletionsParams,
 	type CompletionsResult,
@@ -389,6 +390,10 @@ export class AhpHost {
 					: new ProtocolError(JsonRpcErrorCodes.InternalError, error instanceof Error ? error.message : String(error));
 			this.#log(`${request.method} failed: ${protocolError.message}`);
 			connection.send(errorResponse(request.id, protocolError.code, protocolError.message, protocolError.data));
+			if (request.method === "initialize" && protocolError.code === AhpErrorCodes.UnsupportedProtocolVersion) {
+				// AHP requires closing the connection after an unsupported-version response.
+				connection.transport.close();
+			}
 		}
 	}
 

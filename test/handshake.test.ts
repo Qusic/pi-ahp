@@ -20,6 +20,7 @@ import { initialSessionState } from "../src/channels/session.ts";
 import { ROOT_CHANNEL, sessionUri } from "../src/core/channels.ts";
 import { type Harness, nextClientId, startHarness, TEST_AGENT } from "./harness.ts";
 import { expectRpcError, must } from "./support/assertions.ts";
+import { eventually } from "./support/async.ts";
 
 describe("handshake", () => {
 	let harness: Harness;
@@ -122,6 +123,7 @@ describe("handshake", () => {
 		);
 		const data = error.data as { supportedVersions?: string[] } | undefined;
 		assert.deepEqual(data?.supportedVersions, ["1.0.0", "0.9.0"]);
+		await eventually("unsupported-version connection to close", () => client.connectionState.status === "closed");
 	});
 
 	it("returns a snapshot for each initialSubscription in the same round-trip", async () => {
