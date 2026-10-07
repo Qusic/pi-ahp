@@ -201,7 +201,15 @@ export class SessionRegistry {
 				if (action.type === ActionType.ChatTurnStarted) {
 					this.#applyFallbackTitle(owner, action.message.text);
 				}
-				this.#syncChatProjection(owner);
+				const changed = this.#syncChatProjection(owner);
+				if (
+					changed &&
+					(action.type === ActionType.ChatTurnComplete ||
+						action.type === ActionType.ChatTurnCancelled ||
+						action.type === ActionType.ChatError)
+				) {
+					this.#markSessionUnreadAfterTurn(owner);
+				}
 				return;
 			}
 			const session = this.#sessions.get(channel);
@@ -876,23 +884,18 @@ export class SessionRegistry {
 	/**
 	 * Projects a reduced chat summary onto its parent session and root catalog.
 	 *
-	 * The official 0.9 reducer cannot update top-level `SessionState.status`, so
-	 * this deliberately leaves that field alone. Clients still receive the live
-	 * status in `SessionState.chats[]`, `ChatState`, and the root summary.
+	 * The SDK's chat-catalog reducer updates `SessionState.chats[]`, not the
+	 * session's activity bits. Root summaries derive live status from the catalog.
 	 */
-	#syncChatProjection(session: LiveSession): void {
+	#syncChatProjection(session: LiveSession): boolean {
 		this.#projectingSessions.add(session.uri);
 		let changed = false;
 		try {
 			changed = syncChatSummary(this.#host, session.uri, session.chatChannel);
-			if (!changed) {
-				return;
-			}
+			if (!changed) return false;
 
 			const state = this.#host.store.get(session.uri) as SessionState | undefined;
-			if (!state) {
-				return;
-			}
+			if (!state) return false;
 			const aggregate = aggregateSessionChats(state);
 			if (state.activity !== aggregate.activity) {
 				this.#host.dispatchServerAction(session.uri, {
@@ -903,8 +906,26 @@ export class SessionRegistry {
 		} finally {
 			this.#projectingSessions.delete(session.uri);
 		}
-		if (changed && this.#sessions.get(session.uri) === session) {
-			this.#publishSummary(session);
+		if (this.#sessions.get(session.uri) !== session) return false;
+		this.#publishSummary(session);
+		return true;
+	}
+
+	#markSessionUnreadAfterTurn(session: LiveSession): void {
+		const reportFailure = (error: unknown): void => {
+			this.#options.log?.(`could not persist unread state for ${session.uri}: ${String(error)}`);
+		};
+		try {
+			const update = this.#operations.run(session.sessionId, () => {
+				if (this.#sessions.get(session.uri) !== session || this.#disposals.has(session.sessionId)) return;
+				const state = this.#host.store.get(session.uri) as SessionState | undefined;
+				if (!state || !(state.status & SessionStatus.IsRead) || state.status & SessionStatus.IsArchived) return;
+				this.#options.metadata.sessions.set(session.sessionId, "read", false);
+				this.#host.dispatchServerAction(session.uri, { type: ActionType.SessionIsReadChanged, isRead: false });
+			});
+			if (update instanceof Promise) void update.catch(reportFailure);
+		} catch (error) {
+			reportFailure(error);
 		}
 	}
 

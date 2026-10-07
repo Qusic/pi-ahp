@@ -52,7 +52,7 @@ describe("read state after hydration", () => {
 		const before = (fresh.host.store.get(chat) as ChatState).status;
 		assert.ok((before & SessionStatus.IsRead) !== 0);
 
-		fresh.client.dispatch(chat, {
+		fresh.host.dispatchServerAction(chat, {
 			type: ActionType.ChatTurnStarted,
 			turnId: "t-unread",
 			startedAt: new Date().toISOString(),
