@@ -11,6 +11,7 @@ import {
 	ActionType,
 	type ChatState,
 	CompletionItemKind,
+	MessageKind,
 	SessionLifecycle,
 	type SessionState,
 	SessionStatus,
@@ -28,7 +29,7 @@ import { eventually } from "./support/async.ts";
 import { writeSessionFixture } from "./support/session-files.ts";
 import { persistentSessionStorage } from "./support/session-storage.ts";
 
-it("wires product services through createPiHost", async () => {
+it("wires product services through createPiHost", async (t) => {
 	const workspace = mkdtempSync(join(tmpdir(), "pi-ahp-composition-"));
 	const sessionRoot = mkdtempSync(join(tmpdir(), "pi-ahp-composition-sessions-"));
 	writeFileSync(join(workspace, "notes.md"), "# Notes\n");
@@ -58,6 +59,7 @@ it("wires product services through createPiHost", async () => {
 			initialSubscriptions: [ROOT_CHANNEL],
 		});
 		assert.deepEqual(initialized.completionTriggerCharacters, ["@"]);
+		assert.equal(initialized._meta?.["me.qusic.ahp-webhook"], 1);
 
 		const resource = await client.resourceRead({ uri: pathToFileURL(join(workspace, "notes.md")).toString() });
 		assert.equal(resource.data, "# Notes\n");
@@ -88,10 +90,38 @@ it("wires product services through createPiHost", async () => {
 			completions.items.map((item) => item.insertText),
 			["@notes.md"],
 		);
+
+		const webhook = {
+			url: "https://example.test/push",
+			body: { session: "$session", event: "$event", detail: "$detail" },
+		};
+		assert.equal(
+			await client.request("x-qusic/ahp-webhook/set" as never, { channel: ROOT_CHANNEL, webhook } as never),
+			null,
+		);
+		assert.deepEqual(metadata.clients.get("composition-client", "webhook"), webhook);
+		const post = t.mock.method(globalThis, "fetch", async () => new Response(null, { status: 204 }));
+		built.host.dispatchServerAction(chat, {
+			type: ActionType.ChatTurnStarted,
+			turnId: "webhook-turn",
+			startedAt: new Date().toISOString(),
+			message: { text: "Fix the build", origin: { kind: MessageKind.User } },
+		});
+		built.host.dispatchServerAction(chat, {
+			type: ActionType.ChatTurnComplete,
+			turnId: "webhook-turn",
+			duration: 1000,
+		});
+		await eventually("composed webhook POST to start", () => post.mock.callCount() > 0);
+		assert.equal(post.mock.callCount(), 1);
+		const init = post.mock.calls[0]?.arguments[1];
+		assert.ok(init);
+		assert.deepEqual(JSON.parse(String(init.body)), { session, event: "ready", detail: "Fix the build" });
 	} finally {
 		await client.shutdown();
 		await server.close();
 		built.terminals.shutdown();
+		built.webhooks.dispose();
 		await Promise.all([built.changesets.dispose(), built.watches.dispose()]);
 		rmSync(workspace, { recursive: true, force: true });
 		rmSync(sessionRoot, { recursive: true, force: true });
@@ -108,6 +138,7 @@ it("restores persisted archive in cold and live summaries without archiving the 
 			await client?.shutdown();
 			await server?.close();
 			built?.terminals.shutdown();
+			built?.webhooks.dispose();
 			if (built) await Promise.all([built.changesets.dispose(), built.watches.dispose()]);
 		} finally {
 			rmSync(root, { recursive: true, force: true });

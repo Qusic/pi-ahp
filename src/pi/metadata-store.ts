@@ -1,7 +1,7 @@
 /** Atomic, profile-scoped metadata files with declared namespaces and Zod schemas. */
 
 import { createHash, randomUUID } from "node:crypto";
-import fs from "node:fs";
+import fs, { type Dirent } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { z } from "zod";
 import { webhookRegistrationSchema } from "../protocol/webhook.ts";
@@ -63,6 +63,44 @@ class MetadataNamespace<Schemas extends Record<string, z.ZodType>> {
 		}
 		const parsed = schema.safeParse(stored.value);
 		return parsed.success ? parsed.data : fallback;
+	}
+
+	/** Enumerate valid on-disk records, including those from a previous host process. */
+	list<Key extends keyof Schemas & string>(key: Key): Array<{ id: string; value: z.output<Schemas[Key]> }> {
+		const { schema } = this.#definition(key);
+		const root = join(this.#root, this.#name);
+		let directories: Dirent[];
+		try {
+			directories = fs.readdirSync(root, { withFileTypes: true });
+		} catch (error) {
+			if (isMissing(error)) return [];
+			throw error;
+		}
+		const found: Array<{ id: string; value: z.output<Schemas[Key]> }> = [];
+		for (const directory of directories) {
+			if (!directory.isDirectory()) continue;
+			let record: unknown;
+			try {
+				record = JSON.parse(fs.readFileSync(join(root, directory.name, `${key}.json`), "utf8"));
+			} catch (error) {
+				if (isMissing(error) || error instanceof SyntaxError) continue;
+				throw error;
+			}
+			if (typeof record !== "object" || record === null) continue;
+			const stored = record as Partial<StoredValue>;
+			if (
+				typeof stored.id !== "string" ||
+				!stored.id ||
+				stored.namespace !== this.#name ||
+				stored.key !== key ||
+				!Object.hasOwn(stored, "value") ||
+				createHash("sha256").update(stored.id).digest("hex") !== directory.name
+			)
+				continue;
+			const parsed = schema.safeParse(stored.value);
+			if (parsed.success) found.push({ id: stored.id, value: parsed.data });
+		}
+		return found;
 	}
 
 	set<Key extends keyof Schemas & string>(id: string, key: Key, value: z.input<Schemas[Key]>): void {

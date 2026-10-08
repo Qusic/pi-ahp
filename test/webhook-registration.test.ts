@@ -39,8 +39,9 @@ async function fixture(t: TestContext) {
 	const start = async () => {
 		harness = await startHarness();
 		const metadata = new MetadataStore(join(root, "ahp"));
-		harness.host.serve({ webhooks: new WebhookRegistrationService(metadata) });
-		return { harness, metadata };
+		const webhooks = new WebhookRegistrationService(metadata);
+		harness.host.serve({ webhooks });
+		return { harness, metadata, webhooks };
 	};
 	return {
 		...(await start()),
@@ -89,9 +90,11 @@ it("persists independent registrations across both AHP versions, replacement, cl
 	assert.equal(await setWebhook(first, null), null);
 	assert.equal(await setWebhook(first, null), null, "clearing an absent registration is idempotent");
 	assert.equal(f.metadata.clients.get(firstId, "webhook"), null);
+	assert.deepEqual([...f.webhooks.entries()], [[secondId, { ...webhook, body: null }]]);
 	const restarted = await f.restart();
 	assert.equal(restarted.metadata.clients.get(firstId, "webhook"), null);
 	assert.deepEqual(restarted.metadata.clients.get(secondId, "webhook"), { ...webhook, body: null });
+	assert.deepEqual([...restarted.webhooks.entries()], [[secondId, { ...webhook, body: null }]]);
 });
 
 it("accepts loopback HTTP and rejects other insecure or malformed registrations", async (t) => {
@@ -150,6 +153,7 @@ it("does not acknowledge a failed replacement or clear", async (t) => {
 		rename.mock.restore();
 	}
 	assert.deepEqual(f.metadata.clients.get(id, "webhook"), webhook);
+	assert.deepEqual([...f.webhooks.entries()], [[id, webhook]]);
 
 	const unlink = t.mock.method(fs, "unlinkSync", () => {
 		throw new Error("webhook removal unavailable");
@@ -160,4 +164,5 @@ it("does not acknowledge a failed replacement or clear", async (t) => {
 		unlink.mock.restore();
 	}
 	assert.deepEqual(f.metadata.clients.get(id, "webhook"), webhook);
+	assert.deepEqual([...f.webhooks.entries()], [[id, webhook]]);
 });

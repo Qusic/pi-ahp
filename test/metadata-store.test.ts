@@ -13,7 +13,7 @@ function fixture(t: { after(cleanup: () => void): void }) {
 	t.after(() => rmSync(root, { recursive: true, force: true }));
 	const ahpDir = join(root, "ahp");
 	const store = new MetadataStore(ahpDir);
-	return { root, ahpDir, directory: join(ahpDir, "metadata"), sessions: store.sessions };
+	return { root, ahpDir, directory: join(ahpDir, "metadata"), sessions: store.sessions, clients: store.clients };
 }
 
 it("persists archive and read per session and cleans only the requested ID", (t) => {
@@ -97,6 +97,21 @@ it("uses the declared default for missing, malformed or invalid stored values", 
 	writeFileSync(file, "{broken");
 	sessions.delete("one", "archive");
 	assert.equal(sessions.get("one", "archive"), false);
+});
+
+it("lists valid per-client registrations without trusting misplaced records", (t) => {
+	const { root, directory, clients } = fixture(t);
+	assert.deepEqual(clients.list("webhook"), []);
+	assert.deepEqual(readdirSync(root), [], "listing must not create metadata directories");
+	const webhook = { url: "https://example.test/push", body: { session: "$session" } };
+	clients.set("valid", "webhook", webhook);
+	clients.set("misplaced", "webhook", webhook);
+	const hash = createHash("sha256").update("misplaced").digest("hex");
+	writeFileSync(
+		join(directory, "client", hash, "webhook.json"),
+		JSON.stringify({ namespace: "client", id: "valid", key: "webhook", value: webhook }),
+	);
+	assert.deepEqual(clients.list("webhook"), [{ id: "valid", value: webhook }]);
 });
 
 it("keeps I/O failures visible and never claims a failed write succeeded", (t) => {

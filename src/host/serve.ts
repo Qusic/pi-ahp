@@ -41,6 +41,7 @@ export async function startHost(options: ServeOptions): Promise<RunningServer> {
 		changesets,
 		terminals,
 		watches,
+		webhooks,
 	} = await createPiHost({
 		serverInfo: { name: NAME, version: VERSION },
 		defaultDirectory: pathToFileUri(options.workingDirectory),
@@ -60,6 +61,7 @@ export async function startHost(options: ServeOptions): Promise<RunningServer> {
 		...server,
 		async close() {
 			terminals.shutdown();
+			webhooks.dispose();
 			await Promise.all([server.close(), changesets.dispose(), watches.dispose()]);
 		},
 	};

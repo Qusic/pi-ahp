@@ -27,6 +27,7 @@ import {
 	SessionStatus,
 	type SessionSummary,
 	type StateAction,
+	TurnState,
 	type URI,
 } from "@microsoft/agent-host-protocol";
 import { installDefaultChat, syncChatSummary } from "../channels/chat.ts";
@@ -174,6 +175,15 @@ export interface SessionRegistryOptions {
 export type SessionAvailableListener = (session: LiveSession) => void;
 export type SessionDeletionCommittedListener = (sessionId: string) => void | Promise<void>;
 
+/** An effective complete/error outcome for a newly finished turn. */
+export interface SessionTurnResult {
+	readonly session: URI;
+	readonly outcome: "complete" | "error";
+	readonly message: Message;
+}
+
+export type SessionTurnResultListener = (result: SessionTurnResult) => void;
+
 export class SessionRegistry {
 	readonly #options: SessionRegistryOptions;
 	readonly #host: AhpHost;
@@ -188,6 +198,7 @@ export class SessionRegistry {
 	readonly #projectingSessions = new Set<URI>();
 	readonly #sessionAvailableListeners = new Set<SessionAvailableListener>();
 	readonly #sessionDeletionCommittedListeners = new Set<SessionDeletionCommittedListener>();
+	readonly #turnResultListeners = new Set<SessionTurnResultListener>();
 
 	constructor(options: SessionRegistryOptions) {
 		this.#options = options;
@@ -209,6 +220,7 @@ export class SessionRegistry {
 						action.type === ActionType.ChatError)
 				) {
 					this.#markSessionUnreadAfterTurn(owner);
+					if (action.type !== ActionType.ChatTurnCancelled) this.#notifyTurnResult(owner, action);
 				}
 				return;
 			}
@@ -326,6 +338,12 @@ export class SessionRegistry {
 	onSessionDeletionCommitted(listener: SessionDeletionCommittedListener): () => void {
 		this.#sessionDeletionCommittedListeners.add(listener);
 		return () => this.#sessionDeletionCommittedListeners.delete(listener);
+	}
+
+	/** Observes effective complete/error outcomes, not stale or cancelled actions. */
+	onTurnResult(listener: SessionTurnResultListener): () => void {
+		this.#turnResultListeners.add(listener);
+		return () => this.#turnResultListeners.delete(listener);
 	}
 
 	/** Live summaries that override or supplement pi's on-disk catalogue. */
@@ -909,6 +927,27 @@ export class SessionRegistry {
 		if (this.#sessions.get(session.uri) !== session) return false;
 		this.#publishSummary(session);
 		return true;
+	}
+
+	#notifyTurnResult(
+		session: LiveSession,
+		action: Extract<StateAction, { type: ActionType.ChatTurnComplete | ActionType.ChatError }>,
+	): void {
+		const turn = (this.#host.store.get(session.chatChannel) as ChatState | undefined)?.turns.at(-1);
+		const expected = action.type === ActionType.ChatError ? TurnState.Error : TurnState.Complete;
+		if (turn?.id !== action.turnId || turn.state !== expected) return;
+		const result: SessionTurnResult = {
+			session: session.uri,
+			outcome: action.type === ActionType.ChatError ? "error" : "complete",
+			message: turn.message,
+		};
+		for (const listener of this.#turnResultListeners) {
+			try {
+				listener(result);
+			} catch (error) {
+				this.#options.log?.(`turn result listener failed for ${session.uri}: ${String(error)}`);
+			}
+		}
 	}
 
 	#markSessionUnreadAfterTurn(session: LiveSession): void {

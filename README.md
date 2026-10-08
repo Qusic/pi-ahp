@@ -117,6 +117,26 @@ Currently supported protocol versions: **1.0.0 and 0.9.0**
 | AHP protected-resource authentication | 🔴 | pi manages model-provider credentials itself |
 | OTLP telemetry channels | 🔴 | pi does not provide host telemetry as OTLP |
 
+### Webhooks
+
+The non-standard root request `x-qusic/ahp-webhook/set` is advertised by `initialize.result._meta["me.qusic.ahp-webhook"] = 1`. It persists one client-provided URL and JSON body per AHP `clientId`; send `webhook: null` to clear it. Example `params`:
+
+```json
+{
+  "channel": "ahp-root://",
+  "webhook": {
+    "url": "https://example.com/webhook",
+    "body": {
+      "session": "$session",
+      "event": "$event",
+      "detail": "$detail"
+    }
+  }
+}
+```
+
+On turn completion (`ready`) or error (`error`), the host POSTs the body to that URL, replacing only whole JSON values `$session` (full URI), `$event`, and `$detail` (the turn's user message, or empty). The body may be any JSON value. Registrations survive disconnects; delivery is best-effort without retries. HTTPS is required except for HTTP to the Host's `localhost`, `127.0.0.1`, or `[::1]`.
+
 ## License
 
 [MIT](LICENSE)

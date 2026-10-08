@@ -26,6 +26,8 @@ import { SessionHydrator } from "../pi/session-hydrator.ts";
 import { type BackendFactory, type SessionFileDeletionResult, SessionRegistry } from "../pi/session-registry.ts";
 import type { PiSessionStorage } from "../pi/session-storage.ts";
 import { TerminalService } from "./terminal-service.ts";
+import { WebhookNotifications } from "./webhook-notifications.ts";
+import { WebhookRegistrationService } from "./webhook-registration.ts";
 
 export interface PiHostOptions extends HostOptions {
 	/** Working directory for sessions created without one. Defaults to `process.cwd()`. */
@@ -63,6 +65,7 @@ export interface PiHost {
 	readonly changesets: ChangesetService;
 	readonly watches: ResourceWatchService;
 	readonly terminals: { shutdown(): void };
+	readonly webhooks: { dispose(): void };
 }
 
 /**
@@ -178,8 +181,11 @@ export async function createPiHost(options: PiHostOptions): Promise<PiHost> {
 		pathPolicy: resourcePaths,
 		readVirtual: (params) => changesets.readResource(params),
 	});
+	const registrations = new WebhookRegistrationService(options.metadata);
+	const webhooks = new WebhookNotifications(sessions, registrations, options.log);
 
 	host.serve({
+		webhooks: registrations,
 		sessionMetadataRouter: sessions.routeMetadataAction,
 		catalogue: {
 			list: (limit, cursor) => catalogue.list(limit, cursor, () => sessions.catalogueOverrides()),
@@ -227,5 +233,5 @@ export async function createPiHost(options: PiHostOptions): Promise<PiHost> {
 		},
 	});
 
-	return { host, sessions, catalogue, changesets, watches, terminals };
+	return { host, sessions, catalogue, changesets, watches, terminals, webhooks };
 }
