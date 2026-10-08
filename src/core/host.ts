@@ -61,6 +61,7 @@ import {
 	successResponse,
 } from "../protocol/jsonrpc.ts";
 import { negotiateProtocolVersion } from "../protocol/version.ts";
+import { WEBHOOK_CAPABILITY, WEBHOOK_CAPABILITY_VERSION, WEBHOOK_SET_METHOD } from "../protocol/webhook.ts";
 import { actionBelongsToChannel, type ChannelKind, channelKind, ROOT_CHANNEL } from "./channels.ts";
 import { ClientConnection, type Transport } from "./connection.ts";
 import { Sequencer } from "./sequencer.ts";
@@ -161,6 +162,8 @@ export interface HostCapabilities {
 	readonly sessionConfig?: SessionConfigHandler;
 	/** `fetchTurns`. */
 	readonly turnPaging?: TurnPagingHandler;
+	/** Persists the optional root-channel webhook registration extension. */
+	readonly webhooks?: WebhookRegistrationHandler;
 	/** Loads a channel that exists durably but is not yet in memory. */
 	readonly hydrator?: ChannelHydrator;
 	/** Handles selected session metadata actions without materializing a cold session. */
@@ -206,6 +209,10 @@ export interface SessionLifecycleHandler {
 export interface TerminalHandler {
 	create(params: CreateTerminalParams, clientId: string): void | Promise<void>;
 	dispose(channel: URI): void | Promise<void>;
+}
+
+export interface WebhookRegistrationHandler {
+	set(clientId: string, webhook: unknown): void | Promise<void>;
 }
 
 /** Post-commit hook for actions a client dispatched. */
@@ -426,6 +433,19 @@ export class AhpHost {
 			// `initialize` or holds any subscription.
 			case "ping":
 				return null;
+			case WEBHOOK_SET_METHOD: {
+				const handler = this.#capabilities.webhooks;
+				if (!handler) throw ProtocolError.methodNotFound(request.method);
+				const params = request.params;
+				if (!isRecord(params) || params.channel !== ROOT_CHANNEL) {
+					throw ProtocolError.invalidParams(`${request.method} requires channel ${ROOT_CHANNEL}`);
+				}
+				if (!Object.hasOwn(params, "webhook")) {
+					throw ProtocolError.invalidParams(`${request.method} requires a webhook value or null`);
+				}
+				await handler.set(connection.clientId, params.webhook);
+				return null;
+			}
 			case "initialize":
 				return this.#initialize(connection, request.params as InitializeParams, protocolVersion);
 			case "reconnect":
@@ -617,6 +637,7 @@ export class AhpHost {
 			protocolVersion,
 			serverSeq: this.#sequencer.current,
 			...(this.#options.serverInfo ? { serverInfo: this.#options.serverInfo } : {}),
+			...(this.#capabilities.webhooks ? { _meta: { [WEBHOOK_CAPABILITY]: WEBHOOK_CAPABILITY_VERSION } } : {}),
 			...(this.#options.defaultDirectory ? { defaultDirectory: this.#options.defaultDirectory } : {}),
 			...(this.#options.completionTriggerCharacters
 				? { completionTriggerCharacters: [...this.#options.completionTriggerCharacters] }

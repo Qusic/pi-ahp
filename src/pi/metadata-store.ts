@@ -4,6 +4,7 @@ import { createHash, randomUUID } from "node:crypto";
 import fs from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { z } from "zod";
+import { webhookRegistrationSchema } from "../protocol/webhook.ts";
 
 /** Infer each schema first so its default cannot widen the accepted type. */
 type Definitions<Schemas extends Record<string, z.ZodType>> = {
@@ -120,6 +121,7 @@ class MetadataNamespace<Schemas extends Record<string, z.ZodType>> {
 /** Host-owned metadata. The supplied AHP directory stays isolated from Pi's JSONL sessions. */
 export class MetadataStore {
 	readonly sessions;
+	readonly clients;
 
 	constructor(ahpDir: string) {
 		if (!ahpDir) throw new Error("Metadata needs an explicit AHP directory");
@@ -127,6 +129,9 @@ export class MetadataStore {
 		this.sessions = new MetadataNamespace(root, "session", {
 			archive: { schema: z.boolean(), default: false },
 			read: { schema: z.boolean(), default: false },
+		});
+		this.clients = new MetadataNamespace(root, "client", {
+			webhook: { schema: webhookRegistrationSchema, default: null },
 		});
 	}
 }
