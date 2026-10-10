@@ -169,7 +169,12 @@ export class MetadataStore {
 			read: { schema: z.boolean(), default: false },
 		});
 		this.clients = new MetadataNamespace(root, "client", {
-			webhook: { schema: webhookRegistrationSchema, default: null },
+			webhook: {
+				schema: z
+					.strictObject({ registration: webhookRegistrationSchema.unwrap(), setAt: z.number().int().nonnegative() })
+					.nullable(),
+				default: null,
+			},
 		});
 	}
 }

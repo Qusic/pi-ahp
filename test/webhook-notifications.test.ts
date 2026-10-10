@@ -45,6 +45,7 @@ it("delivers each effective ready/error outcome to an offline client, but not ca
 		detail: 'Fix "quotes"\nand the next line',
 	});
 	complete("first");
+	await f.client.ping();
 	assert.equal(post.mock.callCount(), 1, "a repeated terminal action is not another outcome");
 
 	start("cancelled", "do not notify");
@@ -53,6 +54,7 @@ it("delivers each effective ready/error outcome to an offline client, but not ca
 		turnId: "cancelled",
 		duration: 1000,
 	});
+	await f.client.ping();
 	assert.equal(post.mock.callCount(), 1);
 
 	start("failed", "Newest user request");
@@ -69,6 +71,7 @@ it("delivers each effective ready/error outcome to an offline client, but not ca
 	registrations.set("offline-client", null);
 	start("after-clear", "not delivered");
 	complete("after-clear");
+	await f.client.ping();
 	assert.equal(post.mock.callCount(), 2);
 });
 
@@ -78,7 +81,10 @@ it("loads and fans out persisted registrations without their clients reconnectin
 		["first-client", "https://example.test/first"],
 		["second-client", "https://example.test/second"],
 	] as const) {
-		f.metadata.clients.set(id, "webhook", { url, body: { event: "$event" } });
+		f.metadata.clients.set(id, "webhook", {
+			registration: { url, body: { event: "$event" } },
+			setAt: Date.now(),
+		});
 	}
 	const registrations = new WebhookRegistrationService(f.metadata);
 	const notifications = new WebhookNotifications(f.sessions, registrations);
@@ -100,6 +106,39 @@ it("loads and fans out persisted registrations without their clients reconnectin
 		"https://example.test/first",
 		"https://example.test/second",
 	]);
+});
+
+it("stops posting at lease expiry and resumes after another set", async (t) => {
+	const f = await archiveSessionFixture(t);
+	const registrations = new WebhookRegistrationService(f.metadata);
+	const notifications = new WebhookNotifications(f.sessions, registrations);
+	t.after(() => notifications.dispose());
+	const webhook = { url: "https://example.test/push", body: { event: "$event" } };
+	let now = Date.now();
+	const clock = t.mock.method(Date, "now", () => now);
+	const post = t.mock.method(globalThis, "fetch", async () => new Response(null, { status: 204 }));
+	const finish = (turnId: string) => {
+		f.initialHost.dispatchServerAction(f.chat, {
+			type: ActionType.ChatTurnStarted,
+			turnId,
+			startedAt: new Date().toISOString(),
+			message: { text: "hello", origin: { kind: MessageKind.User } },
+		});
+		f.initialHost.dispatchServerAction(f.chat, { type: ActionType.ChatTurnComplete, turnId, duration: 1000 });
+	};
+	try {
+		registrations.set("offline-client", webhook);
+		now += 24 * 60 * 60 * 1000;
+		finish("expired");
+		await f.client.ping();
+		assert.equal(post.mock.callCount(), 0);
+		registrations.set("offline-client", webhook);
+		finish("renewed");
+		await eventually("renewed webhook to start", () => post.mock.callCount() > 0);
+		assert.equal(post.mock.callCount(), 1);
+	} finally {
+		clock.mock.restore();
+	}
 });
 
 it("does not wait for a webhook or let delivery failure undo a completed turn", async (t) => {

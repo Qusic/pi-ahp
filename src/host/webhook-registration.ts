@@ -5,9 +5,13 @@ import type { MetadataStore } from "../pi/metadata-store.ts";
 import { ProtocolError } from "../protocol/errors.ts";
 import { type WebhookRegistration, webhookRegistrationSchema } from "../protocol/webhook.ts";
 
+const LEASE_MS = 24 * 60 * 60 * 1000;
+
+type StoredWebhook = { readonly registration: WebhookRegistration; readonly setAt: number };
+
 export class WebhookRegistrationService implements WebhookRegistrationHandler {
 	readonly #metadata: MetadataStore;
-	readonly #registrations = new Map<string, WebhookRegistration>();
+	readonly #registrations = new Map<string, StoredWebhook>();
 
 	constructor(metadata: MetadataStore) {
 		this.#metadata = metadata;
@@ -16,8 +20,11 @@ export class WebhookRegistrationService implements WebhookRegistrationHandler {
 		}
 	}
 
-	entries(): IterableIterator<[string, WebhookRegistration]> {
-		return this.#registrations.entries();
+	*activeEntries(): IterableIterator<[string, WebhookRegistration]> {
+		const cutoff = Date.now() - LEASE_MS;
+		for (const [clientId, value] of this.#registrations) {
+			if (value.setAt > cutoff) yield [clientId, value.registration];
+		}
 	}
 
 	set(clientId: string, webhook: unknown): void {
@@ -27,8 +34,9 @@ export class WebhookRegistrationService implements WebhookRegistrationHandler {
 			this.#metadata.clients.delete(clientId, "webhook");
 			this.#registrations.delete(clientId);
 		} else {
-			this.#metadata.clients.set(clientId, "webhook", parsed.data);
-			this.#registrations.set(clientId, parsed.data);
+			const value = { registration: parsed.data, setAt: Date.now() };
+			this.#metadata.clients.set(clientId, "webhook", value);
+			this.#registrations.set(clientId, value);
 		}
 	}
 }

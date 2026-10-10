@@ -99,7 +99,7 @@ it("wires product services through createPiHost", async (t) => {
 			await client.request("x-qusic/ahp-webhook/set" as never, { channel: ROOT_CHANNEL, webhook } as never),
 			null,
 		);
-		assert.deepEqual(metadata.clients.get("composition-client", "webhook"), webhook);
+		assert.deepEqual(metadata.clients.get("composition-client", "webhook")?.registration, webhook);
 		const post = t.mock.method(globalThis, "fetch", async () => new Response(null, { status: 204 }));
 		built.host.dispatchServerAction(chat, {
 			type: ActionType.ChatTurnStarted,

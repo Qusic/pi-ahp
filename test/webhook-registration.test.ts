@@ -26,6 +26,10 @@ function setWebhook(client: AhpClient, value: unknown, channel = ROOT_CHANNEL): 
 	return client.request(METHOD as never, { channel, webhook: value } as never) as Promise<null>;
 }
 
+function registrationOf(metadata: MetadataStore, clientId: string): WebhookRegistration | null {
+	return metadata.clients.get(clientId, "webhook")?.registration ?? null;
+}
+
 async function fixture(t: TestContext) {
 	const root = mkdtempSync(join(tmpdir(), "pi-ahp-webhook-"));
 	let harness: Harness | undefined;
@@ -81,20 +85,47 @@ it("persists independent registrations across both AHP versions, replacement, cl
 	for (const body of [["$session", { type: "$event" }], null]) {
 		const value = { ...webhook, body };
 		assert.equal(await setWebhook(second, value), null);
-		assert.deepEqual(f.metadata.clients.get(secondId, "webhook"), value);
+		assert.deepEqual(registrationOf(f.metadata, secondId), value);
 	}
 	const replacement = { ...webhook, body: { device: "rotated", detail: "$detail" } };
 	assert.equal(await setWebhook(first, replacement), null);
-	assert.deepEqual(f.metadata.clients.get(firstId, "webhook"), replacement);
+	assert.deepEqual(registrationOf(f.metadata, firstId), replacement);
 
 	assert.equal(await setWebhook(first, null), null);
 	assert.equal(await setWebhook(first, null), null, "clearing an absent registration is idempotent");
 	assert.equal(f.metadata.clients.get(firstId, "webhook"), null);
-	assert.deepEqual([...f.webhooks.entries()], [[secondId, { ...webhook, body: null }]]);
+	assert.deepEqual([...f.webhooks.activeEntries()], [[secondId, { ...webhook, body: null }]]);
+	const saved = f.metadata.clients.get(secondId, "webhook");
 	const restarted = await f.restart();
 	assert.equal(restarted.metadata.clients.get(firstId, "webhook"), null);
-	assert.deepEqual(restarted.metadata.clients.get(secondId, "webhook"), { ...webhook, body: null });
-	assert.deepEqual([...restarted.webhooks.entries()], [[secondId, { ...webhook, body: null }]]);
+	assert.deepEqual(restarted.metadata.clients.get(secondId, "webhook"), saved);
+	assert.deepEqual([...restarted.webhooks.activeEntries()], [[secondId, { ...webhook, body: null }]]);
+});
+
+it("expires after 24 hours and renews when the client reconnects and sets the same webhook", async (t) => {
+	const f = await fixture(t);
+	const client = await f.harness.connect();
+	const id = nextClientId();
+	await client.initialize({ clientId: id, protocolVersions: SUPPORTED_PROTOCOL_VERSIONS });
+	let now = 1_700_000_000_000;
+	const clock = t.mock.method(Date, "now", () => now);
+	try {
+		await setWebhook(client, webhook);
+		assert.equal(f.metadata.clients.get(id, "webhook")?.setAt, now);
+		now += 24 * 60 * 60 * 1000 - 1;
+		assert.deepEqual([...f.webhooks.activeEntries()], [[id, webhook]]);
+		now++;
+		assert.deepEqual([...f.webhooks.activeEntries()], []);
+		const restarted = await f.restart();
+		assert.deepEqual([...restarted.webhooks.activeEntries()], []);
+		const reconnected = await restarted.harness.connect();
+		await reconnected.initialize({ clientId: id, protocolVersions: SUPPORTED_PROTOCOL_VERSIONS });
+		await setWebhook(reconnected, webhook);
+		assert.equal(restarted.metadata.clients.get(id, "webhook")?.setAt, now);
+		assert.deepEqual([...restarted.webhooks.activeEntries()], [[id, webhook]]);
+	} finally {
+		clock.mock.restore();
+	}
 });
 
 it("accepts loopback HTTP and rejects other insecure or malformed registrations", async (t) => {
@@ -109,15 +140,15 @@ it("accepts loopback HTTP and rejects other insecure or malformed registrations"
 	);
 	for (const url of ["http://localhost:8080/push", "http://127.0.0.1:8080/push", "http://[::1]:8080/push"]) {
 		assert.equal(await setWebhook(client, { ...webhook, url }), null);
-		assert.equal(f.metadata.clients.get(id, "webhook")?.url, url);
+		assert.equal(registrationOf(f.metadata, id)?.url, url);
 	}
 	const urlPrefix = "https://example.test/";
 	const maxUrl = `${urlPrefix}${"x".repeat(2_048 - urlPrefix.length)}`;
 	assert.equal(await setWebhook(client, { ...webhook, url: maxUrl }), null);
-	assert.equal(f.metadata.clients.get(id, "webhook")?.url, maxUrl);
+	assert.equal(registrationOf(f.metadata, id)?.url, maxUrl);
 	const maxBody = "x".repeat(16_384 - 2); // JSON quotes make the serialized root string exactly 16 KiB.
 	assert.equal(await setWebhook(client, { ...webhook, body: maxBody }), null);
-	assert.equal(f.metadata.clients.get(id, "webhook")?.body, maxBody);
+	assert.equal(registrationOf(f.metadata, id)?.body, maxBody);
 	await setWebhook(client, null);
 	for (const invalid of [
 		{ ...webhook, url: "http://localhost.evil.test/push" },
@@ -140,6 +171,7 @@ it("does not acknowledge a failed replacement or clear", async (t) => {
 	const id = nextClientId();
 	await client.initialize({ clientId: id, protocolVersions: SUPPORTED_PROTOCOL_VERSIONS });
 	await setWebhook(client, webhook);
+	const saved = f.metadata.clients.get(id, "webhook");
 
 	const rename = t.mock.method(fs, "renameSync", () => {
 		throw new Error("webhook storage unavailable");
@@ -152,8 +184,8 @@ it("does not acknowledge a failed replacement or clear", async (t) => {
 	} finally {
 		rename.mock.restore();
 	}
-	assert.deepEqual(f.metadata.clients.get(id, "webhook"), webhook);
-	assert.deepEqual([...f.webhooks.entries()], [[id, webhook]]);
+	assert.deepEqual(f.metadata.clients.get(id, "webhook"), saved);
+	assert.deepEqual([...f.webhooks.activeEntries()], [[id, webhook]]);
 
 	const unlink = t.mock.method(fs, "unlinkSync", () => {
 		throw new Error("webhook removal unavailable");
@@ -163,6 +195,6 @@ it("does not acknowledge a failed replacement or clear", async (t) => {
 	} finally {
 		unlink.mock.restore();
 	}
-	assert.deepEqual(f.metadata.clients.get(id, "webhook"), webhook);
-	assert.deepEqual([...f.webhooks.entries()], [[id, webhook]]);
+	assert.deepEqual(f.metadata.clients.get(id, "webhook"), saved);
+	assert.deepEqual([...f.webhooks.activeEntries()], [[id, webhook]]);
 });

@@ -12,7 +12,7 @@ export class WebhookNotifications {
 		this.#unsubscribe = sessions.onTurnResult(({ session, outcome, message }) => {
 			const event = outcome === "complete" ? "ready" : "error";
 			const detail = message.origin.kind === MessageKind.User ? message.text : "";
-			for (const [clientId, registration] of registrations.entries()) {
+			for (const [clientId, registration] of registrations.activeEntries()) {
 				void sendWebhook(registration, { session, event, detail }).catch((error) => {
 					log?.(`webhook ${event} for ${session} to client ${clientId} failed: ${String(error)}`);
 				});

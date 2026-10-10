@@ -103,7 +103,7 @@ it("lists valid per-client registrations without trusting misplaced records", (t
 	const { root, directory, clients } = fixture(t);
 	assert.deepEqual(clients.list("webhook"), []);
 	assert.deepEqual(readdirSync(root), [], "listing must not create metadata directories");
-	const webhook = { url: "https://example.test/push", body: { session: "$session" } };
+	const webhook = { registration: { url: "https://example.test/push", body: { session: "$session" } }, setAt: 1000 };
 	clients.set("valid", "webhook", webhook);
 	clients.set("misplaced", "webhook", webhook);
 	const hash = createHash("sha256").update("misplaced").digest("hex");
