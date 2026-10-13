@@ -104,7 +104,7 @@ function ahpBehavior(events: readonly AgentSessionEvent[], prompt: string): unkn
 			userTurnStarted(turnId, index === 0 ? prompt : `follow-up-${index}`, "1970-01-01T00:00:00.000Z"),
 		];
 		for (const event of run) actions.push(...mapper.handle(event));
-		assert.equal(mapper.finished, true, `run ${index} never finished`);
+		actions.push(...mapper.finish());
 		for (const action of actions) {
 			assertValid("actions", "StateAction", action, `non-conforming ${action.type}`);
 		}

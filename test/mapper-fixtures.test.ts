@@ -41,7 +41,10 @@ function replay(fixture: RecordedFixture): Replayed {
 	const actions: StateAction[] = [userTurnStarted(TURN_ID, fixture.prompt, "1970-01-01T00:00:00.000Z")];
 	for (const event of fixture.events) {
 		actions.push(...mapper.handle(event));
+		// Only the first prompt is mapped here; pi-replay checks later ones.
+		if (event.type === "agent_settled") break;
 	}
+	actions.push(...mapper.finish());
 
 	let state = initialChatState(CHAT_URI, "Replay");
 	for (const action of actions) {

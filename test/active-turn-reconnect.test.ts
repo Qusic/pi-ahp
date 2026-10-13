@@ -32,6 +32,7 @@ class ControlledBackend implements PiBackend {
 	readonly steers: string[] = [];
 	aborts = 0;
 	readonly #listeners = new Set<(event: AgentSessionEvent) => void>();
+	#releasePrompt: (() => void) | undefined;
 
 	subscribe(listener: (event: AgentSessionEvent) => void): () => void {
 		this.#listeners.add(listener);
@@ -40,6 +41,9 @@ class ControlledBackend implements PiBackend {
 
 	async prompt(text: string): Promise<void> {
 		this.prompts.push(text);
+		await new Promise<void>((resolve) => {
+			this.#releasePrompt = resolve;
+		});
 	}
 
 	async steer(text: string): Promise<void> {
@@ -48,6 +52,7 @@ class ControlledBackend implements PiBackend {
 
 	async abort(): Promise<void> {
 		this.aborts += 1;
+		this.#settlePrompt();
 	}
 
 	startResponse(text: string): void {
@@ -61,9 +66,16 @@ class ControlledBackend implements PiBackend {
 	}
 
 	finishResponse(): void {
-		this.#emit({ type: "message_end", message: { role: "assistant" } });
+		this.#emit({ type: "message_end", message: { role: "assistant", stopReason: "stop" } });
 		this.#emit({ type: "agent_end", messages: [], willRetry: false });
 		this.#emit({ type: "agent_settled" });
+		this.#settlePrompt();
+	}
+
+	#settlePrompt(): void {
+		const release = this.#releasePrompt;
+		this.#releasePrompt = undefined;
+		release?.();
 	}
 
 	#emit(event: object): void {

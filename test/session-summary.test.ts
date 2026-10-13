@@ -129,6 +129,7 @@ describe("session chat aggregation", () => {
 
 async function fixture(t: TestContext, createBackend?: BackendFactory) {
 	const root = mkdtempSync(join(tmpdir(), "pi-ahp-summary-"));
+	const prompt = Promise.withResolvers<void>();
 	const harness = await startHarness({
 		sessions: true,
 		sessionRoot: join(root, "sessions"),
@@ -137,12 +138,13 @@ async function fixture(t: TestContext, createBackend?: BackendFactory) {
 			createBackend ??
 			(() => ({
 				subscribe: () => () => {},
-				prompt: async () => {},
+				prompt: () => prompt.promise,
 				steer: async () => {},
-				abort: async () => {},
+				abort: async () => prompt.resolve(),
 			})),
 	});
 	t.after(async () => {
+		prompt.resolve();
 		await harness.dispose();
 		rmSync(root, { recursive: true, force: true });
 	});

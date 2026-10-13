@@ -9,12 +9,14 @@ import { describe, it } from "node:test";
 import type { AgentSessionEvent } from "@earendil-works/pi-coding-agent";
 import {
 	ActionType,
+	type ChatState,
 	JsonRpcErrorCodes,
 	MessageKind,
 	PendingMessageKind,
 	SessionLifecycle,
 	type SessionState,
 	SUPPORTED_PROTOCOL_VERSIONS,
+	TurnState,
 } from "@microsoft/agent-host-protocol";
 import type { AhpClient, Subscription } from "@microsoft/agent-host-protocol/client";
 import { chatUri, ROOT_CHANNEL, sessionUri } from "../src/core/channels.ts";
@@ -202,8 +204,19 @@ describe("session disposal", () => {
 				return { ok: true };
 			},
 		});
+		let unsubscribe: (() => void) | undefined;
 		try {
 			const { uri, chat } = await createReadySession(fixture);
+			const terminals: string[] = [];
+			unsubscribe = fixture.harness.host.onActionCommitted((channel, action) => {
+				if (
+					channel === chat &&
+					(action.type === ActionType.ChatTurnComplete ||
+						action.type === ActionType.ChatTurnCancelled ||
+						action.type === ActionType.ChatError)
+				)
+					terminals.push(action.type);
+			});
 			await fixture.client.subscribe(chat);
 			fixture.client.dispatch(chat, {
 				type: ActionType.ChatTurnStarted,
@@ -217,8 +230,10 @@ describe("session disposal", () => {
 
 			assert.equal(deleteSawQuiescence, true);
 			assert.equal(disposed, true);
+			assert.deepEqual(terminals, [ActionType.ChatTurnCancelled]);
 			assert.equal(fixture.harness.host.store.has(uri), false);
 		} finally {
+			unsubscribe?.();
 			releasePrompt?.();
 			await fixture.close();
 		}
@@ -227,6 +242,9 @@ describe("session disposal", () => {
 	it("resumes queued work when backend quiescence fails", async () => {
 		const listeners = new Set<(event: AgentSessionEvent) => void>();
 		const prompts: string[] = [];
+		const abortFailure = Promise.withResolvers<void>();
+		let releasePrompt: (() => void) | undefined;
+		let promptSettled = false;
 		let deletionAttempts = 0;
 		const backend: PiBackend = {
 			subscribe: (listener) => {
@@ -235,10 +253,18 @@ describe("session disposal", () => {
 			},
 			prompt: async (text) => {
 				prompts.push(text);
+				if (text === "active") {
+					await new Promise<void>((resolve) => {
+						releasePrompt = resolve;
+					});
+					promptSettled = true;
+				}
 			},
 			steer: async () => undefined,
 			abort: async () => {
 				for (const listener of listeners) listener({ type: "agent_settled" } as AgentSessionEvent);
+				releasePrompt?.();
+				await abortFailure.promise;
 				throw new Error("abort failed");
 			},
 		};
@@ -267,16 +293,76 @@ describe("session disposal", () => {
 			});
 			await fixture.client.ping();
 
-			const error = await expectRpcError(
-				fixture.client.request("disposeSession", { channel: uri }),
-				JsonRpcErrorCodes.InternalError,
-			);
+			const disposing = fixture.client.request("disposeSession", { channel: uri });
+			await eventually("the active prompt to settle during quiescence", () => promptSettled);
+			await fixture.client.ping();
+			assert.equal((fixture.harness.host.store.get(chat) as ChatState).activeTurn?.id, "active");
+			assert.deepEqual(prompts, ["active"], "queued work started before disposal rolled back");
+			abortFailure.resolve();
+			const error = await expectRpcError(disposing, JsonRpcErrorCodes.InternalError);
 
 			assert.match(error.message, /abort failed/u);
 			await eventually("queued work to resume", () => prompts.includes("after failure"));
+			assert.equal((fixture.harness.host.store.get(chat) as ChatState).turns[0]?.state, TurnState.Complete);
 			assert.equal(deletionAttempts, 0);
 			assert.equal(fixture.harness.sessions?.has(uri), true);
 		} finally {
+			abortFailure.resolve();
+			releasePrompt?.();
+			await fixture.close();
+		}
+	});
+
+	it("resumes accepted preflight when quiescence fails", async () => {
+		const selection = Promise.withResolvers<void>();
+		const abort = Promise.withResolvers<void>();
+		let selecting = false;
+		let aborting = false;
+		let prompts = 0;
+		const backend: PiBackend = {
+			subscribe: () => () => undefined,
+			selectModel: async () => {
+				selecting = true;
+				await selection.promise;
+			},
+			prompt: async () => {
+				prompts += 1;
+			},
+			steer: async () => undefined,
+			abort: async () => {
+				aborting = true;
+				await abort.promise;
+				throw new Error("abort failed");
+			},
+		};
+		const fixture = await startDisposalFixture({ createBackend: () => backend });
+		try {
+			const { uri, chat } = await createReadySession(fixture);
+			await fixture.client.subscribe(chat);
+			fixture.client.dispatch(chat, {
+				type: ActionType.ChatTurnStarted,
+				turnId: "preflight",
+				startedAt: new Date().toISOString(),
+				message: { text: "start after rollback", origin: { kind: MessageKind.User }, model: { id: "pi/model" } },
+			});
+			await eventually("selection to start", () => selecting);
+
+			const disposing = fixture.client.request("disposeSession", { channel: uri });
+			await eventually("quiescence to start", () => aborting);
+			selection.resolve();
+			await fixture.client.ping();
+			assert.equal(prompts, 0, "the prompt ran while disposal was undecided");
+			abort.resolve();
+			await expectRpcError(disposing, JsonRpcErrorCodes.InternalError);
+			await eventually("the accepted prompt to resume", () => prompts === 1);
+			await eventually(
+				"the resumed turn to finish",
+				() => (fixture.harness.host.store.get(chat) as ChatState).turns.length === 1,
+			);
+			assert.equal((fixture.harness.host.store.get(chat) as ChatState).turns[0]?.state, TurnState.Complete);
+		} finally {
+			selection.resolve();
+			abort.resolve();
 			await fixture.close();
 		}
 	});

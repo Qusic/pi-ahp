@@ -1,21 +1,20 @@
 /**
  * Translates pi's agent event stream into chat-channel actions.
  *
- * This is the load-bearing piece of the whole host, and it is deliberately a
- * **pure function of the event stream**: feed it a recorded `AgentSessionEvent[]`
- * and it yields the `StateAction[]` a client would have seen. No sockets, no
- * model, no clock. That is what makes the turn semantics testable.
+ * This load-bearing mapper needs no socket or model: feed it recorded
+ * `AgentSessionEvent[]` and call `finish()` when the owning prompt settles.
+ * It produces the `StateAction[]` a client would have seen.
  *
  * Three structural mismatches it has to bridge:
  *
  * 1. **Turn granularity.** pi nests three levels — an agent *run*
  *    (`agent_start`…`agent_end`), a pi *turn* (one assistant message), and
  *    content blocks. AHP has two — a turn (one user message through to
- *    completion) and its `responseParts`. So one AHP turn spans everything from
- *    `prompt()` to `agent_settled`, which may contain several agent runs
- *    (auto-retry, post-compaction retry) and several assistant messages. Mapping
- *    `agent_end` to `chat/turnComplete` would close the turn early, after which
- *    every later action is silently dropped by the reducer.
+ *    completion) and its `responseParts`. Ordinarily one AHP turn spans from
+ *    `prompt()` until its Promise settles, with several agent runs (auto-retry,
+ *    post-compaction retry) and assistant messages; steering can split it into
+ *    several AHP turns. Closing on `agent_end` would be premature: later
+ *    actions would be silently dropped by the reducer.
  *
  * 2. **Part identity.** pi's `contentIndex` restarts at 0 for every assistant
  *    message and the stream carries no message id, so `contentIndex` alone
@@ -50,8 +49,11 @@ import {
 } from "./activity.ts";
 import { userMessageFromPiContent } from "./user-message.ts";
 
-/** How a turn ended, decided from the last assistant message's stop reason. */
+/** Provisional turn result, overridden if the owning prompt rejects or is cancelled. */
 type TurnOutcome = "complete" | "cancelled" | "error";
+type TurnResult =
+	| { readonly outcome: "complete" | "cancelled" }
+	| { readonly outcome: "error"; readonly message: string | undefined };
 
 interface OpenPart {
 	readonly partId: string;
@@ -183,8 +185,9 @@ export class TurnMapper {
 	/** Tool calls that reached `ready` and have not completed. */
 	/** Live tool calls, against how each should be described once it ends. */
 	readonly #liveToolCalls = new Map<string, string>();
-	#outcome: TurnOutcome = "complete";
-	#errorMessage: string | undefined;
+	#result: TurnResult = { outcome: "complete" };
+	/** Streaming error for the current assistant message, not an earlier retry. */
+	#attemptErrorMessage: string | undefined;
 	#finished = false;
 
 	readonly #options: TurnMapperOptions;
@@ -200,10 +203,6 @@ export class TurnMapper {
 
 	get turnId(): string {
 		return this.#turnId;
-	}
-
-	get finished(): boolean {
-		return this.#finished;
 	}
 
 	/** Translates one pi event into zero or more chat actions. */
@@ -247,16 +246,13 @@ export class TurnMapper {
 					// state and should not depend on that bookkeeping.
 					...this.#setActivity(THINKING_ACTIVITY),
 				];
-			case "agent_settled":
-				return this.finish();
 			case "agent_start":
 				// A run beginning, or resuming after a retry.
 				return this.#setActivity(THINKING_ACTIVITY);
 			default:
-				// agent_start / agent_end / turn_start / turn_end carry no
-				// protocol-visible state of their own: a retry re-enters
-				// agent_start inside the same AHP turn, and pi's turn boundaries
-				// are just groupings of response parts.
+				// Pi can still fail after agent_settled; the driver closes the turn
+				// only when prompt() resolves or rejects. Other run boundaries and
+				// retry notifications do not end an AHP turn either.
 				return [];
 		}
 	}
@@ -275,6 +271,7 @@ export class TurnMapper {
 		this.#messageOrdinal += 1;
 		this.#parts = new Map();
 		this.#toolCallsByIndex = new Map();
+		this.#attemptErrorMessage = undefined;
 		return [];
 	}
 
@@ -300,19 +297,19 @@ export class TurnMapper {
 			return [];
 		}
 
-		// A run cancelled or failed *before* any content streamed produces no
-		// `error` delta at all — the outcome shows up only as the finished
-		// message's `stopReason`. Observed live: aborting during the first
-		// request yields a single assistant message with `stopReason: 'aborted'`
-		// and nothing else. Reading it here is what keeps such a turn from being
-		// reported as a normal completion.
+		// The completed assistant message is authoritative for this attempt.
+		// Failed retries stay visible as parts, but a later successful attempt
+		// replaces their provisional turn outcome. Pi's real message_end always
+		// has a terminal stopReason; missing/pending reasons leave the delta
+		// fallback intact.
 		if (event.message.stopReason === "aborted") {
-			this.#outcome = "cancelled";
-			this.#errorMessage ??= event.message.errorMessage;
+			this.#result = { outcome: "cancelled" };
 		} else if (event.message.stopReason === "error") {
-			this.#outcome = "error";
-			this.#errorMessage ??= event.message.errorMessage;
+			this.#result = { outcome: "error", message: event.message.errorMessage ?? this.#attemptErrorMessage };
+		} else if (event.message.stopReason && event.message.stopReason !== "pending") {
+			this.#result = { outcome: "complete" };
 		}
+		this.#attemptErrorMessage = undefined;
 
 		const usage = toUsageInfo(event.message.usage, event.message.model);
 		return usage ? [{ type: ActionType.ChatUsage, turnId: this.turnId, usage }] : [];
@@ -342,7 +339,7 @@ export class TurnMapper {
 		}
 
 		const injected = userMessageFromPiContent(message.content);
-		const completed = this.#closeCurrentTurn();
+		const completed = this.#terminalAction();
 
 		this.#injectedCount += 1;
 		this.#turnId = `${this.#rootTurnId}#${this.#injectedCount}`;
@@ -350,9 +347,12 @@ export class TurnMapper {
 		this.#messageOrdinal = -1;
 		this.#parts = new Map();
 		this.#toolCallsByIndex = new Map();
+		this.#liveToolCalls.clear();
+		this.#result = { outcome: "complete" };
+		this.#attemptErrorMessage = undefined;
 
 		return [
-			...completed,
+			completed,
 			{
 				type: ActionType.ChatTurnStarted,
 				turnId: this.#turnId,
@@ -362,9 +362,24 @@ export class TurnMapper {
 		];
 	}
 
-	#closeCurrentTurn(): StateAction[] {
+	#terminalAction(): StateAction {
 		const duration = Math.max(0, Date.now() - this.#turnStartedAt);
-		return [{ type: ActionType.ChatTurnComplete, turnId: this.#turnId, duration }];
+		switch (this.#result.outcome) {
+			case "cancelled":
+				return { type: ActionType.ChatTurnCancelled, turnId: this.turnId, duration };
+			case "error":
+				return {
+					type: ActionType.ChatError,
+					turnId: this.turnId,
+					duration,
+					part: {
+						kind: ResponsePartKind.Error,
+						error: { errorType: "agentRunFailed", message: this.#result.message ?? "The agent run failed" },
+					},
+				};
+			default:
+				return { type: ActionType.ChatTurnComplete, turnId: this.turnId, duration };
+		}
 	}
 
 	// ── Streaming content ───────────────────────────────────────────────────
@@ -386,11 +401,13 @@ export class TurnMapper {
 			case "toolcall_end":
 				return this.#onToolCallReady(delta);
 			case "error":
-				// Recorded, not emitted: a mid-stream error may still be retried
-				// inside the same AHP turn, so only `agent_settled` decides the
-				// turn's outcome.
-				this.#outcome = delta.error?.stopReason === "aborted" ? "cancelled" : "error";
-				this.#errorMessage = delta.error?.errorMessage;
+				// A streaming error is provisional until the assistant message ends;
+				// even then Pi may recover before prompt() settles.
+				this.#attemptErrorMessage = delta.error?.errorMessage;
+				this.#result =
+					delta.error?.stopReason === "aborted"
+						? { outcome: "cancelled" }
+						: { outcome: "error", message: this.#attemptErrorMessage };
 				return [];
 			default:
 				// `*_start` / `start` / `done` need no action of their own: parts
@@ -593,47 +610,14 @@ export class TurnMapper {
 
 	// ── Turn termination ────────────────────────────────────────────────────
 
-	/**
-	 * Closes the turn.
-	 *
-	 * Also called directly when a turn ends without `agent_settled` — an
-	 * extension command that never reaches the model, or a failed `prompt()`.
-	 * Without it the turn would stay active forever and the session would sit
-	 * at `InProgress`.
-	 */
+	/** Finalizes the last AHP turn when the owning prompt() settles. */
 	finish(outcome?: TurnOutcome, message?: string): StateAction[] {
-		if (this.#finished) {
-			return [];
-		}
+		if (this.#finished) return [];
 		this.#finished = true;
+		if (outcome) this.#result = outcome === "error" ? { outcome, message } : { outcome };
 		// Nothing is happening once the turn is over; a stale description would
 		// leave the client showing "Reading …" against an idle chat.
-		const cleared = this.#setActivity(undefined);
-		const resolved = outcome ?? this.#outcome;
-		const duration = Math.max(0, Date.now() - this.#turnStartedAt);
-
-		switch (resolved) {
-			case "cancelled":
-				return [...cleared, { type: ActionType.ChatTurnCancelled, turnId: this.turnId, duration }];
-			case "error":
-				return [
-					...cleared,
-					{
-						type: ActionType.ChatError,
-						turnId: this.turnId,
-						duration,
-						part: {
-							kind: ResponsePartKind.Error,
-							error: {
-								errorType: "agentRunFailed",
-								message: message ?? this.#errorMessage ?? "The agent run failed",
-							},
-						},
-					},
-				];
-			default:
-				return [...cleared, { type: ActionType.ChatTurnComplete, turnId: this.turnId, duration }];
-		}
+		return [...this.#setActivity(undefined), this.#terminalAction()];
 	}
 }
 

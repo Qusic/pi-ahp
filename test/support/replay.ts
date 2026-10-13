@@ -20,13 +20,6 @@ export interface ReplayEnvironment {
 	close(): void;
 }
 
-export interface ReplayOptions {
-	/** Milliseconds to wait for `agent_settled` before giving up. */
-	readonly settleTimeoutMs?: number;
-}
-
-const DEFAULT_SETTLE_TIMEOUT_MS = 10_000;
-
 /**
  * Gives a replay suite an isolated pi agent directory for its whole lifetime.
  *
@@ -102,7 +95,6 @@ export async function replayTurns(
 	fixture: RecordedFixture,
 	scenario: RecordedScenario,
 	environment: ReplayEnvironment,
-	options: ReplayOptions = {},
 ): Promise<AgentSessionEvent[]> {
 	if (fixture.name !== scenario.name) {
 		throw new Error(`fixture ${fixture.name} cannot be replayed as scenario ${scenario.name}`);
@@ -172,17 +164,13 @@ export async function replayTurns(
 			await performInteraction(backend, interaction);
 		}
 		await prompting;
+		if (!settled) throw new Error(`${fixture.name}: prompt() resolved before agent_settled`);
 
 		if (scenario.followUp?.replay) {
 			for (const prompt of scenario.followUp.prompts) await backend.prompt(prompt);
 			if (scenario.followUp.compact) await backend.session.compact();
 		}
 
-		const deadline = Date.now() + (options.settleTimeoutMs ?? DEFAULT_SETTLE_TIMEOUT_MS);
-		while (!settled && Date.now() < deadline) {
-			await new Promise((resolve) => setTimeout(resolve, 10));
-		}
-		if (!settled) throw new Error(`${fixture.name}: replay never settled`);
 		if (index !== fixture.turns.length) {
 			throw new Error(`${fixture.name}: replay consumed ${index} of ${fixture.turns.length} provider turns`);
 		}

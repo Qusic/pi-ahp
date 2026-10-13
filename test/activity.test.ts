@@ -56,6 +56,7 @@ function run(events: AgentSessionEvent[]): { actions: StateAction[]; state: Chat
 	for (const e of events) {
 		actions.push(...mapper.handle(e));
 	}
+	if (events.some((event) => event.type === "agent_settled")) actions.push(...mapper.finish());
 	let state = initialChatState("ahp-chat:/a", "chat");
 	for (const action of actions) {
 		state = chatReducer(state, action as never);

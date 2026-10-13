@@ -29,10 +29,12 @@ import {
 import type { AhpClient } from "@microsoft/agent-host-protocol/client";
 import { AhpClient as Client } from "@microsoft/agent-host-protocol/client";
 import { WebSocketTransport } from "@microsoft/agent-host-protocol/ws";
+import { initialChatState } from "../src/channels/chat.ts";
 import { installRootChannel } from "../src/channels/root.ts";
 import { chatUri, sessionUri } from "../src/core/channels.ts";
 import { AhpHost } from "../src/core/host.ts";
-import type { PiBackend } from "../src/pi/chat-driver.ts";
+import { ChatDriver, type PiBackend } from "../src/pi/chat-driver.ts";
+import { userTurnStarted } from "../src/pi/event-mapper.ts";
 import { MetadataStore } from "../src/pi/metadata-store.ts";
 import { SessionRegistry } from "../src/pi/session-registry.ts";
 import { serveWebSocket } from "../src/transport/websocket.ts";
@@ -58,6 +60,7 @@ class ScriptedBackend implements PiBackend {
 
 	#listeners = new Set<(event: AgentSessionEvent) => void>();
 	#script: (text: string) => AgentSessionEvent[];
+	#releasePrompt: (() => void) | undefined;
 
 	constructor(script: (text: string) => AgentSessionEvent[]) {
 		this.#script = script;
@@ -70,6 +73,13 @@ class ScriptedBackend implements PiBackend {
 
 	emit(event: AgentSessionEvent): void {
 		for (const listener of this.#listeners) listener(event);
+		if (event.type === "agent_settled") this.#settlePrompt();
+	}
+
+	#settlePrompt(): void {
+		const release = this.#releasePrompt;
+		this.#releasePrompt = undefined;
+		release?.();
 	}
 
 	async prompt(text: string, images?: ImageContent[], signal?: AbortSignal): Promise<void> {
@@ -82,6 +92,11 @@ class ScriptedBackend implements PiBackend {
 		// on events arriving inside the prompt() call.
 		await Promise.resolve();
 		for (const event of this.#script(text)) this.emit(event);
+		if (text === "long running") {
+			await new Promise<void>((resolve) => {
+				this.#releasePrompt = resolve;
+			});
+		}
 	}
 
 	async steer(text: string, images?: ImageContent[]): Promise<void> {
@@ -91,6 +106,7 @@ class ScriptedBackend implements PiBackend {
 
 	async abort(): Promise<void> {
 		this.aborts += 1;
+		this.#settlePrompt();
 	}
 
 	async selectModel(): Promise<void> {
@@ -132,7 +148,7 @@ function say(text: string): AgentSessionEvent[] {
 			message: { role: "assistant" },
 			assistantMessageEvent: { type: "text_delta", contentIndex: 0, delta: text },
 		}),
-		event({ type: "message_end", message: { role: "assistant" } }),
+		event({ type: "message_end", message: { role: "assistant", stopReason: "stop" } }),
 		event({ type: "agent_end", messages: [], willRetry: false }),
 		event({ type: "agent_settled" }),
 	];
@@ -615,6 +631,133 @@ describe("chat driver — backend failure", () => {
 	});
 });
 
+describe("chat driver — prompt settlement", () => {
+	it("completes a prompt handled without an agent run", async (t) => {
+		const chat = chatUri(randomUUID());
+		const host = new AhpHost();
+		host.store.create(chat, initialChatState(chat, "Test chat"));
+		const backend: PiBackend = {
+			subscribe: () => () => undefined,
+			prompt: async () => undefined,
+			steer: async () => undefined,
+			abort: async () => undefined,
+		};
+		const driver = new ChatDriver({ host, chatChannel: chat, backend });
+		t.after(() => driver.dispose());
+		const started = userTurnStarted("handled", "/command", new Date().toISOString());
+		host.dispatchServerAction(chat, started);
+		driver.handleClientAction(chat, started);
+
+		await eventually("the handled prompt to close", () => (host.store.get(chat) as ChatState).turns.length === 1);
+		assert.equal((host.store.get(chat) as ChatState).turns[0]?.state, TurnState.Complete);
+	});
+
+	it("closes injected turns separately and records both turn IDs", async (t) => {
+		const chat = chatUri(randomUUID());
+		const host = new AhpHost();
+		host.store.create(chat, initialChatState(chat, "Test chat"));
+		const anchors: string[] = [];
+		let notify!: (event: AgentSessionEvent) => void;
+		const backend: PiBackend = {
+			subscribe: (listener) => {
+				notify = listener;
+				return () => undefined;
+			},
+			prompt: async () => {
+				for (const event of [
+					{ type: "message_start", message: { role: "user", content: "first" } },
+					{ type: "message_end", message: { role: "user" } },
+					{ type: "message_start", message: { role: "assistant" } },
+					{ type: "message_end", message: { role: "assistant", stopReason: "error", errorMessage: "old" } },
+					{ type: "message_start", message: { role: "user", content: "try again" } },
+					{ type: "message_end", message: { role: "user" } },
+					{ type: "message_start", message: { role: "assistant" } },
+					{ type: "message_end", message: { role: "assistant", stopReason: "stop" } },
+					{ type: "agent_settled" },
+				])
+					notify(event as AgentSessionEvent);
+			},
+			steer: async () => undefined,
+			abort: async () => undefined,
+		};
+		const driver = new ChatDriver({ host, chatChannel: chat, backend, recordTurnAnchor: (id) => anchors.push(id) });
+		t.after(() => driver.dispose());
+		const started = userTurnStarted("initial", "first", new Date().toISOString());
+		host.dispatchServerAction(chat, started);
+		driver.handleClientAction(chat, started);
+
+		await eventually("both injected turns to finish", () => (host.store.get(chat) as ChatState).turns.length === 2);
+		assert.deepEqual(
+			(host.store.get(chat) as ChatState).turns.map((turn) => turn.state),
+			[TurnState.Error, TurnState.Complete],
+		);
+		assert.deepEqual(anchors, ["initial", "initial#1"]);
+	});
+
+	it("uses a rejected prompt even if Pi already emitted agent_settled", async (t) => {
+		const chat = chatUri(randomUUID());
+		const host = new AhpHost();
+		host.store.create(chat, initialChatState(chat, "Test chat"));
+		let notify!: (event: AgentSessionEvent) => void;
+		const backend: PiBackend = {
+			subscribe: (listener) => {
+				notify = listener;
+				return () => undefined;
+			},
+			prompt: async () => {
+				notify({ type: "agent_settled" });
+				throw new Error("prompt failed after settlement");
+			},
+			steer: async () => undefined,
+			abort: async () => undefined,
+		};
+		const driver = new ChatDriver({ host, chatChannel: chat, backend });
+		t.after(() => driver.dispose());
+		const started = userTurnStarted("settled-rejection", "hello", new Date().toISOString());
+		host.dispatchServerAction(chat, started);
+		driver.handleClientAction(chat, started);
+
+		await eventually("the rejected prompt to close", () => (host.store.get(chat) as ChatState).turns.length === 1);
+		const turn = (host.store.get(chat) as ChatState).turns[0];
+		assert.equal(turn?.state, TurnState.Error);
+		assert.match(turnError(turn)?.message ?? "", /prompt failed after settlement/);
+	});
+
+	it("keeps streamed state active until prompt() resolves", async (t) => {
+		const chat = chatUri(randomUUID());
+		const host = new AhpHost();
+		host.store.create(chat, initialChatState(chat, "Test chat"));
+		let notify!: (event: AgentSessionEvent) => void;
+		let release!: () => void;
+		const backend: PiBackend = {
+			subscribe: (listener) => {
+				notify = listener;
+				return () => undefined;
+			},
+			prompt: async () => {
+				notify({ type: "agent_settled" });
+				await new Promise<void>((resolve) => {
+					release = resolve;
+				});
+			},
+			steer: async () => undefined,
+			abort: async () => release?.(),
+		};
+		const driver = new ChatDriver({ host, chatChannel: chat, backend });
+		t.after(() => driver.dispose());
+		const started = userTurnStarted("pending-promise", "hello", new Date().toISOString());
+		host.dispatchServerAction(chat, started);
+		driver.handleClientAction(chat, started);
+
+		await eventually("the backend to emit settlement", () => release !== undefined);
+		assert.equal((host.store.get(chat) as ChatState).activeTurn?.id, "pending-promise");
+		assert.equal((host.store.get(chat) as ChatState).turns.length, 0);
+		release();
+		await eventually("the promise to close the turn", () => (host.store.get(chat) as ChatState).turns.length === 1);
+		assert.equal((host.store.get(chat) as ChatState).turns[0]?.state, TurnState.Complete);
+	});
+});
+
 describe("steering message lifetime", () => {
 	it("clears the pending message once pi consumes it", async (t) => {
 		const metadataDir = mkdtempSync(join(tmpdir(), "pi-ahp-steering-metadata-"));
@@ -626,6 +769,7 @@ describe("steering message lifetime", () => {
 		installRootChannel(host, []);
 
 		const listeners = new Set<(event: AgentSessionEvent) => void>();
+		let releasePrompt: (() => void) | undefined;
 		const emit = (event: object): void => {
 			for (const listener of listeners) {
 				listener(event as unknown as AgentSessionEvent);
@@ -637,14 +781,16 @@ describe("steering message lifetime", () => {
 				return () => listeners.delete(listener);
 			},
 			prompt: async () => {
-				await Promise.resolve();
 				emit({ type: "agent_start" });
+				await new Promise<void>((resolve) => {
+					releasePrompt = resolve;
+				});
 			},
 			steer: async () => {
 				// pi acknowledges the message by growing its queue…
 				emit({ type: "queue_update", steering: ["focus on tests"], followUp: [] });
 			},
-			abort: async () => {},
+			abort: async () => releasePrompt?.(),
 		};
 
 		const sessions = new SessionRegistry({

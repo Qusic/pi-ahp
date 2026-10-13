@@ -46,10 +46,10 @@ const pi = {
 	agentEnd: (willRetry = false) => event({ type: "agent_end", messages: [], willRetry }),
 	settled: () => event({ type: "agent_settled" }),
 	assistantStart: () => event({ type: "message_start", message: { role: "assistant", content: [] } }),
-	assistantEnd: (usage?: Record<string, number>) =>
+	assistantEnd: (usage?: Record<string, number>, stopReason: "stop" | "toolUse" = "stop") =>
 		event({
 			type: "message_end",
-			message: { role: "assistant", content: [], ...(usage ? { usage, model: "test-model" } : {}) },
+			message: { role: "assistant", content: [], stopReason, ...(usage ? { usage, model: "test-model" } : {}) },
 		}),
 	text: (contentIndex: number, delta: string) =>
 		event({
@@ -139,6 +139,7 @@ function runTurn(events: AgentSessionEvent[], text = "Hello"): { actions: StateA
 	for (const event of events) {
 		actions.push(...mapper.handle(event));
 	}
+	if (events.some((event) => event.type === "agent_settled")) actions.push(...mapper.finish());
 
 	let state = initialChatState(CHAT_URI, "Test chat");
 	for (const action of actions) {
@@ -177,7 +178,53 @@ describe("event mapper — turn boundary", () => {
 		);
 	});
 
-	it("only closes the turn on agent_settled", () => {
+	it("finishes successfully when a failed attempt is retried", () => {
+		const { actions, state } = runTurn([
+			pi.agentStart(),
+			pi.assistantStart(),
+			pi.streamError("temporary failure"),
+			event({
+				type: "message_end",
+				message: { role: "assistant", stopReason: "error", errorMessage: "temporary failure" },
+			}),
+			pi.agentEnd(true),
+			event({ type: "auto_retry_start", attempt: 1 }),
+			pi.agentStart(),
+			pi.assistantStart(),
+			pi.text(0, "recovered"),
+			pi.assistantEnd(),
+			event({ type: "auto_retry_end", success: true }),
+			pi.agentEnd(),
+			pi.settled(),
+		]);
+
+		assert.equal(state.turns[0]?.state, TurnState.Complete);
+		assert.equal(actions.filter((action) => action.type === ActionType.ChatTurnComplete).length, 1);
+		assert.equal(
+			actions.some((action) => action.type === ActionType.ChatError),
+			false,
+		);
+	});
+
+	it("reports the final failure when retry attempts are exhausted", () => {
+		const { state } = runTurn([
+			pi.agentStart(),
+			pi.assistantStart(),
+			event({ type: "message_end", message: { role: "assistant", stopReason: "error", errorMessage: "first" } }),
+			pi.agentEnd(true),
+			pi.agentStart(),
+			pi.assistantStart(),
+			pi.streamError("last"),
+			event({ type: "message_end", message: { role: "assistant", stopReason: "error" } }),
+			pi.agentEnd(),
+			pi.settled(),
+		]);
+
+		assert.equal(state.turns[0]?.state, TurnState.Error);
+		assert.equal(turnError(state.turns[0])?.message, "last");
+	});
+
+	it("waits for prompt() to settle before closing the turn", () => {
 		const mapper = new TurnMapper(TURN, 0);
 		const beforeSettle = [pi.agentStart(), pi.assistantStart(), pi.text(0, "hi"), pi.agentEnd()].flatMap((event) =>
 			mapper.handle(event),
@@ -187,10 +234,8 @@ describe("event mapper — turn boundary", () => {
 			beforeSettle.some((action) => action.type === ActionType.ChatTurnComplete),
 			false,
 		);
-		// The terminator now travels behind an activity clear, so look for it
-		// rather than assuming it is first.
-		const closing = mapper.handle(pi.settled());
-		assert.ok(closing.some((action) => action.type === ActionType.ChatTurnComplete));
+		assert.deepEqual(mapper.handle(pi.settled()), []);
+		assert.ok(mapper.finish().some((action) => action.type === ActionType.ChatTurnComplete));
 	});
 
 	it("reports an aborted run as cancelled, not complete", () => {
@@ -230,18 +275,10 @@ describe("event mapper — turn boundary", () => {
 	it("ignores events after the turn has closed", () => {
 		const mapper = new TurnMapper(TURN, 0);
 		mapper.handle(pi.settled());
+		mapper.finish();
 
 		assert.deepEqual(mapper.handle(pi.text(0, "late")), []);
 		assert.deepEqual(mapper.finish(), []);
-	});
-
-	it("can be closed without agent_settled", () => {
-		// An extension command handled entirely by pi never reaches the model,
-		// so no agent event ever arrives; the turn must still terminate.
-		const mapper = new TurnMapper(TURN, 0);
-		const actions = mapper.finish("complete");
-
-		assert.equal(actions[0]?.type, ActionType.ChatTurnComplete);
 	});
 });
 
@@ -367,7 +404,7 @@ describe("event mapper — tool calls", () => {
 			pi.toolDelta(0, '{"command":'),
 			pi.toolDelta(0, '"ls"}'),
 			pi.toolEnd(0, "tc-1", "bash", { command: "ls" }),
-			pi.assistantEnd(),
+			pi.assistantEnd(undefined, "toolUse"),
 			pi.execEnd("tc-1", "bash", "file-a\nfile-b"),
 			pi.settled(),
 		]);
@@ -502,7 +539,7 @@ describe("event mapper — usage and schema", () => {
 			pi.toolStart(2, "tc-1", "read"),
 			pi.toolDelta(2, '{"path":"a"}'),
 			pi.toolEnd(2, "tc-1", "read", { path: "a" }),
-			pi.assistantEnd({ input: 1, output: 2, cacheRead: 0 }),
+			pi.assistantEnd({ input: 1, output: 2, cacheRead: 0 }, "toolUse"),
 			pi.execEnd("tc-1", "read", "contents"),
 			pi.settled(),
 		]);
@@ -583,6 +620,25 @@ describe("event mapper — injected messages", () => {
 			},
 		]);
 		assert.equal((must(state.turns[1]).responseParts[0] as { content: string }).content, "STOPPED");
+	});
+
+	it("closes the previous turn with its own result before injected user input", () => {
+		const { state } = runTurn([
+			pi.agentStart(),
+			pi.assistantStart(),
+			event({ type: "message_end", message: { role: "assistant", stopReason: "error", errorMessage: "old" } }),
+			event({ type: "message_start", message: { role: "user", content: "try another way" } }),
+			pi.assistantStart(),
+			pi.assistantEnd(),
+			pi.settled(),
+		]);
+
+		assert.deepEqual(
+			state.turns.map((turn) => turn.state),
+			[TurnState.Error, TurnState.Complete],
+		);
+		assert.equal(turnError(state.turns[0])?.message, "old");
+		assert.equal(state.turns[1]?.message.text, "try another way");
 	});
 
 	it("does not split on the run's own opening prompt", () => {
