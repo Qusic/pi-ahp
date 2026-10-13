@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { it } from "node:test";
 import { pathToFileURL } from "node:url";
 import {
@@ -116,7 +116,11 @@ it("wires product services through createPiHost", async (t) => {
 		assert.equal(post.mock.callCount(), 1);
 		const init = post.mock.calls[0]?.arguments[1];
 		assert.ok(init);
-		assert.deepEqual(JSON.parse(String(init.body)), { session, event: "ready", detail: "Fix the build" });
+		assert.deepEqual(JSON.parse(String(init.body)), {
+			session,
+			event: "ready",
+			detail: `${basename(workspace)} · Fix the build`,
+		});
 	} finally {
 		await client.shutdown();
 		await server.close();

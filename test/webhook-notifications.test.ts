@@ -1,6 +1,7 @@
 /** Committed Pi-host turn outcomes drive offline client webhooks, not subscriptions. */
 
 import assert from "node:assert/strict";
+import { basename } from "node:path";
 import { it } from "node:test";
 import { ActionType, type ChatState, MessageKind, ResponsePartKind, TurnState } from "@microsoft/agent-host-protocol";
 import { WebhookNotifications } from "../src/host/webhook-notifications.ts";
@@ -42,7 +43,7 @@ it("delivers each effective ready/error outcome to an offline client, but not ca
 	assert.deepEqual(bodyAt(0), {
 		session: f.session,
 		event: "ready",
-		detail: 'Fix "quotes"\nand the next line',
+		detail: `${basename(f.workspace)} · Fix "quotes"\nand the next line`,
 	});
 	complete("first");
 	await f.client.ping();
@@ -66,13 +67,52 @@ it("delivers each effective ready/error outcome to an offline client, but not ca
 	});
 	await eventually("error webhook to start", () => post.mock.callCount() > 1);
 	assert.equal(post.mock.callCount(), 2);
-	assert.deepEqual(bodyAt(1), { session: f.session, event: "error", detail: "Newest user request" });
+	assert.deepEqual(bodyAt(1), {
+		session: f.session,
+		event: "error",
+		detail: `${basename(f.workspace)} · Newest user request`,
+	});
 
 	registrations.set("offline-client", null);
 	start("after-clear", "not delivered");
 	complete("after-clear");
 	await f.client.ping();
 	assert.equal(post.mock.callCount(), 2);
+});
+
+it("limits the complete project-prefixed detail to 240 graphemes", async (t) => {
+	const f = await archiveSessionFixture(t);
+	const registrations = new WebhookRegistrationService(f.metadata);
+	const notifications = new WebhookNotifications(f.sessions, registrations);
+	t.after(() => notifications.dispose());
+	registrations.set("screen", { url: "https://example.test/push", body: { detail: "$detail" } });
+	const post = t.mock.method(globalThis, "fetch", async () => new Response(null, { status: 204 }));
+	const prefix = `${basename(f.workspace)} · `;
+	const send = (turnId: string, text: string) => {
+		f.initialHost.dispatchServerAction(f.chat, {
+			type: ActionType.ChatTurnStarted,
+			turnId,
+			startedAt: f.timestamp.toISOString(),
+			message: { text, origin: { kind: MessageKind.User } },
+		});
+		f.initialHost.dispatchServerAction(f.chat, { type: ActionType.ChatTurnComplete, turnId, duration: 1000 });
+	};
+	const detailAt = (index: number): string => {
+		const init = post.mock.calls[index]?.arguments[1];
+		assert.ok(init);
+		return JSON.parse(String(init.body)).detail;
+	};
+
+	const exact = "x".repeat(240 - prefix.length);
+	send("exact", exact);
+	await eventually("exact-length detail to start", () => post.mock.callCount() > 0);
+	assert.equal(detailAt(0), `${prefix}${exact}`);
+
+	const beforeEmoji = "x".repeat(238 - prefix.length);
+	const emoji = "👩🏽‍💻";
+	send("long", `${beforeEmoji}${emoji}yz`);
+	await eventually("truncated detail to start", () => post.mock.callCount() > 1);
+	assert.equal(detailAt(1), `${prefix}${beforeEmoji}${emoji}…`);
 });
 
 it("loads and fans out persisted registrations without their clients reconnecting", async (t) => {
