@@ -22,6 +22,7 @@ import {
 	TurnState,
 } from "@microsoft/agent-host-protocol";
 import { initialChatState } from "../src/channels/chat.ts";
+import { COMPACTION_NOTICE } from "../src/pi/compaction-notice.ts";
 import { TurnMapper, userTurnStarted } from "../src/pi/event-mapper.ts";
 import { must, turnError } from "./support/assertions.ts";
 import { ONE_PIXEL_PNG } from "./support/images.ts";
@@ -204,6 +205,54 @@ describe("event mapper — turn boundary", () => {
 			actions.some((action) => action.type === ActionType.ChatError),
 			false,
 		);
+	});
+
+	it("shows compaction within a recovering turn without splitting it", () => {
+		const { actions, state } = runTurn([
+			pi.agentStart(),
+			pi.assistantStart(),
+			event({ type: "message_end", message: { role: "assistant", stopReason: "error", errorMessage: "overflow" } }),
+			pi.agentEnd(true),
+			pi.settled(),
+			event({
+				type: "compaction_end",
+				reason: "overflow",
+				aborted: false,
+				willRetry: true,
+				result: { summary: "model-only context", firstKeptEntryId: "a1", tokensBefore: 100 },
+			}),
+			pi.agentStart(),
+			pi.assistantStart(),
+			pi.text(0, "recovered"),
+			pi.assistantEnd(),
+			pi.agentEnd(),
+			pi.settled(),
+		]);
+
+		assert.equal(state.turns.length, 1);
+		assert.equal(state.turns[0]?.state, TurnState.Complete);
+		assert.deepEqual(
+			state.turns[0]?.responseParts.map((part) => part.kind),
+			[ResponsePartKind.SystemNotification, ResponsePartKind.Markdown],
+		);
+		assert.deepEqual(
+			state.turns[0]?.responseParts.filter((part) => part.kind === ResponsePartKind.SystemNotification),
+			[{ kind: ResponsePartKind.SystemNotification, content: COMPACTION_NOTICE }],
+		);
+		assert.equal(actions.filter((action) => action.type === ActionType.ChatError).length, 0);
+	});
+
+	it("does not announce a failed or aborted compaction", () => {
+		for (const compaction of [
+			{ reason: "overflow", result: undefined, aborted: false, willRetry: false, errorMessage: "failed" },
+			{ reason: "manual", result: undefined, aborted: true, willRetry: false },
+		]) {
+			const { actions } = runTurn([event({ type: "compaction_end", ...compaction }), pi.settled()]);
+			assert.deepEqual(
+				actions.filter((action) => action.type === ActionType.ChatResponsePart),
+				[],
+			);
+		}
 	});
 
 	it("reports the final failure when retry attempts are exhausted", () => {

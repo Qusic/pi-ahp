@@ -6,15 +6,13 @@
  * on disk — so subscribing has to reconstruct its state, or the client opens an
  * empty conversation.
  *
- * The window matches what pi itself renders. `buildContextEntries()` starts at
- * the most recent compaction (`session-manager.ts` builds
- * `[compaction, …kept entries, …later entries]`), which is exactly the transcript
- * pi's own TUI shows on resume. Reconstructing more would show the user history
- * their agent has already forgotten.
+ * The user's transcript comes from pi's full current branch, not its
+ * compaction-aware model context. A compaction marks where the agent's memory
+ * changed; it does not erase earlier messages or split a user's AHP turn.
  *
  * This is a *second* mapper, distinct from the streaming one: it works from
- * finished messages rather than deltas, so there is no partial state, no
- * ordering to preserve, and every tool call already has its result.
+ * persisted messages rather than deltas. The file has no prompt-settled event,
+ * so the last assistant result in each user turn is the best available outcome.
  */
 
 import type { SessionEntry, SessionManager } from "@earendil-works/pi-coding-agent";
@@ -23,6 +21,7 @@ import {
 	MessageKind,
 	type ResponsePart,
 	ResponsePartKind,
+	ToolCallCancellationReason,
 	ToolCallStatus,
 	type ToolResultContent,
 	ToolResultContentType,
@@ -30,6 +29,7 @@ import {
 	TurnState,
 	type UsageInfo,
 } from "@microsoft/agent-host-protocol";
+import { COMPACTION_NOTICE, compactionNotification } from "./compaction-notice.ts";
 import { userMessageFromPiContent } from "./user-message.ts";
 
 interface ContentBlock {
@@ -47,6 +47,8 @@ interface StoredMessage {
 	readonly toolCallId?: string;
 	readonly toolName?: string;
 	readonly isError?: boolean;
+	readonly stopReason?: string;
+	readonly errorMessage?: string;
 	readonly usage?: { input?: number; output?: number; cacheRead?: number };
 	readonly model?: string;
 	readonly command?: string;
@@ -84,13 +86,42 @@ function textContent(text: string): ToolResultContent[] {
 	return [{ type: ToolResultContentType.Text, text }];
 }
 
+/** A completed turn cannot leave a tool call running indefinitely. */
+function settleToolCalls(parts: readonly ResponsePart[]): ResponsePart[] {
+	return parts.map((part) => {
+		if (part.kind !== ResponsePartKind.ToolCall || part.toolCall.status !== ToolCallStatus.Running) return part;
+		const call = part.toolCall;
+		return {
+			kind: ResponsePartKind.ToolCall,
+			toolCall: {
+				status: ToolCallStatus.Cancelled,
+				toolCallId: call.toolCallId,
+				toolName: call.toolName,
+				displayName: call.displayName,
+				invocationMessage: call.invocationMessage,
+				...(call.toolInput !== undefined ? { toolInput: call.toolInput } : {}),
+				reason: ToolCallCancellationReason.Skipped,
+			},
+		};
+	});
+}
+
+type StoredTurnResult =
+	| { readonly state: TurnState.Complete | TurnState.Cancelled }
+	| { readonly state: TurnState.Error; readonly message: string | undefined };
+
 /** A turn under construction, before its tool results have been matched up. */
 interface PendingTurn {
 	readonly id: string;
 	readonly startedAt: string;
 	readonly message: Message;
 	readonly parts: ResponsePart[];
+	/** Pi entries in this turn that a later context edit may target. */
+	readonly entryIds: Set<string>;
 	usage: UsageInfo | undefined;
+	result: StoredTurnResult;
+	/** Last non-user entry belonging to this turn; a user entry is not an inclusive anchor. */
+	anchor: string | undefined;
 }
 
 export interface RebuildOptions {
@@ -108,9 +139,9 @@ export interface RebuiltHistory {
 	 * non-user entry — so pointing it at a turn's last entry expresses exactly
 	 * the protocol's meaning.
 	 *
-	 * The first user entry is recorded under the empty key: navigating to it
-	 * lands the leaf on its parent, which is `null`, which is how "clear
-	 * everything" is expressed.
+	 * User-only turns have no inclusive anchor: navigating to their user entry
+	 * would remove that very turn. The first user entry is recorded under the
+	 * empty key for "clear everything", which navigates to its parent.
 	 */
 	readonly anchors: ReadonlyMap<string, string>;
 }
@@ -121,21 +152,14 @@ export const CLEAR_ALL_ANCHOR = "";
 /**
  * Converts session entries into completed turns.
  *
- * Turn boundaries come from user messages: each one opens a turn that absorbs
- * every assistant message and tool result until the next. That mirrors the live
- * mapper, where a turn spans everything from one prompt to `agent_settled`.
+ * Turn boundaries come from user messages: each one absorbs assistant attempts,
+ * tool results, and compaction notices until the next user message. A Pi run
+ * may retry across several assistant messages without starting a new AHP turn.
  */
-function rebuildTurns(entries: readonly SessionEntry[], options: RebuildOptions = {}): Turn[] {
-	return rebuildHistory(entries, options).turns;
-}
-
-/** As {@link rebuildTurns}, but also reporting each turn's truncation anchor. */
 export function rebuildHistory(entries: readonly SessionEntry[], options: RebuildOptions = {}): RebuiltHistory {
 	const prefix = options.turnIdPrefix ?? "turn";
 	const turns: Turn[] = [];
 	const anchors = new Map<string, string>();
-	/** The entry most recently folded into the turn being built. */
-	let lastEntryId: string | undefined;
 	let current: PendingTurn | undefined;
 	/** toolCallId → index in `current.parts`, so a result can find its call. */
 	let toolCallParts = new Map<string, number>();
@@ -144,24 +168,46 @@ export function rebuildHistory(entries: readonly SessionEntry[], options: Rebuil
 		if (!current) {
 			return;
 		}
-		if (lastEntryId) {
-			anchors.set(current.id, lastEntryId);
+		if (current.anchor) {
+			anchors.set(current.id, current.anchor);
 		}
+		const parts = settleToolCalls(current.parts);
+		const result = current.result;
 		turns.push({
 			id: current.id,
 			startedAt: current.startedAt,
 			message: current.message,
-			responseParts: current.parts,
+			responseParts:
+				result.state === TurnState.Error
+					? [
+							...parts,
+							{
+								kind: ResponsePartKind.Error,
+								error: { errorType: "agentRunFailed", message: result.message ?? "The agent run failed" },
+							},
+						]
+					: parts,
 			usage: current.usage,
-			state: TurnState.Complete,
+			state: result.state,
 		});
 		current = undefined;
 		toolCallParts = new Map();
 	};
 
-	const openTurn = (id: string, startedAt: string, message: Message): void => {
+	const openTurn = (entry: SessionEntry, message: Message): PendingTurn => {
 		closeTurn();
-		current = { id, startedAt, message, parts: [], usage: undefined };
+		const turn: PendingTurn = {
+			id: `${prefix}-${entry.id}`,
+			startedAt: entry.timestamp,
+			message,
+			parts: [],
+			entryIds: new Set([entry.id]),
+			usage: undefined,
+			result: { state: TurnState.Complete },
+			anchor: undefined,
+		};
+		current = turn;
+		return turn;
 	};
 
 	for (const entry of entries) {
@@ -170,22 +216,31 @@ export function rebuildHistory(entries: readonly SessionEntry[], options: Rebuil
 		}
 
 		if (entry.type === "compaction") {
-			// The summary replaces everything before it. Surfacing it as a turn
-			// of its own tells the user why the history starts where it does.
-			closeTurn();
-			turns.push({
-				id: `${prefix}-compaction-${entry.id}`,
-				startedAt: entry.timestamp,
-				message: { text: "", origin: { kind: MessageKind.User } },
-				responseParts: [
-					{
-						kind: ResponsePartKind.SystemNotification,
-						content: `Conversation compacted.\n\n${entry.summary}`,
-					},
-				],
-				usage: undefined,
-				state: TurnState.Complete,
-			});
+			if (current) {
+				// Pi does not persist whether this happened inside the prompt or
+				// just after it, so keep the notice with the preceding user turn.
+				current.parts.push(compactionNotification());
+				current.anchor = entry.id;
+			} else {
+				const id = `${prefix}-compaction-${entry.id}`;
+				turns.push({
+					id,
+					startedAt: entry.timestamp,
+					message: { text: COMPACTION_NOTICE, origin: { kind: MessageKind.SystemNotification } },
+					responseParts: [],
+					usage: undefined,
+					state: TurnState.Complete,
+				});
+				anchors.set(id, entry.id);
+			}
+			continue;
+		}
+
+		if (entry.type === "context_edit") {
+			// Retry omissions are persisted *after* the failed assistant message.
+			// An anchor before the edit would revive that attempt in model context.
+			// Edits targeting older turns must not advance this turn's anchor.
+			if (current?.entryIds.has(entry.targetId)) current.anchor = entry.id;
 			continue;
 		}
 
@@ -197,18 +252,15 @@ export function rebuildHistory(entries: readonly SessionEntry[], options: Rebuil
 		const message = entry.message as unknown as StoredMessage;
 		switch (message.role) {
 			case "user": {
-				openTurn(`${prefix}-${entry.id}`, entry.timestamp, userMessageFromPiContent(message.content));
+				openTurn(entry, userMessageFromPiContent(message.content));
 				break;
 			}
 
 			case "assistant": {
-				if (!current) {
-					// An assistant message with no preceding user message (a
-					// truncated file, or history that starts mid-turn). Give it a
-					// turn so the content is not dropped.
-					openTurn(`${prefix}-${entry.id}`, entry.timestamp, userMessageFromPiContent(""));
-				}
-				const turn = current as PendingTurn;
+				// A truncated file may start with an assistant message. Keep its
+				// content in a turn rather than dropping it with the absent prompt.
+				const turn = current ?? openTurn(entry, userMessageFromPiContent(""));
+				turn.entryIds.add(entry.id);
 				let index = 0;
 				for (const block of blocksOf(message)) {
 					if (block.type === "text" && block.text) {
@@ -241,14 +293,25 @@ export function rebuildHistory(entries: readonly SessionEntry[], options: Rebuil
 					index += 1;
 				}
 				turn.usage = toUsage(message) ?? turn.usage;
+				// A failed attempt is provisional: a later assistant response in
+				// this user turn can recover, just as it does in the live mapper.
+				if (message.stopReason === "aborted") {
+					turn.result = { state: TurnState.Cancelled };
+				} else if (message.stopReason === "error") {
+					turn.result = { state: TurnState.Error, message: message.errorMessage };
+				} else if (message.stopReason && message.stopReason !== "pending") {
+					turn.result = { state: TurnState.Complete };
+				}
+				turn.anchor = entry.id;
 				break;
 			}
 
 			case "toolResult": {
+				if (!current) break;
+				current.entryIds.add(entry.id);
+				current.anchor = entry.id;
 				const partIndex = message.toolCallId ? toolCallParts.get(message.toolCallId) : undefined;
-				if (!current || partIndex === undefined) {
-					break;
-				}
+				if (partIndex === undefined) break;
 				const existing = current.parts[partIndex] as { toolCall: Record<string, unknown> } | undefined;
 				if (!existing) {
 					break;
@@ -271,35 +334,31 @@ export function rebuildHistory(entries: readonly SessionEntry[], options: Rebuil
 			case "bashExecution": {
 				// pi records `!command` runs as their own message role; they are
 				// part of the transcript even though no model produced them.
-				if (!current) {
-					openTurn(`${prefix}-${entry.id}`, entry.timestamp, userMessageFromPiContent(`!${message.command ?? ""}`));
-				}
-				(current as PendingTurn).parts.push({
+				const turn = current ?? openTurn(entry, userMessageFromPiContent(`!${message.command ?? ""}`));
+				turn.entryIds.add(entry.id);
+				turn.parts.push({
 					kind: ResponsePartKind.SystemNotification,
 					content: `\`${message.command ?? ""}\`\n\n${message.output ?? ""}`,
 				});
+				turn.anchor = entry.id;
 				break;
 			}
 
 			default:
 				break;
 		}
-
-		// Recorded after the entry has been folded in, so a user message that
-		// opens a new turn does not become the previous turn's anchor.
-		lastEntryId = entry.id;
 	}
 
 	closeTurn();
 	return { turns, anchors };
 }
 
-/** Rebuilds the turns of a session file, using the same window pi's TUI shows. */
+/** Rebuilds the full user-visible branch; compaction affects only the model's context. */
 export function rebuildTurnsFromSession(manager: SessionManager, options: RebuildOptions = {}): Turn[] {
-	return rebuildTurns(manager.buildContextEntries(), options);
+	return rebuildHistoryFromSession(manager, options).turns;
 }
 
 /** As {@link rebuildTurnsFromSession}, with truncation anchors. */
 export function rebuildHistoryFromSession(manager: SessionManager, options: RebuildOptions = {}): RebuiltHistory {
-	return rebuildHistory(manager.buildContextEntries(), options);
+	return rebuildHistory(manager.getBranch(), options);
 }

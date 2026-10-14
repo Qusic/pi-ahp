@@ -11,6 +11,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { utimesSync } from "node:fs";
 import { after, before, describe, it } from "node:test";
+import { SessionManager } from "@earendil-works/pi-coding-agent";
 import {
 	type ChatState,
 	JsonRpcErrorCodes,
@@ -86,6 +87,34 @@ describe("opening a session from the catalogue", () => {
 		assert.equal(chat.turns[0]?.message.text, "Read note.txt");
 		assert.equal(chat.turns[0]?.state, TurnState.Complete);
 		assertValid("state", "ChatState", chat);
+	});
+
+	it("restores the final error status and reason on a cold chat", async () => {
+		const fresh = await startHydratedSessionFixture();
+		try {
+			SessionManager.open(fresh.sessionFile).appendMessage({
+				role: "assistant",
+				content: [],
+				stopReason: "error",
+				errorMessage: "model unavailable",
+				timestamp: 0,
+			} as never);
+
+			const { result } = await fresh.client.subscribe(chatUri(fresh.sessionId));
+			const chat = must(result.snapshot).state as ChatState;
+			assert.equal(chat.turns.at(-1)?.state, TurnState.Error);
+			assert.ok(chat.status & SessionStatus.Error);
+			assert.deepEqual(chat.turns.at(-1)?.responseParts.at(-1), {
+				kind: ResponsePartKind.Error,
+				error: { errorType: "agentRunFailed", message: "model unavailable" },
+			});
+			assertValid("state", "ChatState", chat);
+			const { result: sessionResult } = await fresh.client.subscribe(sessionUri(fresh.sessionId));
+			const session = must(sessionResult.snapshot).state as SessionState;
+			assert.ok(must(session.chats[0]).status & SessionStatus.Error);
+		} finally {
+			await fresh.close();
+		}
 	});
 
 	it("pairs each tool call with the result that followed it", async () => {

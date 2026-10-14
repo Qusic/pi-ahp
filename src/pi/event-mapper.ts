@@ -47,6 +47,7 @@ import {
 	THINKING_ACTIVITY,
 	toolInputFor,
 } from "./activity.ts";
+import { compactionNotification } from "./compaction-notice.ts";
 import { userMessageFromPiContent } from "./user-message.ts";
 
 /** Provisional turn result, overridden if the owning prompt rejects or is cancelled. */
@@ -249,6 +250,10 @@ export class TurnMapper {
 			case "agent_start":
 				// A run beginning, or resuming after a retry.
 				return this.#setActivity(THINKING_ACTIVITY);
+			case "compaction_end":
+				return event.result !== undefined && !event.aborted
+					? [{ type: ActionType.ChatResponsePart, turnId: this.turnId, part: compactionNotification() }]
+					: [];
 			default:
 				// Pi can still fail after agent_settled; the driver closes the turn
 				// only when prompt() resolves or rejects. Other run boundaries and

@@ -17,6 +17,7 @@ import {
 	SessionLifecycle,
 	type SessionState,
 	SessionStatus,
+	TurnState,
 	type URI,
 } from "@microsoft/agent-host-protocol";
 import { chatSummaryOf } from "../channels/chat.ts";
@@ -30,7 +31,7 @@ import { PI_PROVIDER } from "./provider.ts";
 import type { PiSessionCatalogue } from "./session-catalogue.ts";
 import type { SessionOperations } from "./session-operations.ts";
 import { sessionDisplayTitle } from "./session-title.ts";
-import { initialTurnsCursor } from "./turn-paging.ts";
+import { initialTurnsWindow } from "./turn-paging.ts";
 
 export interface SessionHydratorOptions {
 	readonly host: AhpHost;
@@ -128,10 +129,9 @@ export class SessionHydrator implements ChannelHydrator {
 			return;
 		}
 
-		const turns = rebuildTurnsFromSession(manager, { turnIdPrefix: sessionId });
-		// Present only when the window really is a tail: its presence is the
-		// protocol's signal that more history can be paged in.
-		const turnsNextCursor = initialTurnsCursor(manager, sessionId, turns);
+		const allTurns = rebuildTurnsFromSession(manager, { turnIdPrefix: sessionId });
+		// Page whole user turns, independent of pi's compaction-aware model context.
+		const { turns, nextCursor: turnsNextCursor } = initialTurnsWindow(allTurns);
 		const lastTurn = turns[turns.length - 1];
 		let modifiedAt = lastTurn?.startedAt ?? new Date().toISOString();
 		try {
@@ -141,7 +141,7 @@ export class SessionHydrator implements ChannelHydrator {
 			// transcript timestamp remains a valid fallback for this snapshot.
 		}
 		const workingDirectory = manager.getCwd();
-		const title = sessionDisplayTitle(manager.getSessionName(), firstUserText(turns));
+		const title = sessionDisplayTitle(manager.getSessionName(), firstUserText(allTurns));
 
 		// Another create/adopt or disposal may have won during file I/O. From this
 		// check through adoption there is no await, so live state cannot be
@@ -152,7 +152,8 @@ export class SessionHydrator implements ChannelHydrator {
 
 		// Chat read state is independent of the persisted session flag; starting a
 		// turn still clears the chat bit without changing the session's read state.
-		const chatStatus = SessionStatus.Idle | SessionStatus.IsRead;
+		const chatStatus =
+			(lastTurn?.state === TurnState.Error ? SessionStatus.Error : SessionStatus.Idle) | SessionStatus.IsRead;
 		// Load session flags before registering either channel so I/O failure cannot leave a partial pair.
 		const read = this.#options.metadata.sessions.get(sessionId, "read");
 		const archived = this.#options.metadata.sessions.get(sessionId, "archive");
@@ -210,16 +211,18 @@ export class SessionHydrator implements ChannelHydrator {
 			workingDirectory,
 			sessionManager: manager,
 			chatChannel: chat,
-			createdAt: turns[0]?.startedAt ?? modifiedAt,
+			createdAt: allTurns[0]?.startedAt ?? modifiedAt,
 		});
 
 		this.#options.log?.(`hydrated ${session} with ${turns.length} turns`);
 	}
 }
 
-function firstUserText(turns: readonly { message: { text: string } }[]): string | undefined {
+function firstUserText(
+	turns: readonly { message: { text: string; origin: { kind: MessageKind } } }[],
+): string | undefined {
 	for (const turn of turns) {
-		if (turn.message.text.trim()) {
+		if (turn.message.origin.kind === MessageKind.User && turn.message.text.trim()) {
 			return turn.message.text;
 		}
 	}

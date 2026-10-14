@@ -45,6 +45,7 @@ export interface HydratedSessionFixture {
 	readonly client: AhpClient;
 	readonly server: RunningServer;
 	readonly sessionId: string;
+	readonly sessionFile: string;
 	readonly root: string;
 	readonly workspace: string;
 	readonly metadata: MetadataStore;
@@ -63,7 +64,7 @@ export async function startHydratedSessionFixture(
 	const root = mkdtempSync(join(tmpdir(), "pi-ahp-hydrate-"));
 	const workspace = mkdtempSync(join(tmpdir(), "pi ahp hydrate cwd-"));
 	const sessionId = randomUUID();
-	writeSessionFixture(root, sessionId, workspace, options.includeImage);
+	const sessionFile = writeSessionFixture(root, sessionId, workspace, options.includeImage);
 
 	const host = new AhpHost();
 	installRootChannel(host, []);
@@ -120,6 +121,7 @@ export async function startHydratedSessionFixture(
 		client,
 		server,
 		sessionId,
+		sessionFile,
 		root,
 		workspace,
 		metadata,

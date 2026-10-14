@@ -1,10 +1,8 @@
 /**
  * Paging older turns into a chat.
  *
- * A hydrated chat shows the window pi itself renders — back to the most recent
- * compaction. Everything before that is on disk but was unreachable, so a long,
- * repeatedly-compacted session looked like it only ever had its last few
- * exchanges.
+ * A hydrated chat starts with the latest complete turns. Older turns can be
+ * paged in regardless of where pi compacted its model context.
  */
 
 import assert from "node:assert/strict";
@@ -13,7 +11,12 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before, describe, it } from "node:test";
-import { type ChatState, JsonRpcErrorCodes, SUPPORTED_PROTOCOL_VERSIONS } from "@microsoft/agent-host-protocol";
+import {
+	type ChatState,
+	JsonRpcErrorCodes,
+	ResponsePartKind,
+	SUPPORTED_PROTOCOL_VERSIONS,
+} from "@microsoft/agent-host-protocol";
 import { AhpClient, RpcError } from "@microsoft/agent-host-protocol/client";
 import { WebSocketTransport } from "@microsoft/agent-host-protocol/ws";
 import { installRootChannel } from "../src/channels/root.ts";
@@ -30,12 +33,10 @@ import { fixtureSessionDirectory } from "./support/session-files.ts";
 import { persistentSessionManagerFactory } from "./support/session-storage.ts";
 
 /**
- * Writes a session with `before` exchanges, then a compaction, then `after`.
- *
- * The compaction is what makes the earlier turns invisible to the default
- * window, which is exactly the case paging exists for.
+ * Writes `before` exchanges, optionally a compaction, then `after` exchanges.
+ * A compaction is a notice in the user transcript, not its paging boundary.
  */
-function writeCompactedSession(root: string, id: string, cwd: string, before: number, after: number): void {
+function writePagedSession(root: string, id: string, cwd: string, before: number, after: number): void {
 	const directory = fixtureSessionDirectory(root, cwd);
 	const at = "2026-01-01T00:00:00.000Z";
 	const lines = [JSON.stringify({ type: "session", id, parentId: null, timestamp: at, version: 3, cwd })];
@@ -55,12 +56,14 @@ function writeCompactedSession(root: string, id: string, cwd: string, before: nu
 		return userId;
 	};
 
+	let lastUserId: string | undefined;
 	for (let i = 0; i < before; i++) {
-		exchange(i);
+		lastUserId = exchange(i);
 	}
-	// The compaction keeps nothing before itself: `firstKeptEntryId` points at
-	// the entry that follows it, so the window starts here.
-	push({ type: "compaction", summary: "earlier work", firstKeptEntryId: "none", tokensBefore: 1000 });
+	if (lastUserId) {
+		// Pi keeps the most recent exchange in model context without erasing earlier chat history.
+		push({ type: "compaction", summary: "earlier work", firstKeptEntryId: lastUserId, tokensBefore: 1000 });
+	}
 	for (let i = 0; i < after; i++) {
 		exchange(before + i);
 	}
@@ -79,7 +82,7 @@ async function startFixture(before: number, after: number): Promise<Fixture> {
 	const root = mkdtempSync(join(tmpdir(), "pi-ahp-paging-"));
 	const workspace = mkdtempSync(join(tmpdir(), "pi-ahp-paging-cwd-"));
 	const sessionId = randomUUID();
-	writeCompactedSession(root, sessionId, workspace, before, after);
+	writePagedSession(root, sessionId, workspace, before, after);
 
 	const host = new AhpHost();
 	installRootChannel(host, []);
@@ -137,8 +140,8 @@ describe("fetchTurns", () => {
 	let fixture: Fixture;
 
 	before(async () => {
-		// 25 pre-compaction exchanges, so a 20-turn page leaves a second one.
-		fixture = await startFixture(25, 2);
+		// 47 turns, so a 20-turn initial window leaves two older pages.
+		fixture = await startFixture(45, 2);
 		await fixture.client.subscribe(chatUri(fixture.sessionId));
 	});
 
@@ -151,8 +154,14 @@ describe("fetchTurns", () => {
 		const initial = state(fixture);
 
 		// Its presence is the protocol's signal that `turns` is a tail window.
-		assert.ok(initial.turnsNextCursor, "a compacted session must offer more history");
+		assert.ok(initial.turnsNextCursor, "earlier complete turns must be pageable");
 		assertValid("state", "ChatState", initial);
+		assert.equal(initial.turns.length, 20);
+		assert.equal(initial.turns[0]?.message.text, "question 27");
+		assert.equal(
+			initial.turns.find((turn) => turn.message.text === "question 44")?.responseParts.at(-1)?.kind,
+			ResponsePartKind.SystemNotification,
+		);
 		const newestTurn = initial.turns.at(-1)?.id;
 		const initialCount = initial.turns.length;
 
@@ -173,7 +182,16 @@ describe("fetchTurns", () => {
 			.map(Number);
 		assert.deepEqual(
 			numbered,
-			[...numbered].sort((a, b) => a - b),
+			Array.from({ length: 47 }, (_, i) => i),
+			"all turns appear exactly once",
+		);
+		assert.equal(current.turns.length, 47, "compaction must not create an extra user turn");
+		assert.equal(
+			current.turns
+				.flatMap((turn) => turn.responseParts)
+				.filter((part) => part.kind === ResponsePartKind.SystemNotification).length,
+			1,
+			"compaction is one in-turn notice, not a duplicated turn",
 		);
 		// Without this the client would keep asking for pages that do not exist.
 		assert.equal(current.turnsNextCursor, undefined);
@@ -199,12 +217,32 @@ describe("fetchTurns", () => {
 	});
 });
 
-describe("fetchTurns — nothing older", () => {
-	it("offers no cursor for a session that was never compacted", async () => {
+describe("fetchTurns — window boundaries", () => {
+	it("offers no cursor when every turn fits in the initial window", async () => {
 		const fixture = await startFixture(0, 3);
 		try {
 			const { result } = await fixture.client.subscribe(chatUri(fixture.sessionId));
 			assert.equal((must(result.snapshot).state as ChatState).turnsNextCursor, undefined);
+		} finally {
+			await fixture.close();
+		}
+	});
+
+	it("pages a long session without any compaction", async () => {
+		const fixture = await startFixture(0, 22);
+		try {
+			const channel = chatUri(fixture.sessionId);
+			const { result } = await fixture.client.subscribe(channel);
+			const initial = must(result.snapshot).state as ChatState;
+			assert.equal(initial.turns.length, 20);
+			assert.equal(initial.turns[0]?.message.text, "question 2");
+			assert.ok(initial.turnsNextCursor);
+
+			await fixture.client.request("fetchTurns", { channel, cursor: initial.turnsNextCursor });
+			const current = state(fixture);
+			assert.equal(current.turns.length, 22);
+			assert.equal(current.turns[0]?.message.text, "question 0");
+			assert.equal(current.turnsNextCursor, undefined);
 		} finally {
 			await fixture.close();
 		}

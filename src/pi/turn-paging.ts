@@ -1,14 +1,10 @@
 /**
  * Paging older turns into a chat.
  *
- * A hydrated chat shows the window pi itself renders — everything back to the
- * most recent compaction. The conversation before that is still on disk, and
- * without a way to reach it a long, repeatedly-compacted session looks like it
- * only ever had its last few exchanges.
- *
- * `fetchTurns` is that way. The command returns nothing itself: the host
- * dispatches `chat/turnsLoaded`, which prepends the older turns into the same
- * reduced state and updates or clears the cursor.
+ * A hydrated chat initially shows a tail of complete user-visible turns from
+ * pi's current branch. Compaction changes the model context, not this history.
+ * `fetchTurns` prepends older complete turns with `chat/turnsLoaded` and updates
+ * or clears the cursor before responding.
  *
  * @see https://microsoft.github.io/agent-host-protocol/specification/chat-channel
  */
@@ -20,45 +16,23 @@ import { rebuildHistory } from "./history.ts";
 /** Turns per page. Large enough to be worth a round-trip, small enough to stay cheap. */
 const DEFAULT_PAGE_SIZE = 20;
 
-export interface OlderTurnsPage {
+export interface TurnsPage {
 	/** Oldest-first, as the action requires. */
 	readonly turns: Turn[];
 	/** Cursor for the next page older than this one, absent when at the beginning. */
 	readonly nextCursor?: string;
 }
 
-/**
- * Every turn on the session's current branch, ignoring compaction.
- *
- * `getBranch()` walks root→leaf, so it sees the whole conversation; the visible
- * window comes from `buildContextEntries()`, which starts at the last
- * compaction. Turn ids are derived from the entry that opened each turn, so the
- * two rebuilds agree on ids wherever they overlap — which is also what lets the
- * reducer dedupe a page against what the client already holds.
- */
+/** The same chronological branch and turn identities used by hydration. */
 function fullBranchTurns(manager: SessionManager, prefix: string): Turn[] {
 	return rebuildHistory(manager.getBranch(), { turnIdPrefix: prefix }).turns;
 }
 
-/**
- * The cursor to publish for a chat, or `undefined` when nothing older exists.
- *
- * Its presence is the protocol's signal that `turns` is a tail window rather
- * than the whole conversation.
- */
-export function initialTurnsCursor(
-	manager: SessionManager,
-	prefix: string,
-	visible: readonly Turn[],
-): string | undefined {
-	const oldestVisible = visible[0];
-	if (!oldestVisible) {
-		return undefined;
-	}
-	const full = fullBranchTurns(manager, prefix);
-	const boundary = full.findIndex((turn) => turn.id === oldestVisible.id);
-	// `boundary <= 0` means the visible window already starts at the beginning.
-	return boundary > 0 ? oldestVisible.id : undefined;
+/** Initial complete-turn tail; a cursor means earlier turns remain available. */
+export function initialTurnsWindow(full: readonly Turn[], limit: number = DEFAULT_PAGE_SIZE): TurnsPage {
+	const start = Math.max(0, full.length - Math.max(1, limit));
+	const turns = full.slice(start);
+	return { turns, ...(start > 0 && turns[0] ? { nextCursor: turns[0].id } : {}) };
 }
 
 /**
@@ -74,7 +48,7 @@ export function loadOlderTurns(
 	prefix: string,
 	cursor: string | undefined,
 	limit: number = DEFAULT_PAGE_SIZE,
-): OlderTurnsPage {
+): TurnsPage {
 	if (!cursor) {
 		return { turns: [] };
 	}
