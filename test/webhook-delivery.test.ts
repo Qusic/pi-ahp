@@ -8,24 +8,26 @@ import type { WebhookRegistration } from "../src/protocol/webhook.ts";
 const context: WebhookContext = {
 	session: "ahp-session:/test-session",
 	event: "ready",
+	workspace: "example-project",
 	detail: 'Line one\n"quoted" text',
 };
 const registration: WebhookRegistration = {
 	url: "https://example.test/push?key=client-owned",
-	body: { session: "$session", event: "$event", detail: "$detail" },
+	body: { session: "$session", event: "$event", workspace: "$workspace", detail: "$detail" },
 };
 
 it("replaces only complete JSON values, including the root, without losing JSON escaping", () => {
 	const body = {
 		$event: "$event",
-		literal: "prefix-$session",
-		nested: ["$session", { detail: "$detail" }, null, 42],
+		literal: "prefix-$workspace",
+		nested: ["$session", { workspace: "$workspace", detail: "$detail" }, null, 42],
 	};
 	assert.deepEqual(JSON.parse(renderWebhookBody(body, context)), {
 		$event: "ready",
-		literal: "prefix-$session",
-		nested: [context.session, { detail: context.detail }, null, 42],
+		literal: "prefix-$workspace",
+		nested: [context.session, { workspace: context.workspace, detail: context.detail }, null, 42],
 	});
+	assert.equal(renderWebhookBody("$workspace", context), JSON.stringify(context.workspace));
 	assert.equal(renderWebhookBody("$detail", context), JSON.stringify(context.detail));
 	assert.equal(renderWebhookBody(null, context), "null");
 });
@@ -46,6 +48,7 @@ it("POSTs JSON to the client URL once without following redirects", async (t) =>
 	assert.deepEqual(JSON.parse(String(init.body)), {
 		session: context.session,
 		event: context.event,
+		workspace: context.workspace,
 		detail: context.detail,
 	});
 });

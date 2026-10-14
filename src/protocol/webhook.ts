@@ -24,7 +24,7 @@ function isWebhookUrl(value: string): boolean {
 	}
 }
 
-/** Only full JSON values "$session", "$event" and "$detail" are replaced when sending. */
+/** Only full JSON values "$session", "$event", "$workspace" and "$detail" are replaced when sending. */
 export const webhookRegistrationSchema = z
 	.strictObject({
 		url: z.string().max(MAX_URL_LENGTH).refine(isWebhookUrl),

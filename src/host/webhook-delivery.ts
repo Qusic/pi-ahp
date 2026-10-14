@@ -9,6 +9,7 @@ const REQUEST_TIMEOUT_MS = 5_000;
 export interface WebhookContext {
 	readonly session: URI;
 	readonly event: "ready" | "error" | "input" | "confirmation";
+	readonly workspace: string;
 	readonly detail: string;
 }
 
@@ -19,6 +20,8 @@ export function renderWebhookBody(body: WebhookRegistration["body"], context: We
 				return context.session;
 			case "$event":
 				return context.event;
+			case "$workspace":
+				return context.workspace;
 			case "$detail":
 				return context.detail;
 			default:

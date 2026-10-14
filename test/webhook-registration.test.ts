@@ -18,7 +18,7 @@ const METHOD = "x-qusic/ahp-webhook/set";
 
 const webhook: WebhookRegistration = {
 	url: "https://example.test/push?key=private",
-	body: { device: "test-device", session: "$session", event: "$event", detail: "$detail" },
+	body: { device: "test-device", session: "$session", event: "$event", workspace: "$workspace", detail: "$detail" },
 };
 
 function setWebhook(client: AhpClient, value: unknown, channel = ROOT_CHANNEL): Promise<null> {
@@ -87,7 +87,7 @@ it("persists independent registrations across both AHP versions, replacement, cl
 		assert.equal(await setWebhook(second, value), null);
 		assert.deepEqual(registrationOf(f.metadata, secondId), value);
 	}
-	const replacement = { ...webhook, body: { device: "rotated", detail: "$detail" } };
+	const replacement = { ...webhook, body: { device: "rotated", workspace: "$workspace", detail: "$detail" } };
 	assert.equal(await setWebhook(first, replacement), null);
 	assert.deepEqual(registrationOf(f.metadata, firstId), replacement);
 

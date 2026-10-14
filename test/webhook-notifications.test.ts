@@ -16,7 +16,7 @@ it("delivers each effective ready/error outcome to an offline client, but not ca
 	t.after(() => notifications.dispose());
 	registrations.set("offline-client", {
 		url: "https://example.test/push",
-		body: { session: "$session", event: "$event", detail: "$detail" },
+		body: { session: "$session", event: "$event", workspace: "$workspace", detail: "$detail" },
 	});
 	const post = t.mock.method(globalThis, "fetch", async () => new Response(null, { status: 204 }));
 	const start = (turnId: string, text: string) =>
@@ -43,7 +43,8 @@ it("delivers each effective ready/error outcome to an offline client, but not ca
 	assert.deepEqual(bodyAt(0), {
 		session: f.session,
 		event: "ready",
-		detail: `${basename(f.workspace)} · Fix "quotes"\nand the next line`,
+		workspace: basename(f.workspace),
+		detail: 'Fix "quotes"\nand the next line',
 	});
 	complete("first");
 	await f.client.ping();
@@ -70,7 +71,8 @@ it("delivers each effective ready/error outcome to an offline client, but not ca
 	assert.deepEqual(bodyAt(1), {
 		session: f.session,
 		event: "error",
-		detail: `${basename(f.workspace)} · Newest user request`,
+		workspace: basename(f.workspace),
+		detail: "Newest user request",
 	});
 
 	registrations.set("offline-client", null);
@@ -80,14 +82,16 @@ it("delivers each effective ready/error outcome to an offline client, but not ca
 	assert.equal(post.mock.callCount(), 2);
 });
 
-it("limits the complete project-prefixed detail to 240 graphemes", async (t) => {
+it("limits the message detail to 240 graphemes independently of the workspace", async (t) => {
 	const f = await archiveSessionFixture(t);
 	const registrations = new WebhookRegistrationService(f.metadata);
 	const notifications = new WebhookNotifications(f.sessions, registrations);
 	t.after(() => notifications.dispose());
-	registrations.set("screen", { url: "https://example.test/push", body: { detail: "$detail" } });
+	registrations.set("screen", {
+		url: "https://example.test/push",
+		body: { workspace: "$workspace", detail: "$detail" },
+	});
 	const post = t.mock.method(globalThis, "fetch", async () => new Response(null, { status: 204 }));
-	const prefix = `${basename(f.workspace)} · `;
 	const send = (turnId: string, text: string) => {
 		f.initialHost.dispatchServerAction(f.chat, {
 			type: ActionType.ChatTurnStarted,
@@ -100,19 +104,21 @@ it("limits the complete project-prefixed detail to 240 graphemes", async (t) => 
 	const detailAt = (index: number): string => {
 		const init = post.mock.calls[index]?.arguments[1];
 		assert.ok(init);
-		return JSON.parse(String(init.body)).detail;
+		const body = JSON.parse(String(init.body)) as { workspace: string; detail: string };
+		assert.equal(body.workspace, basename(f.workspace));
+		return body.detail;
 	};
 
-	const exact = "x".repeat(240 - prefix.length);
+	const exact = "x".repeat(240);
 	send("exact", exact);
 	await eventually("exact-length detail to start", () => post.mock.callCount() > 0);
-	assert.equal(detailAt(0), `${prefix}${exact}`);
+	assert.equal(detailAt(0), exact);
 
-	const beforeEmoji = "x".repeat(238 - prefix.length);
+	const beforeEmoji = "x".repeat(238);
 	const emoji = "👩🏽‍💻";
 	send("long", `${beforeEmoji}${emoji}yz`);
 	await eventually("truncated detail to start", () => post.mock.callCount() > 1);
-	assert.equal(detailAt(1), `${prefix}${beforeEmoji}${emoji}…`);
+	assert.equal(detailAt(1), `${beforeEmoji}${emoji}…`);
 });
 
 it("loads and fans out persisted registrations without their clients reconnecting", async (t) => {

@@ -93,7 +93,7 @@ it("wires product services through createPiHost", async (t) => {
 
 		const webhook = {
 			url: "https://example.test/push",
-			body: { session: "$session", event: "$event", detail: "$detail" },
+			body: { session: "$session", event: "$event", workspace: "$workspace", detail: "$detail" },
 		};
 		assert.equal(
 			await client.request("x-qusic/ahp-webhook/set" as never, { channel: ROOT_CHANNEL, webhook } as never),
@@ -119,7 +119,8 @@ it("wires product services through createPiHost", async (t) => {
 		assert.deepEqual(JSON.parse(String(init.body)), {
 			session,
 			event: "ready",
-			detail: `${basename(workspace)} · Fix the build`,
+			workspace: basename(workspace),
+			detail: "Fix the build",
 		});
 	} finally {
 		await client.shutdown();

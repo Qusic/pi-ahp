@@ -27,11 +27,10 @@ export class WebhookNotifications {
 	constructor(sessions: SessionRegistry, registrations: WebhookRegistrationService, log?: (message: string) => void) {
 		this.#unsubscribe = sessions.onTurnResult(({ session, outcome, message }) => {
 			const event = outcome === "complete" ? "ready" : "error";
-			const project = basename(sessions.get(session)?.workingDirectory ?? "");
-			const text = message.origin.kind === MessageKind.User ? message.text : "";
-			const detail = truncateDetail(project && text ? `${project} · ${text}` : project || text);
+			const workspace = basename(sessions.get(session)?.workingDirectory ?? "");
+			const detail = truncateDetail(message.origin.kind === MessageKind.User ? message.text : "");
 			for (const [clientId, registration] of registrations.activeEntries()) {
-				void sendWebhook(registration, { session, event, detail }).catch((error) => {
+				void sendWebhook(registration, { session, event, workspace, detail }).catch((error) => {
 					log?.(`webhook ${event} for ${session} to client ${clientId} failed: ${String(error)}`);
 				});
 			}
