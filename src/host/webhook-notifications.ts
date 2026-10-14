@@ -6,19 +6,17 @@ import type { SessionRegistry } from "../pi/session-registry.ts";
 import { sendWebhook } from "./webhook-delivery.ts";
 import type { WebhookRegistrationService } from "./webhook-registration.ts";
 
-const MAX_DETAIL_GRAPHEMES = 240;
-const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+const MAX_WORKSPACE_LENGTH = 40;
+const MAX_DETAIL_LENGTH = 80;
 
-function truncateDetail(detail: string): string {
-	const segments = segmenter.segment(detail)[Symbol.iterator]();
+function truncate(text: string, limit: number): string {
+	if (text.length <= limit) return text;
 	let prefix = "";
-	for (let index = 0; index < MAX_DETAIL_GRAPHEMES - 1; index++) {
-		const next = segments.next();
-		if (next.done) return detail;
-		prefix += next.value.segment;
+	for (const char of text) {
+		if (prefix.length + char.length >= limit) break;
+		prefix += char;
 	}
-	const last = segments.next();
-	return last.done || segments.next().done ? detail : `${prefix}…`;
+	return `${prefix}…`;
 }
 
 export class WebhookNotifications {
@@ -27,8 +25,8 @@ export class WebhookNotifications {
 	constructor(sessions: SessionRegistry, registrations: WebhookRegistrationService, log?: (message: string) => void) {
 		this.#unsubscribe = sessions.onTurnResult(({ session, outcome, message }) => {
 			const event = outcome === "complete" ? "ready" : "error";
-			const workspace = basename(sessions.get(session)?.workingDirectory ?? "");
-			const detail = truncateDetail(message.origin.kind === MessageKind.User ? message.text : "");
+			const workspace = truncate(basename(sessions.get(session)?.workingDirectory ?? ""), MAX_WORKSPACE_LENGTH);
+			const detail = truncate(message.origin.kind === MessageKind.User ? message.text : "", MAX_DETAIL_LENGTH);
 			for (const [clientId, registration] of registrations.activeEntries()) {
 				void sendWebhook(registration, { session, event, workspace, detail }).catch((error) => {
 					log?.(`webhook ${event} for ${session} to client ${clientId} failed: ${String(error)}`);

@@ -138,7 +138,7 @@ The non-standard root request `x-qusic/ahp-webhook/set` is advertised by `initia
 }
 ```
 
-On turn completion (`ready`) or error (`error`), the host POSTs the body to that URL, replacing only whole JSON values `$session` (full URI), `$event`, `$workspace` (the working-directory name), and `$detail` (the user's message, capped at 240 Unicode grapheme clusters). The body may be any JSON value. Registrations survive disconnects but expire 24 hours after the last successful `set`; another `set` renews the lease. Delivery is best-effort without retries. HTTPS is required except for HTTP to the Host's `localhost`, `127.0.0.1`, or `[::1]`.
+On turn completion (`ready`) or error (`error`), the host POSTs the body to that URL, replacing only whole JSON values `$session` (full URI), `$event`, `$workspace` (working-directory name), and `$detail` (user-message excerpt). The body may be any JSON value. Registrations survive disconnects but expire 24 hours after the last successful `set`; another `set` renews the lease. Delivery is best-effort without retries. HTTPS is required except for HTTP to the Host's `localhost`, `127.0.0.1`, or `[::1]`.
 
 ## License
 

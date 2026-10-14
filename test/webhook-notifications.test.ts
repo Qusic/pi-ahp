@@ -82,8 +82,9 @@ it("delivers each effective ready/error outcome to an offline client, but not ca
 	assert.equal(post.mock.callCount(), 2);
 });
 
-it("limits the message detail to 240 graphemes independently of the workspace", async (t) => {
-	const f = await archiveSessionFixture(t);
+it("limits workspace and detail lengths without splitting a surrogate pair", async (t) => {
+	const workspacePrefix = "w".repeat(39);
+	const f = await archiveSessionFixture(t, { workspaceName: `${workspacePrefix}😄z` });
 	const registrations = new WebhookRegistrationService(f.metadata);
 	const notifications = new WebhookNotifications(f.sessions, registrations);
 	t.after(() => notifications.dispose());
@@ -105,20 +106,20 @@ it("limits the message detail to 240 graphemes independently of the workspace", 
 		const init = post.mock.calls[index]?.arguments[1];
 		assert.ok(init);
 		const body = JSON.parse(String(init.body)) as { workspace: string; detail: string };
-		assert.equal(body.workspace, basename(f.workspace));
+		assert.equal(body.workspace, `${workspacePrefix}…`);
 		return body.detail;
 	};
 
-	const exact = "x".repeat(240);
+	const exact = "x".repeat(80);
 	send("exact", exact);
 	await eventually("exact-length detail to start", () => post.mock.callCount() > 0);
 	assert.equal(detailAt(0), exact);
 
-	const beforeEmoji = "x".repeat(238);
+	const beforeEmoji = "x".repeat(78);
 	const emoji = "👩🏽‍💻";
 	send("long", `${beforeEmoji}${emoji}yz`);
 	await eventually("truncated detail to start", () => post.mock.callCount() > 1);
-	assert.equal(detailAt(1), `${beforeEmoji}${emoji}…`);
+	assert.equal(detailAt(1), `${beforeEmoji}…`);
 });
 
 it("loads and fans out persisted registrations without their clients reconnecting", async (t) => {

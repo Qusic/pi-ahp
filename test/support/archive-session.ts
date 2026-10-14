@@ -39,11 +39,12 @@ export async function archiveSessionFixture(
 	t: TestContext,
 	options: {
 		loaded?: boolean;
+		workspaceName?: string;
 		deleteFile?: (path: string) => SessionFileDeletionResult | Promise<SessionFileDeletionResult>;
 	} = {},
 ) {
 	const root = mkdtempSync(join(tmpdir(), "pi-ahp-archive-action-"));
-	const workspace = join(root, "workspace");
+	const workspace = join(root, options.workspaceName ?? "workspace");
 	const sessionRoot = join(root, "sessions");
 	let harness: Harness | undefined;
 	t.after(async () => {
