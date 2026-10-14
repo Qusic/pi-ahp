@@ -89,6 +89,13 @@ export async function serveWebSocket(
 	const wss = new WebSocketServer({ noServer: true });
 
 	httpServer.on("upgrade", (request, socket, head) => {
+		if (!options.connectionToken && request.headers.origin !== undefined) {
+			// A browser can reach a loopback listener from another website. Origin
+			// blocks that path, but is not authentication for native/local clients.
+			options.log?.("Rejecting upgrade: Origin header without a token");
+			socket.end("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n");
+			return;
+		}
 		if (options.connectionToken) {
 			const url = new URL(request.url ?? "/", "http://localhost");
 			// VS Code calls a manually configured connection token `tkn`; generic

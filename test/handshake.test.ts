@@ -315,6 +315,38 @@ describe("connection token", () => {
 		}
 	});
 
+	it("rejects browser origins without a token, including a tunnel-derived tkn", async () => {
+		const harness = await startHarness();
+		try {
+			for (const query of ["", "?tkn=tunnel-derived"]) {
+				const socket = new WebSocket(`${harness.url}${query}`, { origin: "https://untrusted.example" });
+				socket.on("error", () => {});
+				try {
+					await assert.rejects(once(socket, "open"), /Unexpected server response: 403/u);
+				} finally {
+					socket.terminate();
+				}
+			}
+			const client = await harness.connect();
+			await client.initialize({ clientId: nextClientId(), protocolVersions: SUPPORTED_PROTOCOL_VERSIONS });
+			await client.ping();
+		} finally {
+			await harness.dispose();
+		}
+	});
+
+	it("allows browser origins when a valid connection token is supplied", async () => {
+		const harness = await startHarness({ connectionToken: "secret" });
+		const socket = new WebSocket(harness.url, { origin: "https://client.example" });
+		try {
+			await once(socket, "open");
+			assert.equal(socket.readyState, WebSocket.OPEN);
+		} finally {
+			socket.terminate();
+			await harness.dispose();
+		}
+	});
+
 	it("ignores a VS Code tkn when the listener requires no token", async () => {
 		const harness = await startHarness();
 		try {
