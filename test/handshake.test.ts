@@ -5,6 +5,7 @@
  */
 
 import assert from "node:assert/strict";
+import { once } from "node:events";
 import { after, before, describe, it } from "node:test";
 import type { RootState, SessionState } from "@microsoft/agent-host-protocol";
 import {
@@ -16,6 +17,7 @@ import {
 	SessionStatus,
 	SUPPORTED_PROTOCOL_VERSIONS,
 } from "@microsoft/agent-host-protocol";
+import WebSocket from "ws";
 import { initialSessionState } from "../src/channels/session.ts";
 import { ROOT_CHANNEL, sessionUri } from "../src/core/channels.ts";
 import { type Harness, nextClientId, startHarness, TEST_AGENT } from "./harness.ts";
@@ -323,6 +325,38 @@ describe("connection token", () => {
 			});
 			assert.equal(result.protocolVersion, PROTOCOL_VERSION);
 		} finally {
+			await harness.dispose();
+		}
+	});
+});
+
+describe("WebSocket frame errors", () => {
+	it("closes a malformed peer without stopping AHP", async () => {
+		const harness = await startHarness();
+		const malformed = new WebSocket(harness.url);
+		malformed.on("error", () => {});
+		try {
+			await once(malformed, "open");
+			const closed = Promise.withResolvers<number>();
+			const timeout = setTimeout(() => closed.reject(new Error("malformed peer was not closed")), 5_000);
+			malformed.once("close", (code) => closed.resolve(code));
+			try {
+				// A WebSocket client must mask its frames. ws will reject this one.
+				malformed.send("{}", { mask: false });
+				assert.equal(await closed.promise, 1002);
+			} finally {
+				clearTimeout(timeout);
+			}
+
+			const client = await harness.connect();
+			const result = await client.initialize({
+				clientId: nextClientId(),
+				protocolVersions: SUPPORTED_PROTOCOL_VERSIONS,
+			});
+			assert.equal(result.protocolVersion, PROTOCOL_VERSION);
+			await client.ping();
+		} finally {
+			malformed.terminate();
 			await harness.dispose();
 		}
 	});

@@ -32,6 +32,9 @@ class WebSocketClientTransport implements Transport {
 	constructor(socket: WebSocket, log?: (message: string) => void) {
 		this.#socket = socket;
 		this.#log = log;
+		// ws closes malformed frames itself, but its `error` event must have a
+		// listener or one bad client can terminate the entire host process.
+		socket.on("error", (error) => this.#log?.(`WebSocket connection error: ${String(error)}`));
 	}
 
 	send(message: JsonRpcMessage): void {
