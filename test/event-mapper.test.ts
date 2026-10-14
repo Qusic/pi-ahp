@@ -560,22 +560,48 @@ describe("event mapper — usage and schema", () => {
 		});
 	});
 
-	it("keeps the usage fields the protocol has no slot for", () => {
-		// pi reports cache writes, a reasoning-token breakdown and computed
-		// cost; `UsageInfo` has fields for none of them. Dropping them would
-		// lose exactly the numbers a client needs to show what a turn cost.
+	it("keeps only the latest call's standard usage and responding model", () => {
 		const { state } = runTurn([
 			pi.agentStart(),
 			pi.assistantStart(),
-			pi.text(0, "hi"),
-			pi.assistantEnd({ input: 3, output: 49, cacheRead: 0, cacheWrite: 2699, reasoning: 20, totalTokens: 2751 }),
+			event({
+				type: "message_end",
+				message: {
+					role: "assistant",
+					stopReason: "error",
+					model: "attempt-model",
+					usage: { input: 100, output: 20, cacheRead: 5 },
+				},
+			}),
+			pi.agentEnd(true),
+			pi.agentStart(),
+			pi.assistantStart(),
+			event({
+				type: "message_end",
+				message: {
+					role: "assistant",
+					stopReason: "stop",
+					model: "requested-model",
+					responseModel: "served-model",
+					usage: {
+						input: 3,
+						output: 49,
+						cacheRead: 0,
+						cacheWrite: 2699,
+						reasoning: 20,
+						totalTokens: 2751,
+						cost: { input: 0.01, output: 0, cacheRead: 0, cacheWrite: 0, total: 0.01 },
+					},
+				},
+			}),
 			pi.settled(),
 		]);
 
-		assert.deepEqual(state.turns[0]?.usage?._meta, {
-			cacheWriteTokens: 2699,
-			reasoningTokens: 20,
-			totalTokens: 2751,
+		assert.deepEqual(state.turns[0]?.usage, {
+			inputTokens: 3,
+			outputTokens: 49,
+			cacheReadTokens: 0,
+			model: "served-model",
 		});
 	});
 

@@ -51,6 +51,7 @@ interface StoredMessage {
 	readonly errorMessage?: string;
 	readonly usage?: { input?: number; output?: number; cacheRead?: number };
 	readonly model?: string;
+	readonly responseModel?: string;
 	readonly command?: string;
 	readonly output?: string;
 }
@@ -74,11 +75,12 @@ function toUsage(message: StoredMessage): UsageInfo | undefined {
 	if (!usage) {
 		return undefined;
 	}
+	const model = message.responseModel ?? message.model;
 	return {
 		...(usage.input !== undefined ? { inputTokens: usage.input } : {}),
 		...(usage.output !== undefined ? { outputTokens: usage.output } : {}),
 		...(usage.cacheRead !== undefined ? { cacheReadTokens: usage.cacheRead } : {}),
-		...(message.model ? { model: message.model } : {}),
+		...(model ? { model } : {}),
 	};
 }
 

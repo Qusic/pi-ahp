@@ -80,42 +80,28 @@ interface PiUsage {
 	readonly input?: number;
 	readonly output?: number;
 	readonly cacheRead?: number;
-	readonly cacheWrite?: number;
-	/** Subset of `output`, when the provider reports a reasoning breakdown. */
-	readonly reasoning?: number;
-	readonly totalTokens?: number;
-	readonly cost?: unknown;
+}
+
+interface PiMessageEnd {
+	readonly message?: {
+		readonly role?: string;
+		readonly usage?: PiUsage;
+		readonly model?: string;
+		readonly responseModel?: string;
+		readonly stopReason?: string;
+		readonly errorMessage?: string;
+	};
 }
 
 function toUsageInfo(usage: PiUsage | undefined, model: string | undefined): UsageInfo | undefined {
 	if (!usage) {
 		return undefined;
 	}
-	// `UsageInfo` only has slots for input/output/cacheRead, but pi reports more
-	// (cache writes, a reasoning-token breakdown, and computed cost). Dropping
-	// them would lose the numbers a client needs to show what a turn actually
-	// cost, so the remainder rides in `_meta` — the protocol's documented place
-	// for provider-specific extras.
-	const extra: Record<string, unknown> = {};
-	if (usage.cacheWrite !== undefined) {
-		extra.cacheWriteTokens = usage.cacheWrite;
-	}
-	if (usage.reasoning !== undefined) {
-		extra.reasoningTokens = usage.reasoning;
-	}
-	if (usage.totalTokens !== undefined) {
-		extra.totalTokens = usage.totalTokens;
-	}
-	if (usage.cost !== undefined) {
-		extra.cost = usage.cost;
-	}
-
 	return {
 		...(usage.input !== undefined ? { inputTokens: usage.input } : {}),
 		...(usage.output !== undefined ? { outputTokens: usage.output } : {}),
 		...(usage.cacheRead !== undefined ? { cacheReadTokens: usage.cacheRead } : {}),
 		...(model ? { model } : {}),
-		...(Object.keys(extra).length > 0 ? { _meta: extra } : {}),
 	};
 }
 
@@ -217,17 +203,7 @@ export class TurnMapper {
 			case "message_update":
 				return this.#onDelta((event as { assistantMessageEvent: AssistantDelta }).assistantMessageEvent);
 			case "message_end":
-				return this.#onMessageEnd(
-					event as {
-						message?: {
-							role?: string;
-							usage?: PiUsage;
-							model?: string;
-							stopReason?: string;
-							errorMessage?: string;
-						};
-					},
-				);
+				return this.#onMessageEnd(event as PiMessageEnd);
 			case "tool_execution_start":
 				// The tool is about to run: say which one, and with what.
 				return this.#setActivity(
@@ -295,9 +271,7 @@ export class TurnMapper {
 		return [{ type: ActionType.ChatActivityChanged, ...(activity ? { activity } : {}) }];
 	}
 
-	#onMessageEnd(event: {
-		message?: { role?: string; usage?: PiUsage; model?: string; stopReason?: string; errorMessage?: string };
-	}): StateAction[] {
+	#onMessageEnd(event: PiMessageEnd): StateAction[] {
 		if (event.message?.role !== "assistant") {
 			return [];
 		}
@@ -316,7 +290,7 @@ export class TurnMapper {
 		}
 		this.#attemptErrorMessage = undefined;
 
-		const usage = toUsageInfo(event.message.usage, event.message.model);
+		const usage = toUsageInfo(event.message.usage, event.message.responseModel ?? event.message.model);
 		return usage ? [{ type: ActionType.ChatUsage, turnId: this.turnId, usage }] : [];
 	}
 

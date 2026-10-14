@@ -77,6 +77,40 @@ describe("rebuilding a user-visible branch", () => {
 		);
 	});
 
+	it("restores only the latest call's standard usage and responding model", () => {
+		const manager = session();
+		user(manager, "token usage");
+		for (const [input, stopReason, responseModel] of [
+			[100, "error", "attempt-model"],
+			[3, "stop", "served-model"],
+		] as const) {
+			manager.appendMessage({
+				role: "assistant",
+				content: [],
+				model: "requested-model",
+				responseModel,
+				stopReason,
+				usage: {
+					input,
+					output: 1,
+					cacheRead: 0,
+					cacheWrite: 10,
+					reasoning: 1,
+					totalTokens: input + 11,
+					cost: { input: 0.01, output: 0, cacheRead: 0, cacheWrite: 0, total: 0.01 },
+				},
+				timestamp: 0,
+			} as never);
+		}
+
+		assert.deepEqual(rebuildHistoryFromSession(manager).turns[0]?.usage, {
+			inputTokens: 3,
+			outputTokens: 1,
+			cacheReadTokens: 0,
+			model: "served-model",
+		});
+	});
+
 	it("anchors a retry omission but not a context edit targeting an older turn", () => {
 		const manager = session();
 		user(manager, "older request");
