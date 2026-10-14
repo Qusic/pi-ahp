@@ -10,6 +10,7 @@
 
 import {
 	type ActionEnvelope,
+	ActionType,
 	AhpErrorCodes,
 	type CommandMap,
 	type CompletionsParams,
@@ -168,6 +169,8 @@ export interface HostCapabilities {
 	readonly hydrator?: ChannelHydrator;
 	/** Handles selected session metadata actions without materializing a cold session. */
 	readonly sessionMetadataRouter?: SessionMetadataActionRouter;
+	/** Moves an agent's history before accepting a chat truncation. */
+	readonly chatTruncationRouter?: ChatTruncationRouter;
 }
 
 export interface HostOptions {
@@ -246,6 +249,9 @@ export type SessionMetadataActionRouter = (
 	apply: (kind: "session") => boolean,
 ) => false | void | Promise<void>;
 
+/** Navigate the backend before committing a chat truncation; `apply` reduces and echoes after validated effects. */
+export type ChatTruncationRouter = (channel: URI, action: StateAction, apply: () => void) => false | Promise<void>;
+
 /** Notified when the number of clients subscribed to a channel changes. */
 export type SubscriberCountListener = (channel: URI, count: number) => void;
 
@@ -312,6 +318,8 @@ export class AhpHost {
 	readonly #actionValidators = new Set<ClientActionValidator>();
 	readonly #actionEffects = new Set<ClientActionEffect>();
 	readonly #subscriberListeners = new Set<SubscriberCountListener>();
+	/** Keeps later client actions on a channel behind an asynchronous pre-commit operation. */
+	readonly #pendingClientActions = new Map<URI, Promise<void>>();
 
 	constructor(options: HostOptions = {}) {
 		this.#options = options;
@@ -746,6 +754,23 @@ export class AhpHost {
 			return;
 		}
 		const origin = { clientId: connection.clientId, clientSeq: params.clientSeq };
+		const route = (): void | Promise<void> => this.#routeClientAction(channel, action, origin);
+		const previous = this.#pendingClientActions.get(channel);
+		const pending = previous ? previous.then(route, route) : route();
+		if (!(pending instanceof Promise)) return;
+		let tracked: Promise<void>;
+		tracked = pending.finally(() => {
+			if (this.#pendingClientActions.get(channel) === tracked) this.#pendingClientActions.delete(channel);
+		});
+		this.#pendingClientActions.set(channel, tracked);
+		void tracked.catch((error: unknown) => this.#log(`Client action routing failed for ${channel}: ${String(error)}`));
+	}
+
+	#routeClientAction(
+		channel: URI,
+		action: StateAction,
+		origin: NonNullable<ActionEnvelope["origin"]>,
+	): void | Promise<void> {
 		const router = this.#capabilities.sessionMetadataRouter;
 		if (router) {
 			let applyInvoked = false;
@@ -760,19 +785,54 @@ export class AhpHost {
 					applyInvoked = true;
 					return this.#applyClientAction(channel, action, origin, kind);
 				});
-				if (routed !== false) {
-					if (routed instanceof Promise) void routed.catch(failed);
-					return;
-				}
+				if (routed !== false) return routed instanceof Promise ? routed.catch(failed) : undefined;
 			} catch (error) {
 				failed(error);
 				return;
 			}
 		}
-		this.#applyClientAction(channel, action, origin);
+		if (!this.#validateClientAction(channel, action, origin)) return;
+		const truncate = this.#capabilities.chatTruncationRouter;
+		if (truncate && action.type === ActionType.ChatTruncated) {
+			// No synchronous effect may reject after pi has already moved its leaf.
+			if (!this.#runClientActionEffects(channel, action, origin)) return;
+			let applyInvoked = false;
+			const failed = (error: unknown): void => {
+				this.#log(`Chat truncation failed for ${channel}: ${String(error)}`);
+				if (!applyInvoked) {
+					const message = error instanceof Error ? error.message : String(error);
+					this.#rejectAction(channel, action, origin, `Could not truncate: ${message}`);
+				}
+			};
+			try {
+				const routed = truncate(channel, action, () => {
+					if (applyInvoked) throw new Error("Truncation action already committed");
+					applyInvoked = true;
+					this.#commitClientAction(channel, action, origin);
+				});
+				if (routed !== false) return routed.catch(failed);
+			} catch (error) {
+				failed(error);
+				return;
+			}
+			this.#commitClientAction(channel, action, origin);
+			return;
+		}
+		this.#commitValidatedClientAction(channel, action, origin);
 	}
 
 	#applyClientAction(
+		channel: URI,
+		action: StateAction,
+		origin: NonNullable<ActionEnvelope["origin"]>,
+		resolvedKind?: "session",
+	): boolean {
+		return this.#validateClientAction(channel, action, origin, resolvedKind)
+			? this.#commitValidatedClientAction(channel, action, origin)
+			: false;
+	}
+
+	#validateClientAction(
 		channel: URI,
 		action: StateAction,
 		origin: NonNullable<ActionEnvelope["origin"]>,
@@ -808,14 +868,32 @@ export class AhpHost {
 				return false;
 			}
 		}
+		return true;
+	}
+
+	#runClientActionEffects(channel: URI, action: StateAction, origin: NonNullable<ActionEnvelope["origin"]>): boolean {
 		try {
 			for (const effect of this.#actionEffects) effect(channel, action, origin.clientId);
+			return true;
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
 			this.#log(`Client action effect failed for ${action.type} on ${channel}: ${String(error)}`);
 			this.#rejectAction(channel, action, origin, `Could not apply ${action.type}: ${message}`);
 			return false;
 		}
+	}
+
+	#commitValidatedClientAction(
+		channel: URI,
+		action: StateAction,
+		origin: NonNullable<ActionEnvelope["origin"]>,
+	): boolean {
+		return this.#runClientActionEffects(channel, action, origin)
+			? this.#commitClientAction(channel, action, origin)
+			: false;
+	}
+
+	#commitClientAction(channel: URI, action: StateAction, origin: NonNullable<ActionEnvelope["origin"]>): boolean {
 		this.#commit(channel, action, origin);
 		this.#emitClientAction(channel, action);
 		return true;

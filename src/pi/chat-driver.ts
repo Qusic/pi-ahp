@@ -63,9 +63,8 @@ export interface PiBackend {
 	/**
 	 * Moves the conversation back to an earlier point.
 	 *
-	 * Returns `false` when the agent declined (an extension may veto), which
-	 * the caller must surface rather than swallow — the protocol state has
-	 * already been truncated by then.
+	 * Returns `false` when the agent declined or did not reach the target leaf.
+	 * The caller must refuse the AHP action rather than publish a different history.
 	 */
 	truncate?(entryId: string): Promise<boolean>;
 }

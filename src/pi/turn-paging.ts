@@ -14,7 +14,7 @@ import type { Turn } from "@microsoft/agent-host-protocol";
 import { rebuildHistory } from "./history.ts";
 
 /** Turns per page. Large enough to be worth a round-trip, small enough to stay cheap. */
-const DEFAULT_PAGE_SIZE = 20;
+export const DEFAULT_PAGE_SIZE = 20;
 
 export interface TurnsPage {
 	/** Oldest-first, as the action requires. */

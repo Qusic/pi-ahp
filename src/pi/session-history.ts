@@ -14,7 +14,7 @@ import { ActionType, type ChatState, type URI } from "@microsoft/agent-host-prot
 import type { AhpHost } from "../core/host.ts";
 import { ProtocolError } from "../protocol/errors.ts";
 import { CLEAR_ALL_ANCHOR, rebuildHistoryFromSession } from "./history.ts";
-import { loadOlderTurns } from "./turn-paging.ts";
+import { DEFAULT_PAGE_SIZE, loadOlderTurns } from "./turn-paging.ts";
 
 /** The session file, and the prefix its turn ids were derived from. */
 export interface HistorySource {
@@ -47,12 +47,36 @@ export function truncationAnchor(source: HistorySource, turnId: string | undefin
 	return rebuildHistoryFromSession(source.sessionManager, { turnIdPrefix: source.sessionId }).anchors.get(key);
 }
 
-/**
- * Serves `fetchTurns` for a chat.
- *
- * Dispatches the page before returning, as the protocol requires — the client's
- * state must already hold it when the call resolves.
- */
+/** Materializes a paged-away turn before an action names it. */
+export function loadTruncationTarget(host: AhpHost, channel: URI, source: HistorySource, turnId: string): void {
+	const state = host.store.get(channel) as ChatState | undefined;
+	if (state?.turns.some((turn) => turn.id === turnId)) return;
+	const oldest = state?.turns[0];
+	if (!oldest || !state.turnsNextCursor) {
+		throw ProtocolError.invalidParams(`Turn ${turnId} is not in the chat's loaded history`);
+	}
+
+	const full = rebuildHistoryFromSession(source.sessionManager, { turnIdPrefix: source.sessionId }).turns;
+	const target = full.findIndex((turn) => turn.id === turnId);
+	const boundary = full.findIndex((turn) => turn.id === oldest.id);
+	if (target < 0 || boundary <= target) {
+		throw ProtocolError.invalidParams(`Turn ${turnId} is not older than the chat's visible history`);
+	}
+	// chat/truncated cannot name an unloaded turn: its reducer would be a no-op.
+	// Prepend bounded pages, newest first, before the client action is committed.
+	for (let end = boundary; end > target; ) {
+		const start = Math.max(target, end - DEFAULT_PAGE_SIZE);
+		const turns = full.slice(start, end);
+		host.dispatchServerAction(channel, {
+			type: ActionType.ChatTurnsLoaded,
+			turns,
+			...(start > 0 && turns[0] ? { turnsNextCursor: turns[0].id } : {}),
+		});
+		end = start;
+	}
+}
+
+/** Serves `fetchTurns`, dispatching the page before the request resolves. */
 export function dispatchOlderTurns(
 	host: AhpHost,
 	channel: URI,

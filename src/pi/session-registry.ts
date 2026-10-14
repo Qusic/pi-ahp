@@ -34,7 +34,7 @@ import { installDefaultChat, syncChatSummary } from "../channels/chat.ts";
 import { notifySessionAdded, notifySessionRemoved, notifySessionSummaryChanged } from "../channels/root.ts";
 import { aggregateSessionChats, initialSessionState, sessionSummaryOf } from "../channels/session.ts";
 import { chatUri, ROOT_CHANNEL, sessionIdFromUri } from "../core/channels.ts";
-import type { AhpHost, SessionMetadataActionRouter } from "../core/host.ts";
+import type { AhpHost, ChatTruncationRouter, SessionMetadataActionRouter } from "../core/host.ts";
 import { fileUriToPath } from "../core/uri.ts";
 import { ProtocolError } from "../protocol/errors.ts";
 import { ChatDriver, type PiBackend } from "./chat-driver.ts";
@@ -42,7 +42,7 @@ import { messageRejectionReason } from "./message-input.ts";
 import type { MetadataStore } from "./metadata-store.ts";
 import { PI_PROVIDER } from "./provider.ts";
 import type { LiveSessionCatalogueEntry } from "./session-catalogue.ts";
-import { dispatchOlderTurns, truncationAnchor } from "./session-history.ts";
+import { dispatchOlderTurns, loadTruncationTarget, truncationAnchor } from "./session-history.ts";
 import { SessionOperations } from "./session-operations.ts";
 import type { SessionManagerFactory } from "./session-storage.ts";
 import { fallbackSessionTitle, NEW_SESSION_TITLE } from "./session-title.ts";
@@ -236,6 +236,7 @@ export class SessionRegistry {
 			});
 		});
 
+		this.#host.serve({ chatTruncationRouter: this.routeTruncationAction });
 		this.#host.addClientActionValidator((channel, action) => this.#validateClientAction(channel, action));
 		this.#host.addClientActionEffect((channel, action) => {
 			const flag = sessionMetadataFlag(action);
@@ -268,6 +269,14 @@ export class SessionRegistry {
 	get operations(): SessionOperations {
 		return this.#operations;
 	}
+
+	/** Holds the client action until pi reaches the selected branch. */
+	readonly routeTruncationAction: ChatTruncationRouter = (channel, action, apply) => {
+		if (action.type !== ActionType.ChatTruncated) return false;
+		const session = this.#byChat.get(channel);
+		if (!session) return false;
+		return this.#operations.run(session.sessionId, () => this.#truncateBeforeCommit(session, action.turnId, apply));
+	};
 
 	/** Session read/archive can be persisted without hydrating cold history. */
 	readonly routeMetadataAction: SessionMetadataActionRouter = (channel, action, apply) => {
@@ -724,14 +733,19 @@ export class SessionRegistry {
 				return userMessageRejectionReason(action.draft, "A client can only draft a user message");
 			}
 			case ActionType.ChatTruncated: {
-				if (action.turnId !== undefined && typeof action.turnId !== "string") {
-					return "A truncation turnId must be a string";
+				if (action.turnId !== undefined && (typeof action.turnId !== "string" || action.turnId.length === 0)) {
+					return "A truncation turnId must be a non-empty string";
 				}
-				// Accepting an impossible truncation would shorten the client's view
-				// while pi kept using context the user believes is gone.
+				if (chat?.activeTurn) return "Cannot truncate while a turn is active";
 				const session = this.#byChat.get(channel);
-				if (!session) {
-					return undefined;
+				if (!session) return undefined;
+				if (!session.driver && !this.#options.createBackend) return "Cannot truncate without an agent backend";
+				if (
+					action.turnId !== undefined &&
+					!chat?.turns.some((turn) => turn.id === action.turnId) &&
+					!chat?.turnsNextCursor
+				) {
+					return `Cannot truncate: turn ${action.turnId} is not in the chat's loaded history`;
 				}
 				return truncationAnchor(session, action.turnId)
 					? undefined
@@ -757,9 +771,9 @@ export class SessionRegistry {
 		}
 
 		const session = this.#byChat.get(channel);
-		if (!session) {
-			return;
-		}
+		if (!session) return;
+		// Truncation already navigated pi before its client action was committed.
+		if (action.type === ActionType.ChatTruncated) return;
 		if (!session.driver) {
 			await this.#attachBackend(session);
 		}
@@ -776,10 +790,6 @@ export class SessionRegistry {
 			}
 		}
 		if (this.#sessions.get(session.uri) !== session) {
-			return;
-		}
-		if (action.type === ActionType.ChatTruncated) {
-			await this.#truncate(session, action.turnId);
 			return;
 		}
 		if (action.type === ActionType.ChatTurnStarted) {
@@ -853,20 +863,27 @@ export class SessionRegistry {
 		dispatchOlderTurns(this.#host, channel, session, cursor);
 	}
 
-	async #truncate(session: LiveSession, turnId: string | undefined): Promise<void> {
+	async #truncateBeforeCommit(session: LiveSession, turnId: string | undefined, apply: () => void): Promise<void> {
+		const channel = session.chatChannel;
+		const chat = this.#host.store.get(channel) as ChatState | undefined;
+		if (this.#sessions.get(session.uri) !== session || this.#disposals.has(session.sessionId) || !chat) {
+			throw new Error("This session is unavailable");
+		}
+		if (chat.activeTurn) throw new Error("Cannot truncate while a turn is active");
 		const anchor = truncationAnchor(session, turnId);
-		if (!anchor) {
-			// Validated before the action was applied, so this only happens if
-			// the file changed underneath us.
-			this.#options.log?.(`no truncation anchor for ${turnId ?? "(all)"} in ${session.uri}`);
-			return;
+		if (!anchor || !session.sessionManager.getBranch().some((entry) => entry.id === anchor)) {
+			throw new Error(`No current session entry matches turn ${turnId ?? "(all)"}`);
 		}
-		const applied = await session.driver?.truncate(anchor);
-		if (applied === false) {
-			// An extension vetoed it. Protocol state is already truncated, so
-			// the two have diverged; say so loudly rather than pretend.
-			this.#options.log?.(`agent refused truncation of ${session.uri}; state and session now differ`);
+		if (turnId !== undefined) loadTruncationTarget(this.#host, channel, session, turnId);
+		if (!session.driver) await this.#attachBackend(session);
+		if (!session.driver) throw new Error("The agent backend is unavailable");
+		if ((this.#host.store.get(channel) as ChatState | undefined)?.activeTurn) {
+			throw new Error("Cannot truncate while a turn is active");
 		}
+		if (!(await session.driver.truncate(anchor))) throw new Error("The agent refused truncation");
+		// Commit before releasing the per-session gate: a queued deletion must not
+		// remove the chat between pi's navigation and the protocol action.
+		apply();
 	}
 
 	// ── Internals ───────────────────────────────────────────────────────────

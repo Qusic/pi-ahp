@@ -136,8 +136,17 @@ export class InProcessPiBackend implements PiBackend {
 	 * agent's in-memory messages, so no reload is needed.
 	 */
 	async truncate(entryId: string): Promise<boolean> {
+		const manager = this.#session.sessionManager;
+		const target = manager.getEntry(entryId);
+		if (!target) return false;
+		const leaf =
+			(target.type === "message" && target.message.role === "user") || target.type === "custom_message"
+				? target.parentId
+				: entryId;
 		const result = await this.#session.navigateTree(entryId);
-		return !result.cancelled;
+		// Pi treats navigation to its current leaf as a no-op, even when that leaf
+		// is a user entry whose *parent* is the desired clear-all destination.
+		return !result.cancelled && manager.getLeafId() === leaf;
 	}
 
 	/** What a new message would run on right now. */

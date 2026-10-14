@@ -504,7 +504,9 @@ describe("chat driver", () => {
 		backend.emit({ type: "message_start", message: userMessage } as AgentSessionEvent);
 		backend.emit({ type: "message_end", message: userMessage } as AgentSessionEvent);
 		live.sessionManager.appendMessage(userMessage);
-		live.sessionManager.appendMessage(fauxAssistantMessage([], { stopReason: "aborted", timestamp: 0 }));
+		const abortedEntry = live.sessionManager.appendMessage(
+			fauxAssistantMessage([], { stopReason: "aborted", timestamp: 0 }),
+		);
 
 		fixture.client.dispatch(fixture.chatChannel, {
 			type: ActionType.ChatPendingMessageSet,
@@ -530,13 +532,7 @@ describe("chat driver", () => {
 		assert.equal(chat.turns.at(-1)?.state, TurnState.Complete);
 		assert.equal(session.chats[0]?.status, chat.status);
 
-		fixture.client.dispatch(fixture.chatChannel, { type: ActionType.ChatTruncated, turnId: "t-cancel" });
-		await fixture.client.ping();
-		assert.deepEqual(
-			(fixture.host.store.get(fixture.chatChannel) as ChatState).turns.map((turn) => turn.id),
-			["t-cancel"],
-			"a recorded cancelled turn must remain a valid truncation target",
-		);
+		assert.equal(live.turnAnchors.get("t-cancel"), abortedEntry, "cancelled turn must anchor before queued work");
 	});
 });
 
