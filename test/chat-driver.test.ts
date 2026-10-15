@@ -701,7 +701,7 @@ describe("chat driver — prompt settlement", () => {
 				return () => undefined;
 			},
 			prompt: async () => {
-				notify({ type: "agent_settled" });
+				notify({ type: "agent_settled", aborted: false });
 				throw new Error("prompt failed after settlement");
 			},
 			steer: async () => undefined,
@@ -731,7 +731,7 @@ describe("chat driver — prompt settlement", () => {
 				return () => undefined;
 			},
 			prompt: async () => {
-				notify({ type: "agent_settled" });
+				notify({ type: "agent_settled", aborted: false });
 				await new Promise<void>((resolve) => {
 					release = resolve;
 				});
