@@ -82,7 +82,9 @@ The signed-out option is currently experimental and desktop-only. When prompted,
 
 I also make [Agent Console](https://qusic.github.io/agent-console/), a paid native AHP client for iPhone and iPad. Purchasing it helps support continued work on both Agent Console and `pi-ahp`.
 
-Agent Console connects with the direct URL printed by `pi-ahp`, or through a tunnel created by `pi-ahp-tunnel` when signed in to the same Dev Tunnels account. pi and its model credentials remain on the host, and Agent Console has no hosted backend. See the [Agent Console setup guide for Pi Coding Agent](https://qusic.github.io/agent-console/docs/pi-coding-agent/) for details.
+Agent Console connects with the direct URL printed by `pi-ahp`, or through a tunnel created by `pi-ahp-tunnel` when signed in to the same Dev Tunnels account. pi and its model credentials remain on the host; Agent Console has no hosted chat backend. See the [Agent Console setup guide for Pi Coding Agent](https://qusic.github.io/agent-console/docs/pi-coding-agent/) for details.
+
+With notification permission and per-host consent, Agent Console can notify you when a response is ready or fails via [pi-ahp webhooks](#webhooks).
 
 ## AHP support
 
@@ -121,7 +123,7 @@ Currently supported protocol versions: **1.0.0 and 0.9.0**
 
 ### Webhooks
 
-The non-standard root request `x-qusic/ahp-webhook/set` is advertised by `initialize.result._meta["me.qusic.ahp-webhook"] = 1`. It persists one client-provided URL and JSON body per AHP `clientId`; send `webhook: null` to clear it. Example `params`:
+The non-standard root request `x-qusic/ahp-webhook/set` is advertised by `initialize.result._meta["me.qusic.ahp-webhook"] = 1`. It persists one client-provided URL and JSON body per AHP `clientId`; send `webhook: null` to clear it. [Agent Console](#iphone-and-ipad) uses this extension for push notifications. Example `params`:
 
 ```json
 {
