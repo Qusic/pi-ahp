@@ -3,7 +3,7 @@
  * this host's. Each entry says what the client does and what would let it go.
  */
 
-import { ActionType, JsonRpcErrorCodes, type URI } from "@microsoft/agent-host-protocol";
+import { ActionType, JsonRpcErrorCodes, type SessionSummary, type URI } from "@microsoft/agent-host-protocol";
 import { ProtocolError } from "../protocol/errors.ts";
 import type { JsonRpcMessage, JsonRpcNotification, JsonRpcRequest, JsonRpcResponse } from "../protocol/jsonrpc.ts";
 import { chatIdFromUri, chatUri, ROOT_CHANNEL, sessionIdFromUri, sessionUri } from "./channels.ts";
@@ -71,19 +71,20 @@ interface MessageParams {
 	_meta?: unknown;
 	action?: unknown;
 	channel?: unknown;
+	changes?: unknown;
 	importConversation?: unknown;
 	initialSubscriptions?: unknown;
 	rejectionReason?: unknown;
 	session?: unknown;
 	subscriptions?: unknown;
+	summary?: unknown;
 }
 
 type TrackedSessionState = "creating" | "empty" | "materialized" | "disposing";
 
-interface PendingLifecycleRequest {
-	readonly kind: "create" | "dispose";
-	readonly session: URI;
-}
+type PendingLifecycleRequest =
+	| { readonly kind: "create" | "dispose"; readonly session: URI }
+	| { readonly kind: "listSessions" };
 
 function typeOfAction(value: unknown): string | undefined {
 	return typeof value === "object" && value !== null && "type" in value && typeof value.type === "string"
@@ -110,14 +111,44 @@ function hasVscodeClientMeta(value: unknown): boolean {
 class VscodeSessionDisposalGuard {
 	readonly #sessions = new Map<URI, TrackedSessionState>();
 	readonly #pendingRequests = new Map<number, PendingLifecycleRequest>();
+	readonly #deferredSessionAdded = new Map<URI, JsonRpcNotification>();
+	readonly #pendingOutgoing: JsonRpcMessage[] = [];
+
+	takePendingOutgoing(): JsonRpcMessage[] {
+		const result = [...this.#pendingOutgoing];
+		this.#pendingOutgoing.length = 0;
+		return result;
+	}
+
+	isProvisional(uri: URI): boolean {
+		const session = canonicalSessionUri(uri);
+		if (!session) return false;
+		const state = this.#sessions.get(session);
+		return state === "creating" || state === "empty";
+	}
 
 	applyToIncoming(message: JsonRpcRequest | JsonRpcNotification, params: MessageParams): void {
 		const channel = typeof params.channel === "string" ? params.channel : undefined;
 		const actionType = typeOfAction(params.action);
 		if (channel && actionType && MATERIALIZING_ACTIONS.has(actionType)) {
 			this.#markMaterialized(channel);
+			const session = owningSessionUri(channel);
+			if (session) {
+				const deferred = this.#deferredSessionAdded.get(session);
+				if (deferred) {
+					this.#deferredSessionAdded.delete(session);
+					this.#pendingOutgoing.push(deferred);
+				}
+			}
 		}
-		if (!("id" in message) || !channel) {
+		if (!("id" in message)) {
+			return;
+		}
+		if (message.method === "listSessions") {
+			this.#pendingRequests.set(message.id, { kind: "listSessions" });
+			return;
+		}
+		if (!channel) {
 			return;
 		}
 		const session = canonicalSessionUri(channel);
@@ -139,14 +170,50 @@ class VscodeSessionDisposalGuard {
 		this.#pendingRequests.set(message.id, { kind: "dispose", session });
 	}
 
-	applyToOutgoing(message: JsonRpcMessage): void {
+	applyToOutgoing(message: JsonRpcMessage): JsonRpcMessage | JsonRpcMessage[] | undefined {
 		if (!("method" in message)) {
-			this.#applyResponse(message);
-			return;
+			return this.#applyResponse(message);
 		}
 		const params = message.params as MessageParams | undefined;
 		if (!params) {
-			return;
+			return message;
+		}
+		if (message.method === "root/sessionAdded") {
+			const summary = params.summary as { resource?: string } | undefined;
+			if (typeof summary?.resource === "string") {
+				const session = canonicalSessionUri(summary.resource);
+				if (session && this.isProvisional(session)) {
+					this.#deferredSessionAdded.set(session, message as JsonRpcNotification);
+					return undefined;
+				}
+			}
+			return message;
+		}
+		if (message.method === "root/sessionSummaryChanged") {
+			const sessionUri = typeof params.session === "string" ? canonicalSessionUri(params.session) : undefined;
+			if (sessionUri && this.isProvisional(sessionUri)) {
+				const deferred = this.#deferredSessionAdded.get(sessionUri);
+				if (deferred && typeof deferred.params === "object" && deferred.params !== null) {
+					const deferredParams = deferred.params as { summary?: SessionSummary };
+					if (deferredParams.summary && typeof params.changes === "object" && params.changes !== null) {
+						deferredParams.summary = { ...deferredParams.summary, ...params.changes };
+					}
+				}
+				return undefined;
+			}
+			return message;
+		}
+		if (message.method === "root/sessionRemoved" && typeof params.session === "string") {
+			const session = canonicalSessionUri(params.session);
+			if (session) {
+				const wasProvisional = this.isProvisional(session) || this.#deferredSessionAdded.has(session);
+				this.#deferredSessionAdded.delete(session);
+				this.#sessions.delete(session);
+				if (wasProvisional) {
+					return undefined;
+				}
+			}
+			return message;
 		}
 		const actionType = typeOfAction(params.action);
 		if (
@@ -156,34 +223,61 @@ class VscodeSessionDisposalGuard {
 			MATERIALIZING_ACTIONS.has(actionType) &&
 			typeof params.channel === "string"
 		) {
-			this.#markMaterialized(params.channel);
+			const session = owningSessionUri(params.channel);
+			if (session) {
+				this.#markMaterialized(session);
+				const deferred = this.#deferredSessionAdded.get(session);
+				if (deferred) {
+					this.#deferredSessionAdded.delete(session);
+					return [deferred, message];
+				}
+			}
 		}
-		if (message.method === "root/sessionRemoved" && typeof params.session === "string") {
-			const session = canonicalSessionUri(params.session);
-			if (session) this.#sessions.delete(session);
-		}
+		return message;
 	}
 
-	#applyResponse(message: JsonRpcResponse): void {
+	#applyResponse(message: JsonRpcResponse): JsonRpcResponse {
 		const pending = this.#pendingRequests.get(message.id);
 		if (!pending) {
-			return;
+			return message;
 		}
 		this.#pendingRequests.delete(message.id);
-		const state = this.#sessions.get(pending.session);
+		if (pending.kind === "listSessions") {
+			if (
+				"result" in message &&
+				typeof message.result === "object" &&
+				message.result !== null &&
+				"items" in message.result &&
+				Array.isArray(message.result.items)
+			) {
+				const items = message.result.items.filter((item: unknown) => {
+					if (typeof item === "object" && item !== null && "resource" in item && typeof item.resource === "string") {
+						return !this.isProvisional(item.resource);
+					}
+					return true;
+				});
+				return { ...message, result: { ...message.result, items } };
+			}
+			return message;
+		}
+		const session = pending.session;
+		const state = this.#sessions.get(session);
 		if (pending.kind === "create") {
 			if ("result" in message) {
-				if (state === "creating") this.#sessions.set(pending.session, "empty");
+				if (state === "creating") this.#sessions.set(session, "empty");
 			} else {
-				this.#sessions.delete(pending.session);
+				this.#sessions.delete(session);
+				this.#deferredSessionAdded.delete(session);
 			}
-			return;
+			return message;
 		}
 		if ("result" in message) {
-			this.#sessions.delete(pending.session);
+			this.#sessions.delete(session);
+			this.#deferredSessionAdded.delete(session);
 		} else if (state === "disposing") {
-			this.#sessions.set(pending.session, "empty");
+			this.#sessions.set(session, "empty");
 		}
+		return message;
 	}
 
 	#markMaterialized(channel: URI): void {
@@ -263,10 +357,28 @@ export class ClientWorkarounds {
 		}
 	}
 
+	/** Takes any notifications that became ready to deliver to this connection. */
+	takePendingOutgoing(): JsonRpcMessage[] {
+		if (!this.#isVscode) return [];
+		return this.#vscodeSessionDisposal.takePendingOutgoing();
+	}
+
 	/** Returns the outgoing message, rewritten if this client needs it. */
-	applyToOutgoing(message: JsonRpcMessage): JsonRpcMessage {
+	applyToOutgoing(message: JsonRpcMessage): JsonRpcMessage | JsonRpcMessage[] | undefined {
 		if (this.#isVscode) {
-			this.#vscodeSessionDisposal.applyToOutgoing(message);
+			const transformed = this.#vscodeSessionDisposal.applyToOutgoing(message);
+			if (transformed === undefined) {
+				return undefined;
+			}
+			const dialect = this.#uriDialect();
+			if (Array.isArray(transformed)) {
+				return dialect === "canonical"
+					? transformed
+					: transformed.map((msg) => rewriteFields(msg, (uri) => outbound(uri, dialect)) as JsonRpcMessage);
+			}
+			return dialect === "canonical"
+				? transformed
+				: (rewriteFields(transformed, (uri) => outbound(uri, dialect)) as JsonRpcMessage);
 		}
 		const dialect = this.#uriDialect();
 		return dialect === "canonical"
