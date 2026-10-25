@@ -1,12 +1,12 @@
 allowBuilds:
-  '@google/genai': false
-  '@parcel/watcher': false
+  "@google/genai": false
+  "@parcel/watcher": false
   esbuild: false
   node-pty: true
   protobufjs: false
 minimumReleaseAgeExclude:
-  - '@microsoft/agent-host-protocol'
-  - '@earendil-works/*'
+  - "@microsoft/agent-host-protocol"
+  - "@earendil-works/*"
 patchedDependencies:
   # Required by isolatedModules; regenerate with scripts/repatch-protocol.sh.
-  '@microsoft/agent-host-protocol': patches/@microsoft__agent-host-protocol.patch
+  "@microsoft/agent-host-protocol": patches/@microsoft__agent-host-protocol.patch

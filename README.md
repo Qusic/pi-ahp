@@ -33,9 +33,9 @@ On first run, it creates `~/.pi/ahp/settings.json` with a free port and a random
 
 ```json
 {
-  "host": "127.0.0.1",
-  "port": 32145,
-  "token": "<generated token>"
+	"host": "127.0.0.1",
+	"port": 32145,
+	"token": "<generated token>"
 }
 ```
 
@@ -68,13 +68,12 @@ If the remote-host commands are unavailable, or if you want to use a direct conn
 
 ```json
 {
-  "chat.remoteAgentHostsEnabled": true,
-  "chat.agentHost.allowSignedOutWhenUsable": true
+	"chat.remoteAgentHostsEnabled": true,
+	"chat.agentHost.allowSignedOutWhenUsable": true
 }
 ```
 
 The signed-out option is currently experimental and desktop-only. When prompted, choose **Continue Without Signing In**; you do not need to preconfigure a host manually.
-
 - **Direct WebSocket:** run **Agents: Add Remote Agent Host...** and paste the URL printed by `pi-ahp`.
 - **Dev Tunnel:** sign in to the same account in VS Code, then run **Agents: Connect to Remote Agent Host via Dev Tunnel**. Tunnel discovery requires sign-in.
 
@@ -94,32 +93,32 @@ Currently supported protocol versions: **1.0.0 and 0.9.0**
 
 🟢 Supported · 🟡 Planned · 🔴 Out of scope
 
-| Feature | Status | Notes |
-| --- | :---: | --- |
-| Connection lifecycle and reconnect | 🟢 | Active work survives a temporary connection loss, but not a host restart |
-| Durable sessions and history | 🟢 | Completed history for the active conversation branch recovers after restart |
-| Streaming chat and pi tool calls | 🟢 | One chat per session |
-| Steering, queues, drafts, and truncation | 🟢 | Drafts and unconsumed queues do not survive a host restart |
-| Models, session setup, and completions | 🟢 | Model and thinking-level selection, working directory, and `@` file completions |
-| Text attachments | 🟢 | Client-provided text, local file references, and embedded UTF-8 text |
-| Files and watches | 🟢 | Host-local `file:` resources only |
-| Interactive terminals | 🟢 | Client-owned; terminals and scrollback end when the host stops |
-| Images and vision | 🟢 | Embedded image attachments for vision-capable pi models |
-| Changeset views | 🟢 | Latest commit and uncommitted changes in Git workspaces |
-| Persistent session read/archive controls | 🟢 | Host-owned metadata outside pi session files |
-| Tool catalogue and client tools | 🟡 | Show available pi tools and let connected clients contribute tools |
-| pi customizations | 🟡 | Show and configure loaded extensions, skills, and prompt templates |
-| Terminal command detection | 🟡 | Group terminal output by command and exit status |
-| Multiple chats or working directories | 🔴 | A pi session has one active branch and cwd; branches are not simultaneous AHP chats |
-| Custom agents | 🔴 | pi sub-agents are extension tools rather than selectable agents |
-| Elicitation | 🔴 | pi extension dialogs are not persisted as turn input |
-| Tool input and result confirmation | 🔴 | pi has no built-in permission policy |
-| Errored-turn resume | 🔴 | pi cannot reopen a finalized turn |
-| MCP lifecycle and Apps | 🔴 | pi has no built-in MCP runtime; extension implementations are opaque |
-| Annotations | 🔴 | There is no corresponding pi session state |
-| Automations and automation runs | 🔴 | pi has no scheduler or automation-run model |
-| AHP protected-resource authentication | 🔴 | pi manages model-provider credentials itself |
-| OTLP telemetry channels | 🔴 | pi does not provide host telemetry as OTLP |
+| Feature                                  | Status | Notes                                                                               |
+| ---------------------------------------- | :----: | ----------------------------------------------------------------------------------- |
+| Connection lifecycle and reconnect       |   🟢   | Active work survives a temporary connection loss, but not a host restart            |
+| Durable sessions and history             |   🟢   | Completed history for the active conversation branch recovers after restart         |
+| Streaming chat and pi tool calls         |   🟢   | One chat per session                                                                |
+| Steering, queues, drafts, and truncation |   🟢   | Drafts and unconsumed queues do not survive a host restart                          |
+| Models, session setup, and completions   |   🟢   | Model and thinking-level selection, working directory, and `@` file completions     |
+| Text attachments                         |   🟢   | Client-provided text, local file references, and embedded UTF-8 text                |
+| Files and watches                        |   🟢   | Host-local `file:` resources only                                                   |
+| Interactive terminals                    |   🟢   | Client-owned; terminals and scrollback end when the host stops                      |
+| Images and vision                        |   🟢   | Embedded image attachments for vision-capable pi models                             |
+| Changeset views                          |   🟢   | Latest commit and uncommitted changes in Git workspaces                             |
+| Persistent session read/archive controls |   🟢   | Host-owned metadata outside pi session files                                        |
+| Tool catalogue and client tools          |   🟡   | Show available pi tools and let connected clients contribute tools                  |
+| pi customizations                        |   🟡   | Show and configure loaded extensions, skills, and prompt templates                  |
+| Terminal command detection               |   🟡   | Group terminal output by command and exit status                                    |
+| Multiple chats or working directories    |   🔴   | A pi session has one active branch and cwd; branches are not simultaneous AHP chats |
+| Custom agents                            |   🔴   | pi sub-agents are extension tools rather than selectable agents                     |
+| Elicitation                              |   🔴   | pi extension dialogs are not persisted as turn input                                |
+| Tool input and result confirmation       |   🔴   | pi has no built-in permission policy                                                |
+| Errored-turn resume                      |   🔴   | pi cannot reopen a finalized turn                                                   |
+| MCP lifecycle and Apps                   |   🔴   | pi has no built-in MCP runtime; extension implementations are opaque                |
+| Annotations                              |   🔴   | There is no corresponding pi session state                                          |
+| Automations and automation runs          |   🔴   | pi has no scheduler or automation-run model                                         |
+| AHP protected-resource authentication    |   🔴   | pi manages model-provider credentials itself                                        |
+| OTLP telemetry channels                  |   🔴   | pi does not provide host telemetry as OTLP                                          |
 
 ### Webhooks
 
@@ -127,16 +126,16 @@ The non-standard root request `x-qusic/ahp-webhook/set` is advertised by `initia
 
 ```json
 {
-  "channel": "ahp-root://",
-  "webhook": {
-    "url": "https://example.com/webhook",
-    "body": {
-      "session": "$session",
-      "event": "$event",
-      "workspace": "$workspace",
-      "detail": "$detail"
-    }
-  }
+	"channel": "ahp-root://",
+	"webhook": {
+		"url": "https://example.com/webhook",
+		"body": {
+			"session": "$session",
+			"event": "$event",
+			"workspace": "$workspace",
+			"detail": "$detail"
+		}
+	}
 }
 ```
 
