@@ -54,13 +54,13 @@
 		"@microsoft/agent-host-protocol": "1.0.0",
 		"@parcel/watcher": "^2.6.0",
 		"chokidar": "^6.0.0",
-		"mime": "^4.1.1",
+		"mime": "^4.1.2",
 		"node-pty": "^1.2.0-beta.18",
 		"ws": "^8.22.0",
 		"zod": "^4.6.7"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^2.6.2",
+		"@biomejs/biome": "^2.6.4",
 		"@types/node": "^24.19.2",
 		"@types/ws": "^8.18.2",
 		"ajv": "^8.20.0",
