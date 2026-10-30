@@ -27,7 +27,7 @@
         let
           pkgJson = builtins.fromJSON (builtins.readFile ./package.json);
           nodejs = final.nodejs_24;
-          pnpm = final.pnpm_11;
+          pnpm = final.pnpm_12;
         in
         {
           ahp-spec = final.fetchFromGitHub rec {
@@ -57,8 +57,8 @@
               version = pkgJson.version;
               inherit (finalAttrs) src;
               inherit pnpm;
-              fetcherVersion = 4;
-              hash = "sha256-zKkxXzG+/jzxiAzFYYTysLYdlcHSTVOknDD64XKAbNk=";
+              fetcherVersion = 5;
+              hash = "sha256-oshHFv2DXaJ9SUsHKZb+5CaBKzxnlZF6lnEdmfj6GRI=";
             };
 
             __structuredAttrs = true;
