@@ -151,12 +151,10 @@ describe("live turn", { skip: LIVE ? false : SKIP_REASON }, () => {
 			modelRuntime: discovery.modelRuntime,
 			sessionStorage: persistentSessionStorage(sessionRoot, metadata),
 			metadata,
-			projectTrustPolicy: "never",
 			createBackend: async (session) => {
 				const backend = await InProcessPiBackend.create({
 					cwd: session.workingDirectory,
 					sessionManager: session.sessionManager,
-					projectTrustPolicy: "never",
 				});
 				assert.deepEqual(
 					backend.currentSelection(),

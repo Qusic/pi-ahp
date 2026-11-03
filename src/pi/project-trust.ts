@@ -6,61 +6,58 @@
  * `.agents/skills`. Loading some of them executes project-controlled code or
  * changes the agent's instructions.
  *
- * The interactive CLI resolves trust before loading those resources. Raw SDK
- * construction instead defaults `projectTrusted` to true, so an embedding host
- * must supply its decision explicitly. That matters here because
- * `createSession` accepts the working directory from a remote client.
+ * Raw SDK construction defaults `projectTrusted` to true, so this host resolves
+ * trust the way pi's CLI does and passes the answer explicitly: a decision saved
+ * for the folder or one of its parents applies first, then pi's
+ * `defaultProjectTrust` setting. Where pi would prompt, the session config asks
+ * the user instead, and an answer that differs is saved to pi's own trust store.
+ * Every decision is therefore shared with pi, and a restarted host reaches the
+ * same answer.
  *
- * The default `trust` policy preserves the SDK default. The stricter `inherit`
- * policy reuses pi's trust store, so decisions made by either program apply to
- * both.
+ * Unlike pi, extension `project_trust` handlers are not consulted.
  */
 
-import { getAgentDir, hasTrustRequiringProjectResources, ProjectTrustStore } from "@earendil-works/pi-coding-agent";
+import {
+	type DefaultProjectTrust,
+	getAgentDir,
+	hasTrustRequiringProjectResources,
+	ProjectTrustStore,
+	type ProjectTrustStoreEntry,
+	SettingsManager,
+} from "@earendil-works/pi-coding-agent";
 
-/**
- * What to do about a working directory pi has no recorded decision for.
- *
- * - `trust` (default) — load project resources unconditionally, matching raw
- *   SDK construction.
- * - `inherit` — honour pi's trust store; decline for a directory it has no
- *   decision for.
- * - `never` — never load project resources.
- */
-export type ProjectTrustPolicy = "trust" | "inherit" | "never";
-
-export interface TrustDecision {
+export interface ProjectTrust {
+	/** Whether the folder has anything trust gates. Without that, there is nothing to decide. */
+	readonly gated: boolean;
+	/** The closest decision saved for the folder or one of its parents. */
+	readonly saved: ProjectTrustStoreEntry | null;
+	/** pi's answer for a gated folder without a saved decision. */
+	readonly defaultProjectTrust: DefaultProjectTrust;
+	/** What a session in the folder gets unless the user answers otherwise. */
 	readonly trusted: boolean;
-	/** Why, so a client can explain it rather than silently degrade. */
-	readonly reason: "no-project-resources" | "user-trusted" | "user-untrusted" | "policy" | "unknown-project";
 }
 
-export function resolveProjectTrust(
-	cwd: string,
-	policy: ProjectTrustPolicy = "trust",
-	agentDir: string = getAgentDir(),
-): TrustDecision {
-	if (policy === "never") {
-		return { trusted: false, reason: "policy" };
-	}
+export function readProjectTrust(cwd: string, agentDir: string = getAgentDir()): ProjectTrust {
+	const gated = hasTrustRequiringProjectResources(cwd);
+	const saved = new ProjectTrustStore(agentDir).getEntry(cwd);
+	// Global settings only: project settings are themselves trust-gated.
+	const defaultProjectTrust = SettingsManager.create(cwd, agentDir, { projectTrusted: false }).getDefaultProjectTrust();
+	// As in pi, a saved decision wins. Without one, a folder with nothing to
+	// gate is trusted, and "ask" declines until the user answers.
+	const trusted = saved?.decision ?? (!gated || defaultProjectTrust === "always");
+	return { gated, saved, defaultProjectTrust, trusted };
+}
 
-	// Nothing in the directory needs gating — trusting it grants nothing.
-	if (!hasTrustRequiringProjectResources(cwd)) {
-		return { trusted: true, reason: "no-project-resources" };
+/**
+ * Records the user's answer for a new session's folder, where pi would prompt.
+ *
+ * An answer that differs from what the folder would get is saved to pi's trust
+ * store, as pi's own prompt saves it. An unchanged answer saves nothing, so a
+ * client that echoes the value it was shown leaves the store alone.
+ */
+export function chooseProjectTrust(cwd: string, trusted: boolean, agentDir: string = getAgentDir()): void {
+	const current = readProjectTrust(cwd, agentDir);
+	if (current.gated && trusted !== current.trusted) {
+		new ProjectTrustStore(agentDir).set(cwd, trusted);
 	}
-
-	if (policy === "trust") {
-		return { trusted: true, reason: "policy" };
-	}
-
-	// The very same store pi's CLI writes, so decisions carry both ways.
-	const stored = new ProjectTrustStore(agentDir).get(cwd);
-	if (stored === true) {
-		return { trusted: true, reason: "user-trusted" };
-	}
-	if (stored === false) {
-		return { trusted: false, reason: "user-untrusted" };
-	}
-	// No recorded decision, and a host has no user to ask.
-	return { trusted: false, reason: "unknown-project" };
 }

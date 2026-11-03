@@ -23,14 +23,12 @@ import type { ModelSelection } from "@microsoft/agent-host-protocol";
 import type { PiBackend } from "./chat-driver.ts";
 import { prepareImagesForPi } from "./image-input.ts";
 import { findModelBySelectionId, modelSelectionId, THINKING_CONFIG_KEY } from "./models.ts";
-import { type ProjectTrustPolicy, resolveProjectTrust, type TrustDecision } from "./project-trust.ts";
+import { readProjectTrust } from "./project-trust.ts";
 
 export interface InProcessBackendOptions {
 	readonly cwd: string;
 	/** Reuses the session manager the host already allocated, so ids line up. */
 	readonly sessionManager: SessionManager;
-	/** How to treat project-local pi resources. Defaults to `trust`. */
-	readonly projectTrustPolicy?: ProjectTrustPolicy;
 }
 
 /**
@@ -42,28 +40,21 @@ export interface InProcessBackendOptions {
  */
 export class InProcessPiBackend implements PiBackend {
 	readonly #session: AgentSession;
-	readonly #trust: TrustDecision;
 
-	private constructor(session: AgentSession, trust: TrustDecision) {
+	private constructor(session: AgentSession) {
 		this.#session = session;
-		this.#trust = trust;
-	}
-
-	/** How project trust was resolved, so the host can report it to clients. */
-	get projectTrust(): TrustDecision {
-		return this.#trust;
 	}
 
 	static async create(options: InProcessBackendOptions): Promise<InProcessPiBackend> {
 		// SDK session construction defaults projectTrusted to true and does not run
-		// the CLI's trust prompt, so pass this host's decision explicitly.
-		const trust = resolveProjectTrust(options.cwd, options.projectTrustPolicy);
+		// the CLI's trust prompt, so pass the folder's decision explicitly.
+		const { trusted } = readProjectTrust(options.cwd);
 		const services = await createAgentSessionServices({
 			cwd: options.cwd,
-			settingsManager: SettingsManager.create(options.cwd, undefined, { projectTrusted: trust.trusted }),
+			settingsManager: SettingsManager.create(options.cwd, undefined, { projectTrusted: trusted }),
 		});
 		const { session } = await createAgentSessionFromServices({ services, sessionManager: options.sessionManager });
-		return new InProcessPiBackend(session, trust);
+		return new InProcessPiBackend(session);
 	}
 
 	get session(): AgentSession {

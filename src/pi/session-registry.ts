@@ -148,6 +148,8 @@ export interface CreateSessionRequest {
 	 */
 	readonly workingDirectories?: readonly URI[];
 	readonly provider?: string;
+	/** Answers to the schema `resolveSessionConfig` returned. */
+	readonly config?: Readonly<Record<string, unknown>>;
 }
 
 export interface SessionFileDeletionResult {
@@ -165,6 +167,8 @@ export interface SessionRegistryOptions {
 	readonly metadata: MetadataStore;
 	/** Seeds a new chat's draft so a client has a model selected from the start. */
 	readonly defaultSelection?: () => ModelSelection | undefined;
+	/** Applies creation-time config before the session exists; throwing refuses the creation. */
+	readonly applySessionConfig?: (workingDirectory: string, config: CreateSessionRequest["config"]) => void;
 	/** A failed result or rejection prevents protocol removal. */
 	readonly deleteFile?: (path: string) => SessionFileDeletionResult | Promise<SessionFileDeletionResult>;
 	/** Locates the file behind a session this host never ran. */
@@ -399,6 +403,7 @@ export class SessionRegistry {
 		const workingDirectory = requested
 			? fileUriToPath(requested)
 			: (this.#options.defaultWorkingDirectory ?? process.cwd());
+		this.#options.applySessionConfig?.(workingDirectory, request.config);
 
 		const title = NEW_SESSION_TITLE;
 		const createdAt = new Date().toISOString();

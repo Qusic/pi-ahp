@@ -7,17 +7,19 @@ import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { it } from "node:test";
 import { pathToFileURL } from "node:url";
+import { ProjectTrustStore } from "@earendil-works/pi-coding-agent";
 import {
 	ActionType,
 	type ChatState,
 	CompletionItemKind,
+	JsonRpcErrorCodes,
 	MessageKind,
 	SessionLifecycle,
 	type SessionState,
 	SessionStatus,
 	SUPPORTED_PROTOCOL_VERSIONS,
 } from "@microsoft/agent-host-protocol";
-import { AhpClient } from "@microsoft/agent-host-protocol/client";
+import { AhpClient, RpcError } from "@microsoft/agent-host-protocol/client";
 import { WebSocketTransport } from "@microsoft/agent-host-protocol/ws";
 import { chatUri, ROOT_CHANNEL, sessionUri } from "../src/core/channels.ts";
 import { createPiHost } from "../src/host/pi-host.ts";
@@ -32,6 +34,10 @@ import { persistentSessionStorage } from "./support/session-storage.ts";
 it("wires product services through createPiHost", async (t) => {
 	const workspace = mkdtempSync(join(tmpdir(), "pi-ahp-composition-"));
 	const sessionRoot = mkdtempSync(join(tmpdir(), "pi-ahp-composition-sessions-"));
+	// pi's trust store lives here, away from the user's profile.
+	const agentDir = mkdtempSync(join(tmpdir(), "pi-ahp-composition-agent-"));
+	const previousAgentDir = process.env.PI_CODING_AGENT_DIR;
+	process.env.PI_CODING_AGENT_DIR = agentDir;
 	writeFileSync(join(workspace, "notes.md"), "# Notes\n");
 	const metadata = new MetadataStore(join(sessionRoot, "ahp"));
 	const built = await createPiHost({
@@ -69,6 +75,29 @@ it("wires product services through createPiHost", async (t) => {
 			workingDirectory: pathToFileURL(workspace).toString(),
 		});
 		assert.ok(config.schema.properties[PROJECT_TRUST_KEY]);
+
+		// The answer is applied before the session exists: a refusal leaves no
+		// session behind, and a changed answer is saved for the folder.
+		const project = join(workspace, "project");
+		mkdirSync(join(project, ".pi", "extensions"), { recursive: true });
+		writeFileSync(join(project, ".pi", "extensions", "ext.ts"), "export default () => {};\n");
+		const projectUri = pathToFileURL(project).toString();
+		const refused = sessionUri(randomUUID());
+		await assert.rejects(
+			client.request("createSession", {
+				channel: refused,
+				workingDirectories: [projectUri],
+				config: { [PROJECT_TRUST_KEY]: "yes" },
+			}),
+			(error: unknown) => error instanceof RpcError && error.code === JsonRpcErrorCodes.InvalidParams,
+		);
+		assert.equal(built.host.store.has(refused), false);
+		await client.request("createSession", {
+			channel: sessionUri(randomUUID()),
+			workingDirectories: [projectUri],
+			config: { [PROJECT_TRUST_KEY]: true },
+		});
+		assert.equal(new ProjectTrustStore(agentDir).get(project), true);
 
 		const id = randomUUID();
 		const session = sessionUri(id);
@@ -128,8 +157,11 @@ it("wires product services through createPiHost", async (t) => {
 		built.terminals.shutdown();
 		built.webhooks.dispose();
 		await Promise.all([built.changesets.dispose(), built.watches.dispose()]);
+		if (previousAgentDir === undefined) delete process.env.PI_CODING_AGENT_DIR;
+		else process.env.PI_CODING_AGENT_DIR = previousAgentDir;
 		rmSync(workspace, { recursive: true, force: true });
 		rmSync(sessionRoot, { recursive: true, force: true });
+		rmSync(agentDir, { recursive: true, force: true });
 	}
 });
 

@@ -14,22 +14,23 @@
  * @see https://microsoft.github.io/agent-host-protocol/specification/root-channel
  */
 
-import type {
-	ResolveSessionConfigParams,
-	ResolveSessionConfigResult,
-	SessionConfigCompletionsParams,
-	SessionConfigCompletionsResult,
-	SessionConfigSchema,
+import {
+	JsonRpcErrorCodes,
+	type ResolveSessionConfigParams,
+	type ResolveSessionConfigResult,
+	type SessionConfigCompletionsParams,
+	type SessionConfigCompletionsResult,
+	type SessionConfigPropertySchema,
 } from "@microsoft/agent-host-protocol";
 import { fileUriToPath } from "../core/uri.ts";
-import { type ProjectTrustPolicy, resolveProjectTrust } from "./project-trust.ts";
+import { ProtocolError } from "../protocol/errors.ts";
+import { chooseProjectTrust, type ProjectTrust, readProjectTrust } from "./project-trust.ts";
 
-/** Config key describing whether trust-gated project resources load. */
-export const PROJECT_TRUST_KEY = "projectResources";
+/** Config key for whether the session's folder is trusted; see project-trust.ts. */
+export const PROJECT_TRUST_KEY = "projectTrust";
 
 export interface SessionConfigOptions {
 	readonly defaultWorkingDirectory: string;
-	readonly projectTrustPolicy?: ProjectTrustPolicy;
 }
 
 export class SessionConfigService {
@@ -42,34 +43,47 @@ export class SessionConfigService {
 	/**
 	 * Describes what a new session in this directory would do.
 	 *
-	 * Only one property, and it is read-only: whether trust-gated resources from
-	 * the target directory and its ancestors will load. It is surfaced because
-	 * the answer changes with the directory and materially changes the agent's
-	 * tools, settings, and instructions.
+	 * One property: whether the folder is trusted, which decides whether its
+	 * trust-gated resources load. The value is the folder's own answer rather
+	 * than an echo of the client's draft, so a choice made for one folder does
+	 * not follow the user to the next.
 	 */
 	resolve(params: ResolveSessionConfigParams): ResolveSessionConfigResult {
 		const workingDirectory = params.workingDirectory
 			? fileUriToPath(params.workingDirectory)
 			: this.#options.defaultWorkingDirectory;
-		const trust = resolveProjectTrust(workingDirectory, this.#options.projectTrustPolicy);
-
-		const schema: SessionConfigSchema = {
-			type: "object",
-			properties: {
-				[PROJECT_TRUST_KEY]: {
-					type: "boolean",
-					title: "Load project resources",
-					description:
-						trust.reason === "no-project-resources"
-							? "This folder has no trust-gated project resources."
-							: `Trust-gated project resources (${trust.reason}).`,
-					// Host policy, not a per-session choice — see project-trust.ts.
-					readOnly: true,
-				},
+		const trust = readProjectTrust(workingDirectory);
+		return {
+			schema: {
+				type: "object",
+				properties: { [PROJECT_TRUST_KEY]: projectTrustProperty(trust) },
 			},
+			values: { [PROJECT_TRUST_KEY]: trust.trusted },
 		};
+	}
 
-		return { schema, values: { [PROJECT_TRUST_KEY]: trust.trusted } };
+	/**
+	 * Applies the answers a client sent with `createSession`.
+	 *
+	 * Runs before the session exists, so a refusal leaves nothing behind.
+	 */
+	applyAtCreation(workingDirectory: string, config: Readonly<Record<string, unknown>> | undefined): void {
+		const trusted = config?.[PROJECT_TRUST_KEY];
+		if (trusted === undefined) {
+			return;
+		}
+		if (typeof trusted !== "boolean") {
+			throw ProtocolError.invalidParams(`${PROJECT_TRUST_KEY} must be true or false.`);
+		}
+		try {
+			chooseProjectTrust(workingDirectory, trusted);
+		} catch (error) {
+			const cause = error instanceof Error ? error.message : String(error);
+			throw new ProtocolError(
+				JsonRpcErrorCodes.InternalError,
+				`Could not save the project trust decision for ${workingDirectory}: ${cause}`,
+			);
+		}
 	}
 
 	/**
@@ -81,4 +95,25 @@ export class SessionConfigService {
 	completions(_params: SessionConfigCompletionsParams): SessionConfigCompletionsResult {
 		return { items: [] };
 	}
+}
+
+function projectTrustProperty(trust: ProjectTrust): SessionConfigPropertySchema {
+	const title = "Trust project folder";
+	if (!trust.gated) {
+		return {
+			type: "boolean",
+			title,
+			description: "This folder has no trust-gated project resources.",
+			readOnly: true,
+		};
+	}
+	const source = trust.saved
+		? `Saved decision for ${trust.saved.path}.`
+		: `No saved decision; pi's defaultProjectTrust is "${trust.defaultProjectTrust}".`;
+	// Not `sessionMutable`: resources load when the session is created.
+	return {
+		type: "boolean",
+		title,
+		description: `${source} Trust lets pi load this folder's .pi settings, extensions and skills. Changing it saves a decision for this folder in pi's trust store, which pi also uses.`,
+	};
 }

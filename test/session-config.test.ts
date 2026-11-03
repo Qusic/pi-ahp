@@ -2,14 +2,15 @@
 
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { after, before, describe, it } from "node:test";
-import type { AgentSessionEvent } from "@earendil-works/pi-coding-agent";
+import { after, before, beforeEach, describe, it } from "node:test";
+import { type AgentSessionEvent, ProjectTrustStore } from "@earendil-works/pi-coding-agent";
 import {
 	ActionType,
 	type ChatState,
+	JsonRpcErrorCodes,
 	MessageKind,
 	type ModelSelection,
 	SUPPORTED_PROTOCOL_VERSIONS,
@@ -24,6 +25,7 @@ import { MetadataStore } from "../src/pi/metadata-store.ts";
 import { THINKING_CONFIG_KEY } from "../src/pi/models.ts";
 import { PROJECT_TRUST_KEY, SessionConfigService } from "../src/pi/session-config.ts";
 import { SessionRegistry } from "../src/pi/session-registry.ts";
+import { ProtocolError } from "../src/protocol/errors.ts";
 import { type RunningServer, serveWebSocket } from "../src/transport/websocket.ts";
 import { must } from "./support/assertions.ts";
 import { eventually } from "./support/async.ts";
@@ -31,42 +33,102 @@ import { assertValid } from "./support/schema.ts";
 import { inMemorySessionManagerFactory } from "./support/session-storage.ts";
 
 describe("resolveSessionConfig", () => {
+	let agentDir: string;
+	let previousAgentDir: string | undefined;
 	let bare: string;
+	let parent: string;
 	let withResources: string;
 	let service: SessionConfigService;
 
 	before(() => {
+		// pi's trust store and settings live here, away from the user's profile.
+		agentDir = mkdtempSync(join(tmpdir(), "pi-ahp-cfg-agent-"));
+		previousAgentDir = process.env.PI_CODING_AGENT_DIR;
+		process.env.PI_CODING_AGENT_DIR = agentDir;
 		bare = mkdtempSync(join(tmpdir(), "pi-ahp-cfg-bare-"));
-		withResources = mkdtempSync(join(tmpdir(), "pi-ahp-cfg-proj-"));
+		parent = mkdtempSync(join(tmpdir(), "pi-ahp-cfg-parent-"));
+		withResources = join(parent, "repo");
 		mkdirSync(join(withResources, ".pi", "extensions"), { recursive: true });
 		writeFileSync(join(withResources, ".pi", "extensions", "ext.ts"), "export default () => {};\n");
 		service = new SessionConfigService({ defaultWorkingDirectory: bare });
 	});
 
+	beforeEach(() => {
+		rmSync(join(agentDir, "trust.json"), { force: true });
+	});
+
 	after(() => {
-		rmSync(bare, { recursive: true, force: true });
-		rmSync(withResources, { recursive: true, force: true });
+		if (previousAgentDir === undefined) delete process.env.PI_CODING_AGENT_DIR;
+		else process.env.PI_CODING_AGENT_DIR = previousAgentDir;
+		for (const dir of [agentDir, bare, parent]) {
+			rmSync(dir, { recursive: true, force: true });
+		}
 	});
 
-	it("returns a schema-conforming result", () => {
-		const result = service.resolve({ channel: "ahp-root://" });
-		assertValid("commands", "ResolveSessionConfigResult", result);
+	const resolveFor = (directory: string, config?: Record<string, unknown>) =>
+		service.resolve({ channel: "ahp-root://", workingDirectory: `file://${directory}`, ...(config ? { config } : {}) });
+	const trustProperty = (result: ReturnType<typeof resolveFor>) => must(result.schema.properties[PROJECT_TRUST_KEY]);
+
+	it("returns schema-conforming results", () => {
+		// The default directory has nothing to gate; the other folder is editable.
+		for (const result of [service.resolve({ channel: "ahp-root://" }), resolveFor(withResources)]) {
+			assertValid("commands", "ResolveSessionConfigResult", result);
+		}
 	});
 
-	it("reports what a directory with no project resources would do", () => {
-		const result = service.resolve({ channel: "ahp-root://", workingDirectory: `file://${bare}` });
+	it("shows a folder with nothing to gate as trusted and read-only", () => {
+		const result = resolveFor(bare);
 		assert.equal(result.values[PROJECT_TRUST_KEY], true);
-		assert.equal(must(result.schema.properties[PROJECT_TRUST_KEY]).readOnly, true);
+		assert.equal(trustProperty(result).readOnly, true);
+		assert.equal(trustProperty(result).description, "This folder has no trust-gated project resources.");
 	});
 
-	it("re-resolves against whatever directory the client is asking about", () => {
-		// The exchange is iterative: the answer changes as the user picks a
-		// directory, which is the whole reason the command exists.
-		const bareResult = service.resolve({ channel: "ahp-root://", workingDirectory: `file://${bare}` });
-		const projectResult = service.resolve({ channel: "ahp-root://", workingDirectory: `file://${withResources}` });
-		assert.notEqual(
-			must(projectResult.schema.properties[PROJECT_TRUST_KEY]).description,
-			must(bareResult.schema.properties[PROJECT_TRUST_KEY]).description,
+	it("asks about a gated folder, preset to pi's default answer", () => {
+		const result = resolveFor(withResources);
+		const property = trustProperty(result);
+		assert.equal(result.values[PROJECT_TRUST_KEY], false);
+		assert.notEqual(property.readOnly, true);
+		// Resources load when the session is created; the answer cannot change later.
+		assert.notEqual(property.sessionMutable, true);
+		assert.match(must(property.description), /^No saved decision; pi's defaultProjectTrust is "ask"\. /);
+	});
+
+	it("names the folder a saved decision belongs to", () => {
+		const trust = new ProjectTrustStore(agentDir);
+		for (const [folder, trusted] of [
+			[parent, true],
+			[withResources, false],
+		] as const) {
+			trust.set(folder, trusted);
+			const result = resolveFor(withResources);
+			assert.equal(result.values[PROJECT_TRUST_KEY], trusted);
+			const description = must(trustProperty(result).description);
+			assert.ok(description.startsWith(`Saved decision for ${realpathSync(folder)}. `), description);
+		}
+	});
+
+	it("answers for the folder rather than echoing the client's draft", () => {
+		// A choice made for one folder must not follow the user to the next.
+		const result = resolveFor(withResources, { [PROJECT_TRUST_KEY]: true });
+		assert.equal(result.values[PROJECT_TRUST_KEY], false);
+	});
+
+	it("refuses an answer that is not a boolean", () => {
+		assert.throws(() => service.applyAtCreation(withResources, { [PROJECT_TRUST_KEY]: "yes" }), {
+			code: JsonRpcErrorCodes.InvalidParams,
+			message: "projectTrust must be true or false.",
+		});
+		assert.equal(existsSync(join(agentDir, "trust.json")), false);
+	});
+
+	it("refuses creation when pi's trust store fails", () => {
+		writeFileSync(join(agentDir, "trust.json"), "not json");
+		assert.throws(
+			() => service.applyAtCreation(withResources, { [PROJECT_TRUST_KEY]: true }),
+			(error) =>
+				error instanceof ProtocolError &&
+				error.code === JsonRpcErrorCodes.InternalError &&
+				error.message.startsWith(`Could not save the project trust decision for ${withResources}: `),
 		);
 	});
 

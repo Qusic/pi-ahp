@@ -16,7 +16,7 @@ import { InProcessPiBackend } from "../pi/in-process-backend.ts";
 import type { MetadataStore } from "../pi/metadata-store.ts";
 import { buildAgentInfo, modelSelectionId, THINKING_CONFIG_KEY } from "../pi/models.ts";
 import { ParcelWatchPool } from "../pi/parcel-watch-pool.ts";
-import { type ProjectTrustPolicy, resolveProjectTrust } from "../pi/project-trust.ts";
+import { readProjectTrust } from "../pi/project-trust.ts";
 import { ResourcePathPolicy } from "../pi/resource-paths.ts";
 import { ResourceService } from "../pi/resource-service.ts";
 import { ResourceWatchService } from "../pi/resource-watch.ts";
@@ -42,15 +42,6 @@ export interface PiHostOptions extends HostOptions {
 	readonly sessionStorage: PiSessionStorage;
 	/** Explicit AHP sidecar, separate from Pi's session corpus. */
 	readonly metadata: MetadataStore;
-	/**
-	 * How to treat trust-gated pi resources in a session's working directory.
-	 *
-	 * Defaults to `trust`, matching the pi SDK default. Switch to `inherit` when
-	 * the host is reachable from outside its own trust domain: the working
-	 * directory then arrives from a client, and `inherit` will only load project
-	 * resources the user already approved through pi's CLI.
-	 */
-	readonly projectTrustPolicy?: ProjectTrustPolicy;
 	/**
 	 * Directories the resource commands and watches may reach. Empty means
 	 * unrestricted. See `src/pi/resource-paths.ts` for why that is the default.
@@ -89,10 +80,10 @@ export async function createPiHost(options: PiHostOptions): Promise<PiHost> {
 	} else {
 		// Package extensions can register providers; the bare ModelRuntime cannot
 		// see them until the standard service loader flushes those registrations.
-		const trust = resolveProjectTrust(workingDirectory, options.projectTrustPolicy);
+		const { trusted } = readProjectTrust(workingDirectory);
 		const services = await createAgentSessionServices({
 			cwd: workingDirectory,
-			settingsManager: SettingsManager.create(workingDirectory, undefined, { projectTrusted: trust.trusted }),
+			settingsManager: SettingsManager.create(workingDirectory, undefined, { projectTrusted: trusted }),
 		});
 		modelRuntime = services.modelRuntime;
 		settingsManager = services.settingsManager;
@@ -136,9 +127,9 @@ export async function createPiHost(options: PiHostOptions): Promise<PiHost> {
 			InProcessPiBackend.create({
 				cwd: session.workingDirectory,
 				sessionManager: session.sessionManager,
-				...(options.projectTrustPolicy ? { projectTrustPolicy: options.projectTrustPolicy } : {}),
 			}));
 
+	const sessionConfig = new SessionConfigService({ defaultWorkingDirectory: workingDirectory });
 	const sessions = new SessionRegistry({
 		host,
 		metadata: options.metadata,
@@ -146,6 +137,7 @@ export async function createPiHost(options: PiHostOptions): Promise<PiHost> {
 		createBackend,
 		createSessionManager: options.sessionStorage.createSessionManager,
 		defaultSelection: fallbackSelection,
+		applySessionConfig: (directory, config) => sessionConfig.applyAtCreation(directory, config),
 		deleteFile: options.deleteFile ?? deleteSessionFile,
 		findSessionFile: (id) => catalogue.findSessionFile(id),
 		...(options.log ? { log: options.log } : {}),
@@ -193,10 +185,7 @@ export async function createPiHost(options: PiHostOptions): Promise<PiHost> {
 		resources,
 		resourceWatches: watches,
 		terminals,
-		sessionConfig: new SessionConfigService({
-			defaultWorkingDirectory: workingDirectory,
-			...(options.projectTrustPolicy ? { projectTrustPolicy: options.projectTrustPolicy } : {}),
-		}),
+		sessionConfig,
 		completions: new CompletionService({
 			// Mentions resolve against the chat's own directory, which is the
 			// session's working directory for the single chat this host serves.
