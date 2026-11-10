@@ -74,6 +74,7 @@ If the remote-host commands are unavailable, or if you want to use a direct conn
 ```
 
 The signed-out option is currently experimental and desktop-only. When prompted, choose **Continue Without Signing In**; you do not need to preconfigure a host manually.
+
 - **Direct WebSocket:** run **Agents: Add Remote Agent Host...** and paste the URL printed by `pi-ahp`.
 - **Dev Tunnel:** sign in to the same account in VS Code, then run **Agents: Connect to Remote Agent Host via Dev Tunnel**. Tunnel discovery requires sign-in.
 
