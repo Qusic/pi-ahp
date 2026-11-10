@@ -107,10 +107,13 @@ describe("resolveSessionConfig", () => {
 		}
 	});
 
-	it("answers for the folder rather than echoing the client's draft", () => {
-		// A choice made for one folder must not follow the user to the next.
-		const result = resolveFor(withResources, { [PROJECT_TRUST_KEY]: true });
-		assert.equal(result.values[PROJECT_TRUST_KEY], false);
+	it("echoes the user's answer where the folder has a choice to make", () => {
+		assert.equal(resolveFor(withResources, { [PROJECT_TRUST_KEY]: true }).values[PROJECT_TRUST_KEY], true);
+	});
+
+	it("keeps the folder's answer where there is no choice or the answer is not a boolean", () => {
+		assert.equal(resolveFor(bare, { [PROJECT_TRUST_KEY]: false }).values[PROJECT_TRUST_KEY], true);
+		assert.equal(resolveFor(withResources, { [PROJECT_TRUST_KEY]: "yes" }).values[PROJECT_TRUST_KEY], false);
 	});
 
 	it("refuses an answer that is not a boolean", () => {

@@ -3,7 +3,12 @@
  * this host's. Each entry says what the client does and what would let it go.
  */
 
-import { ActionType, JsonRpcErrorCodes, type URI } from "@microsoft/agent-host-protocol";
+import {
+	ActionType,
+	JsonRpcErrorCodes,
+	type ResolveSessionConfigResult,
+	type URI,
+} from "@microsoft/agent-host-protocol";
 import { ProtocolError } from "../protocol/errors.ts";
 import type { JsonRpcMessage, JsonRpcNotification, JsonRpcRequest, JsonRpcResponse } from "../protocol/jsonrpc.ts";
 import { chatIdFromUri, chatUri, sessionIdFromUri, sessionUri } from "./channels.ts";
@@ -154,6 +159,13 @@ class VscodeSessionDisposalGuard {
 	}
 }
 
+/** Makes the properties a session fixes at creation read-only. */
+function lockCreationTimeConfig(result: ResolveSessionConfigResult): void {
+	for (const property of Object.values(result.schema.properties)) {
+		if (!property.sessionMutable) property.readOnly = true;
+	}
+}
+
 /** The channel AHP defines for a request VS Code addresses elsewhere; see {@link ClientWorkarounds}. */
 function vscodeChannel(method: string, channel: URI, action: unknown): URI {
 	if (method === "completions") {
@@ -168,19 +180,22 @@ function vscodeChannel(method: string, channel: URI, action: unknown): URI {
 }
 
 /**
- * VS Code Stable still departs from AHP in three ways, repaired per connection
+ * VS Code Stable still departs from AHP in four ways, repaired per connection
  * so core services only ever see standard traffic:
  *
  * - it requests `completions` for a session rather than the session's chat;
  * - it renames a default chat with `session/titleChanged` on the chat channel,
  *   which AHP defines only on the owning session;
- * - it can dispose sessions unintentionally (see {@link VscodeSessionDisposalGuard}).
+ * - it can dispose sessions unintentionally (see {@link VscodeSessionDisposalGuard});
+ * - it creates a session before the user configures it (microsoft/vscode#345623),
+ *   then changes properties AHP fixes at creation, so those are shown read-only.
  *
  * Remove each repair when VS Code Stable sends standard traffic.
  */
 export class ClientWorkarounds {
 	#isVscode = false;
 	readonly #vscodeSessionDisposal = new VscodeSessionDisposalGuard();
+	readonly #configRequests = new Set<number>();
 
 	/** Repairs this connection's parsed request or notification in place. */
 	applyToIncoming(message: JsonRpcRequest | JsonRpcNotification): void {
@@ -191,11 +206,18 @@ export class ClientWorkarounds {
 		if (typeof params.channel === "string") {
 			params.channel = vscodeChannel(message.method, params.channel, params.action);
 		}
+		if (message.method === "resolveSessionConfig" && "id" in message) {
+			this.#configRequests.add(message.id);
+		}
 		this.#vscodeSessionDisposal.applyToIncoming(message, params);
 	}
 
-	/** Lets the repairs track what this connection is sent; the message itself is unchanged. */
-	observeOutgoing(message: JsonRpcMessage): void {
-		if (this.#isVscode) this.#vscodeSessionDisposal.applyToOutgoing(message);
+	/** Repairs a message this connection is about to be sent, in place. */
+	applyToOutgoing(message: JsonRpcMessage): void {
+		if (!this.#isVscode) return;
+		if (!("method" in message) && this.#configRequests.delete(message.id) && "result" in message) {
+			lockCreationTimeConfig(message.result as ResolveSessionConfigResult);
+		}
+		this.#vscodeSessionDisposal.applyToOutgoing(message);
 	}
 }

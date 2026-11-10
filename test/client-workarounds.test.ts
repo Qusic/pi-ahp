@@ -3,9 +3,16 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, describe, it } from "node:test";
-import { ActionType, JsonRpcErrorCodes, MessageKind, type SessionState } from "@microsoft/agent-host-protocol";
+import {
+	ActionType,
+	JsonRpcErrorCodes,
+	MessageKind,
+	type ResolveSessionConfigResult,
+	type SessionState,
+} from "@microsoft/agent-host-protocol";
 import { RpcError } from "@microsoft/agent-host-protocol/client";
 import { chatIdFromUri, chatUri, ROOT_CHANNEL, sessionIdFromUri, sessionUri } from "../src/core/channels.ts";
+import { ClientWorkarounds } from "../src/core/client-workarounds.ts";
 import { expectRpcError, expectVscodeDisposalRefusal, must } from "./support/assertions.ts";
 import { type HydratedSessionFixture, startHydratedSessionFixture } from "./support/hydrated-session.ts";
 
@@ -34,6 +41,32 @@ describe("VS Code over the wire", () => {
 		assert.equal(must(listed.items.find((item) => item.resource === session)).defaultChat, chat);
 
 		assert.equal((await client.subscribe(chat)).result.snapshot?.resource, chat);
+	});
+});
+
+describe("VS Code session configuration", () => {
+	it("shows VS Code the properties that apply only at creation as read-only", () => {
+		for (const [name, locked] of [
+			["vscode-editor-window", true],
+			["other-client", false],
+		] as const) {
+			const workarounds = new ClientWorkarounds();
+			workarounds.applyToIncoming({ jsonrpc: "2.0", id: 1, method: "initialize", params: { clientInfo: { name } } });
+			workarounds.applyToIncoming({ jsonrpc: "2.0", id: 2, method: "resolveSessionConfig", params: {} });
+			const result: ResolveSessionConfigResult = {
+				schema: {
+					type: "object",
+					properties: {
+						atCreation: { type: "boolean", title: "At creation" },
+						mutable: { type: "boolean", title: "Mutable", sessionMutable: true },
+					},
+				},
+				values: {},
+			};
+			workarounds.applyToOutgoing({ jsonrpc: "2.0", id: 2, result });
+			assert.equal(result.schema.properties.atCreation?.readOnly, locked ? true : undefined, name);
+			assert.equal(result.schema.properties.mutable?.readOnly, undefined, name);
+		}
 	});
 });
 

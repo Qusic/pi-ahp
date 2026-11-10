@@ -24,7 +24,7 @@ export class ClientConnection {
 	}
 
 	send(message: JsonRpcMessage): void {
-		this.workarounds.observeOutgoing(message);
+		this.workarounds.applyToOutgoing(message);
 		this.transport.send(message);
 	}
 

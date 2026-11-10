@@ -44,21 +44,22 @@ export class SessionConfigService {
 	 * Describes what a new session in this directory would do.
 	 *
 	 * One property: whether the folder is trusted, which decides whether its
-	 * trust-gated resources load. The value is the folder's own answer rather
-	 * than an echo of the client's draft, so a choice made for one folder does
-	 * not follow the user to the next.
+	 * trust-gated resources load. As AHP asks, the user's answer is echoed back
+	 * where the folder has a choice to make; otherwise the folder's own answer
+	 * stands.
 	 */
 	resolve(params: ResolveSessionConfigParams): ResolveSessionConfigResult {
 		const workingDirectory = params.workingDirectory
 			? fileUriToPath(params.workingDirectory)
 			: this.#options.defaultWorkingDirectory;
 		const trust = readProjectTrust(workingDirectory);
+		const answer = params.config?.[PROJECT_TRUST_KEY];
 		return {
 			schema: {
 				type: "object",
 				properties: { [PROJECT_TRUST_KEY]: projectTrustProperty(trust) },
 			},
-			values: { [PROJECT_TRUST_KEY]: trust.trusted },
+			values: { [PROJECT_TRUST_KEY]: trust.gated && typeof answer === "boolean" ? answer : trust.trusted },
 		};
 	}
 
