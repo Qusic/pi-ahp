@@ -22,12 +22,6 @@ export interface DevTunnelCommandResult {
 
 export type DevTunnelRunner = (args: readonly string[]) => DevTunnelCommandResult;
 
-interface PortDetails {
-	readonly portNumber: number;
-	readonly protocol: string;
-	readonly accessControl?: unknown;
-}
-
 export interface Tunnel {
 	readonly tunnelId: string;
 	readonly labels: readonly string[];
@@ -147,36 +141,25 @@ function decodeCreatedTunnelId(value: Record<string, unknown>, stdout: string): 
 	return id;
 }
 
-function decodePort(value: unknown, command: "port list" | "port show", stdout: string): PortDetails {
-	if (typeof value !== "object" || value === null || Array.isArray(value)) {
-		throw unexpectedResponse(command, stdout);
+function decodePortNumber(value: unknown, stdout: string): number {
+	const portNumber =
+		typeof value === "object" && value !== null && !Array.isArray(value)
+			? (value as Record<string, unknown>).portNumber
+			: undefined;
+	if (typeof portNumber !== "number" || !Number.isSafeInteger(portNumber) || portNumber < 1 || portNumber > 65_535) {
+		throw unexpectedResponse("port list", stdout);
 	}
-	const port = value as Record<string, unknown>;
-	const protocol = typeof port.protocol === "string" ? port.protocol.trim().toLowerCase() : "";
-	if (
-		typeof port.portNumber !== "number" ||
-		!Number.isSafeInteger(port.portNumber) ||
-		port.portNumber < 1 ||
-		port.portNumber > 65_535 ||
-		protocol.length === 0
-	) {
-		throw unexpectedResponse(command, stdout);
-	}
-	return { portNumber: port.portNumber, protocol, accessControl: port.accessControl };
+	return portNumber;
 }
 
-function decodePortList(value: Record<string, unknown>, stdout: string): PortDetails[] {
+function decodePortNumbers(value: Record<string, unknown>, stdout: string): number[] {
 	if (Array.isArray(value.ports)) {
-		return value.ports.map((port) => decodePort(port, "port list", stdout));
+		return value.ports.map((port) => decodePortNumber(port, stdout));
 	}
 	if (typeof value.warning === "string" && /\bno (?:tunnel )?ports? found\b/i.test(value.warning)) {
 		return [];
 	}
 	throw unexpectedResponse("port list", stdout);
-}
-
-function decodePortDetails(value: Record<string, unknown>, stdout: string): PortDetails {
-	return decodePort(value.port, "port show", stdout);
 }
 
 // Domain adapter ------------------------------------------------------------
@@ -244,44 +227,14 @@ export class DevTunnelCli {
 		return decodeCreatedTunnelId(value, stdout);
 	}
 
-	#createPort(id: string): void {
-		this.#run("port create", ["port", "create", id, "-p", String(TUNNEL_PORT), "--protocol", "http", "--json"]);
-	}
-
 	/**
-	 * Ensures the fixed port uses an HTTP origin. The relay terminates TLS, while
-	 * pi-ahp's local listener speaks HTTP/WebSocket. A wrong-protocol port is
-	 * replaced only after confirming that it has no port-specific ACL.
+	 * Ensures the fixed port exists. It forwards to an HTTP origin: the relay
+	 * terminates TLS, while pi-ahp's local listener speaks HTTP/WebSocket.
 	 */
 	ensurePort(id: string): void {
 		const listed = this.#runJson("port list", ["port", "list", id, "--json"]);
-		const current = decodePortList(listed.value, listed.stdout).find((port) => port.portNumber === TUNNEL_PORT);
-		if (!current) {
-			this.#createPort(id);
-			return;
-		}
-		if (current.protocol === "http") return;
-
-		// List output does not carry port-specific ACLs. Re-read the details before
-		// a destructive protocol migration, and trust the newer response if the
-		// port changed concurrently.
-		const shown = this.#runJson("port show", ["port", "show", id, "-p", String(TUNNEL_PORT), "--json"]);
-		const details = decodePortDetails(shown.value, shown.stdout);
-		if (details.portNumber !== TUNNEL_PORT) {
-			throw unexpectedResponse("port show", shown.stdout);
-		}
-		if (details.protocol === "http") return;
-		const hasPortAcl = Array.isArray(details.accessControl)
-			? details.accessControl.length > 0
-			: details.accessControl != null;
-		if (hasPortAcl) {
-			throw new TunnelError(
-				`devtunnel port ${TUNNEL_PORT} uses ${details.protocol} and has port-specific access control; replace it manually`,
-			);
-		}
-
-		this.#run("port delete", ["port", "delete", id, "-p", String(TUNNEL_PORT), "--json"]);
-		this.#createPort(id);
+		if (decodePortNumbers(listed.value, listed.stdout).includes(TUNNEL_PORT)) return;
+		this.#run("port create", ["port", "create", id, "-p", String(TUNNEL_PORT), "--protocol", "http", "--json"]);
 	}
 
 	/** Swaps the display label, leaving the identity and protocol labels alone. */

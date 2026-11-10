@@ -101,7 +101,7 @@ export class InProcessPiBackend implements PiBackend {
 	async selectModel(selection: ModelSelection): Promise<void> {
 		const available = await this.#session.modelRuntime.getAvailable();
 		const current = this.#session.model;
-		const model = findModelBySelectionId(available, selection.id, current);
+		const model = findModelBySelectionId(available, selection.id);
 		if (!model) {
 			// A stale pick from a client whose model list predates a credential
 			// change. Running on the current model beats failing the turn.

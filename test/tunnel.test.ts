@@ -44,9 +44,6 @@ function withFakeDevtunnel(responses: readonly FakeResponse[], run: (cli: DevTun
 const tunnelListCall = ["list", "--all-labels", IDENTITY_LABEL, "--all-labels", LAUNCHER_LABEL, "--json"];
 const createPortCall = ["port", "create", "sample.usw2", "-p", "31546", "--protocol", "http", "--json"];
 const listPortsCall = ["port", "list", "sample.usw2", "--json"];
-const showPortCall = ["port", "show", "sample.usw2", "-p", "31546", "--json"];
-const wrongPort = { portNumber: TUNNEL_PORT, protocol: "https" };
-const wrongPortDetails = { portNumber: TUNNEL_PORT, protocol: "https", accessControl: [] };
 
 describe("tunnel discovery contract", () => {
 	it("uses the shared discovery labels and port", () => {
@@ -174,81 +171,30 @@ describe("devtunnel account and catalogue", () => {
 });
 
 describe("devtunnel port", () => {
-	it("creates port 31546 when a successful listing is empty", () => {
-		for (const stdout of ['{"ports":[]}', '{"warning":"No ports found."}']) {
+	it("creates port 31546 when a successful listing lacks it", () => {
+		for (const stdout of ['{"ports":[]}', '{"warning":"No ports found."}', '{"ports":[{"portNumber":8080}]}']) {
 			const calls = withFakeDevtunnel([{ stdout }, {}], (cli) => cli.ensurePort("sample.usw2"));
 			assert.deepEqual(calls, [listPortsCall, createPortCall]);
 		}
 	});
 
-	it("keeps an existing HTTP port", () => {
+	it("keeps an existing port 31546", () => {
 		const calls = withFakeDevtunnel(
-			[{ stdout: JSON.stringify({ ports: [{ portNumber: TUNNEL_PORT, protocol: " HTTP " }] }) }],
+			[{ stdout: JSON.stringify({ ports: [{ portNumber: TUNNEL_PORT, protocol: "http" }] }) }],
 			(cli) => cli.ensurePort("sample.usw2"),
 		);
 		assert.deepEqual(calls, [listPortsCall]);
 	});
 
-	it("replaces an old HTTPS port with an HTTP port", () => {
-		const calls = withFakeDevtunnel(
-			[
-				{ stdout: JSON.stringify({ ports: [wrongPort] }) },
-				{ stdout: JSON.stringify({ port: wrongPortDetails }) },
-				{},
-				{},
-			],
-			(cli) => cli.ensurePort("sample.usw2"),
-		);
-		assert.deepEqual(calls, [
-			listPortsCall,
-			showPortCall,
-			["port", "delete", "sample.usw2", "-p", "31546", "--json"],
-			createPortCall,
-		]);
-	});
-
-	it("does not discard port-specific access control while migrating", () => {
-		const details = { ...wrongPortDetails, accessControl: [{ subject: "example" }] };
-		const calls = withFakeDevtunnel(
-			[{ stdout: JSON.stringify({ ports: [wrongPort] }) }, { stdout: JSON.stringify({ port: details }) }],
-			(cli) => assert.throws(() => cli.ensurePort("sample.usw2"), /has port-specific access control/),
-		);
-		assert.deepEqual(calls, [listPortsCall, showPortCall]);
-	});
-
-	it("uses current port details when the protocol changes during inspection", () => {
-		const calls = withFakeDevtunnel(
-			[
-				{ stdout: JSON.stringify({ ports: [wrongPort] }) },
-				{ stdout: JSON.stringify({ port: { portNumber: TUNNEL_PORT, protocol: "http", accessControl: [] } }) },
-			],
-			(cli) => cli.ensurePort("sample.usw2"),
-		);
-		assert.deepEqual(calls, [listPortsCall, showPortCall]);
-	});
-
-	it("rejects malformed port inspection output", () => {
-		for (const responses of [
-			[{ stdout: "not json" }],
-			[{ stdout: '{"ports":[{"portNumber":31546}]}' }],
-			[{ stdout: JSON.stringify({ ports: [wrongPort] }) }, { stdout: '{"port":{}}' }],
-		]) {
-			withFakeDevtunnel(responses, (cli) => assert.throws(() => cli.ensurePort("sample.usw2"), TunnelError));
+	it("rejects malformed port listings", () => {
+		for (const stdout of ["not json", '{"ports":[{"portNumber":"31546"}]}', '{"ports":[{}]}']) {
+			withFakeDevtunnel([{ stdout }], (cli) => assert.throws(() => cli.ensurePort("sample.usw2"), TunnelError));
 		}
 	});
 
-	it("reports listing, inspection, deletion, and creation failures", () => {
+	it("reports listing and creation failures", () => {
 		const cases: Array<[FakeResponse[], RegExp]> = [
 			[[{ status: 1, stderr: "list failed" }], /port list failed/],
-			[[{ stdout: JSON.stringify({ ports: [wrongPort] }) }, { status: 1, stderr: "show failed" }], /port show failed/],
-			[
-				[
-					{ stdout: JSON.stringify({ ports: [wrongPort] }) },
-					{ stdout: JSON.stringify({ port: wrongPortDetails }) },
-					{ status: 1, stderr: "delete failed" },
-				],
-				/port delete failed/,
-			],
 			[[{ stdout: '{"ports":[]}' }, { status: 1, stderr: "create failed" }], /port create failed/],
 		];
 		for (const [responses, message] of cases) {

@@ -25,29 +25,12 @@ export function modelSelectionId(model: PiModelIdentity): string {
 	return `${model.provider}/${model.id}`;
 }
 
-/**
- * Resolves a wire id, with a narrow fallback for drafts written by older hosts.
- * An ambiguous legacy id is accepted only when it already names the current
- * model; otherwise guessing a provider would run the turn somewhere unintended.
- */
+/** Resolves a wire id written by {@link modelSelectionId}. */
 export function findModelBySelectionId<T extends PiModelIdentity>(
 	models: readonly T[],
 	selectionId: string,
-	current?: PiModelIdentity,
 ): T | undefined {
-	const qualified = models.find((model) => modelSelectionId(model) === selectionId);
-	if (qualified) {
-		return qualified;
-	}
-
-	const legacyMatches = models.filter((model) => model.id === selectionId);
-	if (legacyMatches.length === 1) {
-		return legacyMatches[0];
-	}
-	if (current?.id === selectionId) {
-		return legacyMatches.find((model) => model.provider === current.provider);
-	}
-	return undefined;
+	return models.find((model) => modelSelectionId(model) === selectionId);
 }
 
 /** The config key carrying the thinking level in `ModelSelection.config`. */

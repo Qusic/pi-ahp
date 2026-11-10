@@ -56,19 +56,13 @@ describe("model mapping", () => {
 		);
 	});
 
-	it("resolves qualified ids without confusing providers", () => {
+	it("resolves only provider-qualified ids, without confusing providers", () => {
 		const direct = model({ provider: "openai", id: "gpt-6-astra", name: "GPT-6 Astra (API)" });
 		const codex = model({ provider: "openai-codex", id: "gpt-6-astra", name: "GPT-6 Astra (Codex)" });
 
 		assert.equal(findModelBySelectionId([direct, codex], modelSelectionId(codex)), codex);
 		assert.equal(findModelBySelectionId([direct, codex], "gpt-6-astra"), undefined);
-		assert.equal(findModelBySelectionId([direct, codex], "gpt-6-astra", codex), codex);
-	});
-
-	it("accepts an unambiguous legacy bare model id", () => {
-		const only = model();
-		const other = model({ id: "other-model" });
-		assert.equal(findModelBySelectionId([only, other], only.id), only);
+		assert.equal(findModelBySelectionId([direct], "gpt-6-astra"), undefined);
 	});
 
 	it("exposes thinking level as a model configSchema", () => {
