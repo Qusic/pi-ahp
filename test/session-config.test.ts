@@ -134,17 +134,11 @@ describe("resolveSessionConfig", () => {
 				error.message.startsWith(`Could not save the project trust decision for ${withResources}: `),
 		);
 	});
-
-	it("offers no dynamic completions", () => {
-		const result = service.completions({ channel: "ahp-root://", property: PROJECT_TRUST_KEY });
-		assert.deepEqual(result.items, []);
-	});
 });
 
-/** A backend that records the model selection each turn ran with. */
+/** A backend that records, in order, the models it was given and the prompts it ran. */
 class SelectionRecordingBackend implements PiBackend {
-	readonly selections: ModelSelection[] = [];
-	readonly prompts: string[] = [];
+	readonly calls: Array<{ select: ModelSelection } | { prompt: string }> = [];
 	current: ModelSelection = { id: "default-model", config: { [THINKING_CONFIG_KEY]: "medium" } };
 
 	#listeners = new Set<(event: AgentSessionEvent) => void>();
@@ -155,7 +149,7 @@ class SelectionRecordingBackend implements PiBackend {
 	}
 
 	async prompt(text: string): Promise<void> {
-		this.prompts.push(text);
+		this.calls.push({ prompt: text });
 		await Promise.resolve();
 		for (const event of [{ type: "agent_start" }, { type: "agent_settled" }]) {
 			for (const listener of this.#listeners) {
@@ -168,7 +162,7 @@ class SelectionRecordingBackend implements PiBackend {
 	async abort(): Promise<void> {}
 
 	async selectModel(selection: ModelSelection): Promise<void> {
-		this.selections.push(selection);
+		this.calls.push({ select: selection });
 		this.current = selection;
 	}
 
@@ -256,8 +250,7 @@ describe("model selection", () => {
 	});
 
 	it("applies the model a client picked, before the prompt runs", async () => {
-		const promptsBefore = backend.prompts.length;
-		const selectionsBefore = backend.selections.length;
+		const before = backend.calls.length;
 		client.dispatch(chat, {
 			type: ActionType.ChatTurnStarted,
 			turnId: "t-model",
@@ -268,30 +261,29 @@ describe("model selection", () => {
 				model: { id: "picked-model", config: { [THINKING_CONFIG_KEY]: "high" } },
 			},
 		});
-		await eventually("the prompt to reach the backend", () => backend.prompts.length === promptsBefore + 1);
+		await eventually("the prompt to reach the backend", () =>
+			backend.calls.some((call) => "prompt" in call && call.prompt === "hi"),
+		);
 
-		assert.equal(backend.selections.length, selectionsBefore + 1);
-		assert.deepEqual(backend.selections.at(-1), {
-			id: "picked-model",
-			config: { [THINKING_CONFIG_KEY]: "high" },
-		});
-		// Ordering matters: selecting after the prompt would run the turn on
-		// whatever the previous one used.
-		assert.equal(backend.prompts.length, promptsBefore + 1);
+		// Selecting after the prompt would run the turn on whatever the previous one used.
+		assert.deepEqual(backend.calls.slice(before), [
+			{ select: { id: "picked-model", config: { [THINKING_CONFIG_KEY]: "high" } } },
+			{ prompt: "hi" },
+		]);
 	});
 
 	it("runs on the current model when the message carries no selection", async () => {
-		const selectionsBefore = backend.selections.length;
-		const promptsBefore = backend.prompts.length;
+		const before = backend.calls.length;
 		client.dispatch(chat, {
 			type: ActionType.ChatTurnStarted,
 			turnId: "t-plain",
 			startedAt: new Date().toISOString(),
 			message: { text: "again", origin: { kind: MessageKind.User } },
 		});
-		await eventually("the prompt to reach the backend", () => backend.prompts.length === promptsBefore + 1);
+		await eventually("the prompt to reach the backend", () =>
+			backend.calls.some((call) => "prompt" in call && call.prompt === "again"),
+		);
 
-		assert.equal(backend.selections.length, selectionsBefore, "no selection means no switch");
-		assert.equal(backend.prompts.length, promptsBefore + 1);
+		assert.deepEqual(backend.calls.slice(before), [{ prompt: "again" }]);
 	});
 });

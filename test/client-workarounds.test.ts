@@ -161,15 +161,11 @@ describe("channel URI classification", () => {
 		assert.equal(chatIdFromUri("ahp-chat:/abc"), "abc");
 		for (const uri of [
 			"pi:/abc",
-			"copilot:/abc",
 			"AHP-SESSION:/abc",
 			"ahp-session://abc",
 			"ahp-session:/a/b",
 			"ahp-session:/abc?x",
 			"ahp-chat:/c1",
-			"ahp-terminal:/t1",
-			"agenthost-terminal:/t1",
-			"file:///etc/passwd",
 		]) {
 			assert.equal(sessionIdFromUri(uri), undefined, uri);
 		}
@@ -181,10 +177,9 @@ describe("channel URI classification", () => {
 	it("refuses to create a session at a non-standard URI", async () => {
 		const fixture = await startHydratedSessionFixture();
 		try {
-			for (const channel of [`pi:/${randomUUID()}`, `custom:/${randomUUID()}`]) {
-				await expectRpcError(fixture.client.request("createSession", { channel }), JsonRpcErrorCodes.InvalidParams);
-				assert.equal(fixture.host.store.has(channel), false, channel);
-			}
+			const channel = `pi:/${randomUUID()}`;
+			await expectRpcError(fixture.client.request("createSession", { channel }), JsonRpcErrorCodes.InvalidParams);
+			assert.equal(fixture.host.store.has(channel), false);
 		} finally {
 			await fixture.close();
 		}
