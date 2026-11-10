@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { type ErrorInfo, ResponsePartKind, type Turn } from "@microsoft/agent-host-protocol";
+import { type ErrorInfo, JsonRpcErrorCodes, ResponsePartKind, type Turn } from "@microsoft/agent-host-protocol";
 import { RpcError } from "@microsoft/agent-host-protocol/client";
 
 /** Narrows an optional value while reporting the missing value directly. */
@@ -29,4 +29,10 @@ export async function expectRpcError(
 	assert.ok(error instanceof RpcError, `${context}: expected RpcError, received ${String(error)}`);
 	assert.equal(error.code, code, context);
 	return error;
+}
+
+/** Requires the host to refuse VS Code's `disposeSession` and keep the session. */
+export async function expectVscodeDisposalRefusal(request: Promise<unknown>): Promise<void> {
+	const error = await expectRpcError(request, JsonRpcErrorCodes.InvalidRequest);
+	assert.match(error.message, /Deleting sessions from VS Code is temporarily disabled\b.*\bthis session was kept\.$/u);
 }

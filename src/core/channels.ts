@@ -67,31 +67,15 @@ export function channelKind(uri: URI): ChannelKind | undefined {
 	return undefined;
 }
 
-interface SingleSegmentChannel {
-	readonly scheme: string;
-	readonly id: string;
+/** The `<id>` of `<scheme>/<id>`, when it is a single non-empty path segment. */
+function singleSegmentId(uri: URI, scheme: string): string | undefined {
+	const id = uri.startsWith(`${scheme}/`) ? uri.slice(scheme.length + 1) : "";
+	return /^[^/?#]+$/.test(id) ? id : undefined;
 }
 
-function parseSingleSegmentChannel(uri: URI): SingleSegmentChannel | undefined {
-	const match = /^([a-zA-Z][a-zA-Z0-9+.-]*):\/([^/?#]+)$/.exec(uri);
-	const scheme = match?.[1];
-	const id = match?.[2];
-	return scheme && id ? { scheme: scheme.toLowerCase(), id } : undefined;
-}
-
-/**
- * Identifies a session from its canonical scheme or explicit provider aliases
- * given as bare scheme names. Shape alone never makes an unknown URI a session.
- */
-export function sessionIdFromUri(uri: URI, providerAliases: readonly string[] = []): string | undefined {
-	const parsed = parseSingleSegmentChannel(uri);
-	if (!parsed) {
-		return undefined;
-	}
-	const canonical = SESSION_SCHEME.slice(0, -1);
-	return parsed.scheme === canonical || providerAliases.some((alias) => parsed.scheme === alias.toLowerCase())
-		? parsed.id
-		: undefined;
+/** `ahp-session:/<id>` → `<id>`. Returns `undefined` when the URI is not a session. */
+export function sessionIdFromUri(uri: URI): string | undefined {
+	return singleSegmentId(uri, SESSION_SCHEME);
 }
 
 export function sessionUri(sessionId: string): URI {
@@ -100,7 +84,7 @@ export function sessionUri(sessionId: string): URI {
 
 /** `ahp-chat:/<id>` → `<id>`. Returns `undefined` when the URI is not a chat. */
 export function chatIdFromUri(uri: URI): string | undefined {
-	return isChatChannel(uri) ? uri.slice(`${CHAT_SCHEME}/`.length) || undefined : undefined;
+	return singleSegmentId(uri, CHAT_SCHEME);
 }
 
 export function chatUri(chatId: string): URI {

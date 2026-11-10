@@ -64,12 +64,16 @@ describe("session lifecycle", () => {
 		rmSync(workspace, { recursive: true, force: true });
 	});
 
-	async function initialized(subscriptions: string[] = [ROOT_CHANNEL]): Promise<AhpClient> {
+	async function initialized(
+		subscriptions: string[] = [ROOT_CHANNEL],
+		clientInfo?: { name: string },
+	): Promise<AhpClient> {
 		const client = await harness.connect();
 		await client.initialize({
 			clientId: nextClientId(),
 			protocolVersions: SUPPORTED_PROTOCOL_VERSIONS,
 			initialSubscriptions: subscriptions,
+			...(clientInfo ? { clientInfo } : {}),
 		});
 		return client;
 	}
@@ -152,21 +156,28 @@ describe("session lifecycle", () => {
 		assert.equal(live.sessionManager.getSessionId(), id);
 	});
 
-	it("announces the new session on the root channel", async () => {
-		const client = await initialized();
-		const rootSubscription = client.attachSubscription(ROOT_CHANNEL);
-		const id = randomUUID();
-		const uri = sessionUri(id);
+	// VS Code keeps the first URI it is told for a session, so the announcement
+	// must match the one it created (Qusic/pi-ahp#7).
+	for (const [name, clientInfo] of [
+		["a client", undefined],
+		["VS Code", { name: "vscode-editor-window" }],
+	] as const) {
+		it(`announces the new session on the root channel to ${name} at the URI it created`, async () => {
+			const client = await initialized([ROOT_CHANNEL], clientInfo);
+			const rootSubscription = client.attachSubscription(ROOT_CHANNEL);
+			const id = randomUUID();
+			const uri = sessionUri(id);
 
-		await client.request("createSession", { channel: uri });
+			await client.request("createSession", { channel: uri });
 
-		const event = await nextEvent(rootSubscription, (candidate) => candidate.type === "sessionAdded");
-		const params = event.params as { summary: SessionSummary };
-		assert.equal(params.summary.resource, uri);
-		assert.equal(params.summary.defaultChat, chatUri(id));
-		assert.deepEqual(params.summary.chats, [{ resource: chatUri(id), title: params.summary.title }]);
-		assertValid("state", "SessionSummary", params.summary);
-	});
+			const event = await nextEvent(rootSubscription, (candidate) => candidate.type === "sessionAdded");
+			const params = event.params as { summary: SessionSummary };
+			assert.equal(params.summary.resource, uri);
+			assert.equal(params.summary.defaultChat, chatUri(id));
+			assert.deepEqual(params.summary.chats, [{ resource: chatUri(id), title: params.summary.title }]);
+			assertValid("state", "SessionSummary", params.summary);
+		});
+	}
 
 	it("rejects a duplicate session URI with SessionAlreadyExists", async () => {
 		const client = await initialized();
@@ -284,19 +295,11 @@ describe("session lifecycle", () => {
 			clientInfo: { name: "vscode-editor-window" },
 		});
 		const id = randomUUID();
-		const clientSession = `pi:/${id}`;
-		const clientChat = `ahp-chat://default/${Buffer.from(clientSession).toString("base64url")}`;
-		await client.request("createSession", { channel: clientSession });
-		await client.subscribe(clientSession);
-		const events = client.attachSubscription(clientSession);
+		await client.request("createSession", { channel: sessionUri(id) });
 
-		client.dispatch(clientChat, { type: ActionType.SessionTitleChanged, title: "Renamed from VS Code" });
-		const event = await nextEvent(events, (candidate) => candidate.type === "action");
-		const envelope = event.params as ActionEnvelope;
+		client.dispatch(chatUri(id), { type: ActionType.SessionTitleChanged, title: "Renamed from VS Code" });
+		await client.ping();
 
-		assert.equal(envelope.channel, clientSession);
-		assert.deepEqual(envelope.action, { type: ActionType.SessionTitleChanged, title: "Renamed from VS Code" });
-		assert.equal(envelope.rejectionReason, undefined);
 		assert.equal((harness.host.store.get(sessionUri(id)) as SessionState).title, "Renamed from VS Code");
 	});
 
@@ -309,22 +312,20 @@ describe("session lifecycle", () => {
 			protocolVersions: [...SUPPORTED_PROTOCOL_VERSIONS],
 			clientInfo: { name: "vscode-editor-window" },
 		});
-		const id = randomUUID();
-		const uri = sessionUri(id);
-		const clientUri = `pi:/${id}`;
+		const uri = sessionUri(randomUUID());
 		const activeClient = { clientId, tools: [] };
 
 		// VS Code supplies this eagerly. It is ignored rather than making an
 		// otherwise usable session fail.
-		await client.request("createSession", { channel: clientUri, activeClient });
-		await client.subscribe(clientUri);
+		await client.request("createSession", { channel: uri, activeClient });
+		await client.subscribe(uri);
 
 		for (const action of [
 			{ type: ActionType.SessionActiveClientSet, activeClient },
 			{ type: ActionType.SessionActiveClientRemoved, clientId },
 		] as const) {
-			const events = client.attachSubscription(clientUri);
-			client.dispatch(clientUri, action);
+			const events = client.attachSubscription(uri);
+			client.dispatch(uri, action);
 			const event = await nextEvent(events, (candidate) => candidate.type === "action");
 			const envelope = event.params as { action?: { type?: string }; rejectionReason?: string };
 			assert.equal(envelope.action?.type, action.type);

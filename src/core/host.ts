@@ -310,8 +310,8 @@ export class AhpHost {
 	readonly #sequencer: Sequencer;
 	readonly #options: HostOptions;
 	readonly #connections = new Set<ClientConnection>();
-	/** `reconnect` omits clientInfo; an undefined value still records an id seen by this host process. */
-	readonly #clientInfoById = new Map<string, InitializeParams["clientInfo"]>();
+	/** Client ids this host process has seen, whose missed actions it may replay. */
+	readonly #knownClients = new Set<string>();
 	#capabilities: HostCapabilities = {};
 	readonly #actionListeners = new Set<ClientActionListener>();
 	readonly #committedActionListeners = new Set<CommittedActionListener>();
@@ -426,11 +426,8 @@ export class AhpHost {
 			const params = request.params as InitializeParams | undefined;
 			validateInitialize(params);
 			protocolVersion = negotiateProtocolVersion(params.protocolVersions);
-			connection.workarounds.identify(params.clientInfo ?? this.#clientInfoById.get(params.clientId));
 		} else if (request.method === "reconnect") {
-			const params = request.params as ReconnectParams | undefined;
-			validateReconnect(params);
-			connection.workarounds.identify(this.#clientInfoById.get(params.clientId));
+			validateReconnect(request.params as ReconnectParams | undefined);
 		}
 		connection.workarounds.applyToIncoming(request);
 		if (ROOT_COMMANDS.has(request.method as keyof CommandMap) && readChannel(request.params) !== ROOT_CHANNEL) {
@@ -581,7 +578,7 @@ export class AhpHost {
 	#assertChatChannel(params: unknown, method: string): void {
 		const channel = readChannel(params);
 		if (!channel) throw ProtocolError.invalidParams(`${method} requires a channel`);
-		if ((this.#store.kindOf(channel) ?? channelKind(channel)) !== "chat") {
+		if (channelKind(channel) !== "chat") {
 			throw ProtocolError.invalidParams(`${method} requires a chat channel`);
 		}
 	}
@@ -625,8 +622,7 @@ export class AhpHost {
 	): Promise<InitializeResult> {
 		this.#bindClient(connection, params.clientId);
 
-		const identifiedClient = params.clientInfo ?? this.#clientInfoById.get(params.clientId);
-		this.#clientInfoById.set(params.clientId, identifiedClient);
+		this.#knownClients.add(params.clientId);
 
 		const snapshots: Snapshot[] = [];
 		for (const uri of params.initialSubscriptions ?? []) {
@@ -655,10 +651,8 @@ export class AhpHost {
 	}
 
 	async #reconnect(connection: ClientConnection, params: ReconnectParams): Promise<ReconnectResult> {
-		const knownClient = this.#clientInfoById.has(params.clientId);
-		if (!knownClient) {
-			this.#clientInfoById.set(params.clientId, undefined);
-		}
+		const knownClient = this.#knownClients.has(params.clientId);
+		this.#knownClients.add(params.clientId);
 		this.#bindClient(connection, params.clientId);
 
 		const requested = params.subscriptions ?? [];
@@ -713,8 +707,8 @@ export class AhpHost {
 		}
 		if (!this.#store.has(channel)) {
 			// Not in memory does not mean it does not exist: a session from the
-			// catalogue lives on disk until someone opens it. The hydrator gets the
-			// first chance to resolve known aliases before the strict scheme check.
+			// catalogue lives on disk until someone opens it, so the hydrator gets
+			// the first chance before the strict scheme check.
 			const hydrated = (await this.#capabilities.hydrator?.hydrate(channel)) ?? false;
 			if (!hydrated) {
 				throw channelKind(channel) === undefined
@@ -727,9 +721,8 @@ export class AhpHost {
 	}
 
 	#trySubscribe(connection: ClientConnection, channel: URI): Snapshot | undefined {
-		// Membership in the store is the real test: a session opened at a
-		// non-standard URI has no recognised scheme but is a perfectly valid
-		// channel.
+		// Membership in the store is the real test: a client-chosen terminal URI
+		// may have no recognised scheme but is a perfectly valid channel.
 		if (!this.#store.has(channel)) {
 			this.#log(`Ignoring subscription to unknown channel: ${channel}`);
 			return undefined;

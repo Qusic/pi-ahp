@@ -25,11 +25,10 @@ import {
 	SUPPORTED_PROTOCOL_VERSIONS,
 	TurnState,
 } from "@microsoft/agent-host-protocol";
-import { initialSessionState } from "../src/channels/session.ts";
 import { chatUri, ROOT_CHANNEL, sessionUri } from "../src/core/channels.ts";
 import type { PiBackend } from "../src/pi/chat-driver.ts";
 import { type Harness, startHarness } from "./harness.ts";
-import { expectRpcError, must } from "./support/assertions.ts";
+import { expectRpcError, expectVscodeDisposalRefusal, must } from "./support/assertions.ts";
 import { eventually } from "./support/async.ts";
 
 const CLIENT_ID = "reconnecting-client";
@@ -84,15 +83,16 @@ describe("reconnect", () => {
 		await harness.dispose();
 	});
 
-	it("keeps non-VS Code and explicitly misrouted reconnects strict", async () => {
+	it("requires the root channel on reconnect, from VS Code too", async () => {
 		const client = await harness.connect();
 		for (const [context, params] of [
 			[
-				"non-VS Code reconnect without a channel",
+				"VS Code reconnect without a channel",
 				{
 					clientId: `${CLIENT_ID}-missing-channel`,
 					lastSeenServerSeq: 0,
 					subscriptions: [ROOT_CHANNEL],
+					_meta: { "vscode.telemetryLevel": "off" },
 				},
 			],
 			[
@@ -226,95 +226,10 @@ describe("reconnect", () => {
 
 		assert.equal(harness.host.subscriberCount(ROOT_CHANNEL), subscribersBefore + 1);
 	});
-
-	it("retains clientInfo when a replacement initialize omits it", async () => {
-		const clientId = `${CLIENT_ID}-reinitialize`;
-		const id = "vscode-reinitialize";
-		const uri = sessionUri(id);
-		const clientUri = `pi:/${id}`;
-		harness.host.store.create(uri, initialSessionState("pi", "Reinitialize", "/tmp"), "session");
-
-		const first = await harness.connect();
-		await first.request("initialize", {
-			channel: ROOT_CHANNEL,
-			clientId,
-			protocolVersions: [...SUPPORTED_PROTOCOL_VERSIONS],
-			clientInfo: { name: "vscode-editor-window" },
-		});
-		await first.shutdown();
-
-		const replacement = await harness.connect();
-		await replacement.initialize({ clientId, protocolVersions: SUPPORTED_PROTOCOL_VERSIONS });
-		assert.equal((await replacement.subscribe(clientUri)).result.snapshot?.resource, clientUri);
-	});
-
-	it("infers the provider URI dialect without clientInfo", async () => {
-		const clientId = `${CLIENT_ID}-provider-alias`;
-		const id = "provider-alias-reconnect";
-		const canonical = sessionUri(id);
-		const alias = `pi:/${id}`;
-		harness.host.store.create(canonical, initialSessionState("pi", "Reconnect", "/tmp"), "session");
-
-		const first = await harness.connect();
-		await first.initialize({ clientId, protocolVersions: SUPPORTED_PROTOCOL_VERSIONS });
-		assert.equal((await first.subscribe(alias)).result.snapshot?.resource, alias);
-		const staleSeq = harness.host.serverSeq;
-		await first.shutdown();
-		for (let i = 0; i < 6; i++) bumpActiveSessions(harness, i);
-
-		const resumed = await harness.connect();
-		const result = (await resumed.reconnect({
-			clientId,
-			lastSeenServerSeq: staleSeq,
-			subscriptions: [alias],
-		})) as ReconnectSnapshotResult;
-
-		assert.equal(result.type, ReconnectResultType.Snapshot);
-		assert.deepEqual(
-			result.snapshots.map((snapshot) => snapshot.resource),
-			[alias],
-		);
-		assert.equal(harness.host.store.has(canonical), true);
-		assert.equal(harness.host.store.has(alias), false);
-	});
-
-	it("retains VS Code's URI dialect across connections", async () => {
-		const clientId = `${CLIENT_ID}-vscode`;
-		const id = "vscode-reconnect";
-		const uri = sessionUri(id);
-		const clientUri = `pi:/${id}`;
-		harness.host.store.create(uri, initialSessionState("pi", "Reconnect", "/tmp"), "session");
-
-		const first = await harness.connect();
-		await first.request("initialize", {
-			channel: ROOT_CHANNEL,
-			clientId,
-			protocolVersions: [...SUPPORTED_PROTOCOL_VERSIONS],
-			clientInfo: { name: "vscode-editor-window" },
-		});
-		assert.equal((await first.subscribe(clientUri)).result.snapshot?.resource, clientUri);
-		const staleSeq = harness.host.serverSeq;
-		await first.shutdown();
-
-		for (let i = 0; i < 6; i++) bumpActiveSessions(harness, i);
-
-		const resumed = await harness.connect();
-		const result = (await resumed.reconnect({
-			clientId,
-			lastSeenServerSeq: staleSeq,
-			subscriptions: [clientUri],
-		})) as ReconnectSnapshotResult;
-
-		assert.equal(result.type, ReconnectResultType.Snapshot);
-		assert.deepEqual(
-			result.snapshots.map((snapshot) => snapshot.resource),
-			[clientUri],
-		);
-	});
 });
 
 describe("reconnect after host restart", () => {
-	it("repairs VS Code's channel-less reconnect and restores a durable session", async () => {
+	it("restores a durable session for VS Code reconnecting to a restarted host", async () => {
 		const root = mkdtempSync(join(tmpdir(), "pi-ahp-restart-sessions-"));
 		const workspace = mkdtempSync(join(tmpdir(), "pi-ahp-restart-cwd-"));
 		const id = randomUUID();
@@ -328,35 +243,30 @@ describe("reconnect after host restart", () => {
 		});
 
 		try {
-			const clientSession = `pi:/${id}`;
-			const clientChat = `ahp-chat://default/${Buffer.from(clientSession).toString("base64url")}`;
+			const session = sessionUri(id);
+			const chat = chatUri(id);
 			const client = await harness.connect();
 			const result = (await client.request("reconnect", {
+				channel: ROOT_CHANNEL,
 				clientId: "vscode-from-previous-host",
 				lastSeenServerSeq: 42,
-				subscriptions: [ROOT_CHANNEL, clientSession],
+				subscriptions: [ROOT_CHANNEL, session],
 				_meta: { "vscode.telemetryLevel": "off" },
-			} as never)) as ReconnectSnapshotResult;
+			})) as ReconnectSnapshotResult;
 
 			assert.equal(result.type, ReconnectResultType.Snapshot);
-			assert.deepEqual(
-				result.snapshots.map((snapshot) => snapshot.resource).sort(),
-				[ROOT_CHANNEL, clientSession].sort(),
-			);
+			assert.deepEqual(result.snapshots.map((snapshot) => snapshot.resource).sort(), [ROOT_CHANNEL, session].sort());
 			const sessionSnapshot = must(
-				result.snapshots.find((snapshot) => snapshot.resource === clientSession),
+				result.snapshots.find((snapshot) => snapshot.resource === session),
 				"VS Code session snapshot",
 			);
-			assert.equal((sessionSnapshot.state as SessionState).defaultChat, clientChat);
+			assert.equal((sessionSnapshot.state as SessionState).defaultChat, chat);
 
-			const disposalError = await expectRpcError(
-				client.request("disposeSession", { channel: clientSession }),
-				JsonRpcErrorCodes.InvalidRequest,
-			);
-			assert.match(disposalError.message, /VS Code provisional-session lifecycle bug/u);
-			assert.equal(harness.host.store.has(sessionUri(id)), true);
+			// Without a recorded clientInfo, only VS Code's request metadata identifies it.
+			await expectVscodeDisposalRefusal(client.request("disposeSession", { channel: session }));
+			assert.equal(harness.host.store.has(session), true);
 
-			const subscribed = await client.subscribe(clientChat);
+			const subscribed = await client.subscribe(chat);
 			const chatSnapshot = must(subscribed.result.snapshot);
 			const restoredTurn = (chatSnapshot.state as ChatState).turns[0];
 			assert.equal(restoredTurn?.message.text, "before restart");
@@ -368,7 +278,7 @@ describe("reconnect after host restart", () => {
 			assert.equal(harness.host.store.has(sessionUri(id)), true);
 			assert.equal(harness.host.store.has(chatUri(id)), true);
 
-			client.dispatch(clientChat, {
+			client.dispatch(chat, {
 				type: ActionType.ChatTurnStarted,
 				turnId: "after-restart",
 				startedAt: new Date().toISOString(),

@@ -270,7 +270,7 @@ describe("completions over the wire", () => {
 		}
 	});
 
-	it("maps provider-alias completion targets onto the default chat", async () => {
+	it("answers VS Code's session-addressed completions from the session's chat", async () => {
 		const vscode = new AhpClient(await WebSocketTransport.connect(`ws://127.0.0.1:${server.port}`));
 		vscode.connect();
 		await vscode.request("initialize", {
@@ -280,16 +280,17 @@ describe("completions over the wire", () => {
 			protocolVersions: [...SUPPORTED_PROTOCOL_VERSIONS],
 		});
 		try {
-			const params = { kind: CompletionItemKind.UserMessage, text: "@not", offset: 4 };
-			for (const result of await Promise.all([
-				vscode.request("completions", { ...params, channel: "pi:/completions" }),
-				client.request("completions", { ...params, channel: "pi:/completions" }),
-			])) {
-				assert.deepEqual(
-					result.items.map((item) => item.insertText),
-					["@notes.md"],
-				);
-			}
+			// Other clients' session targets are refused, as the test above shows.
+			const result = await vscode.request("completions", {
+				kind: CompletionItemKind.UserMessage,
+				channel: "ahp-session:/completions",
+				text: "@not",
+				offset: 4,
+			});
+			assert.deepEqual(
+				result.items.map((item) => item.insertText),
+				["@notes.md"],
+			);
 		} finally {
 			await vscode.shutdown();
 		}

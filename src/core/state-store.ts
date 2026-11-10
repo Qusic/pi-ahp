@@ -113,7 +113,7 @@ export class StateStore {
 	 *
 	 * `kind` is normally inferred from the scheme. Callers pass it explicitly
 	 * when the command establishes the kind of a client-chosen URI, such as a
-	 * provider-aliased session or VS Code terminal.
+	 * terminal.
 	 */
 	create(uri: URI, state: ChannelState, kind: ChannelKind | undefined = channelKind(uri)): void {
 		if (kind === undefined) {

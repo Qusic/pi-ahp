@@ -354,17 +354,6 @@ describe("terminal service", () => {
 		assert.deepEqual(fixture.spawner.calls, []);
 	});
 
-	it("reserves the provider session scheme from terminal creation", async () => {
-		await assert.rejects(
-			owner.request("createTerminal", {
-				channel: "pi:/reserved-for-sessions",
-				claim: { kind: TerminalClaimKind.Client, clientId: ownerId },
-			}),
-			(error: unknown) => error instanceof RpcError && error.code === JsonRpcErrorCodes.InvalidParams,
-		);
-		assert.deepEqual(fixture.spawner.calls, []);
-	});
-
 	it("does not let terminal disposal target another channel kind", async () => {
 		await assert.rejects(
 			owner.request("disposeTerminal", { channel: ROOT_CHANNEL }),

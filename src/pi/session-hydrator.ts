@@ -21,7 +21,7 @@ import {
 	type URI,
 } from "@microsoft/agent-host-protocol";
 import { chatSummaryOf } from "../channels/chat.ts";
-import { chatIdFromUri, chatUri, isChatChannel, sessionIdFromUri, sessionUri } from "../core/channels.ts";
+import { chatIdFromUri, chatUri, sessionIdFromUri, sessionUri } from "../core/channels.ts";
 import type { AhpHost, ChannelHydrator } from "../core/host.ts";
 import { pathToFileUri } from "../core/uri.ts";
 import { rebuildTurnsFromSession } from "./history.ts";
@@ -78,16 +78,11 @@ export class SessionHydrator implements ChannelHydrator {
 
 	async hydrate(channel: URI): Promise<boolean> {
 		// A chat and its session share one id, so either URI loads the pair.
-		// The provider alias is explicit: an unknown channel scheme must not
-		// become a session merely because its path resembles one.
-		const sessionId = isChatChannel(channel) ? chatIdFromUri(channel) : sessionIdFromUri(channel, [PI_PROVIDER]);
+		const sessionId = chatIdFromUri(channel) ?? sessionIdFromUri(channel);
 		if (!sessionId) {
 			return false;
 		}
-
-		// Register the session under the URI the client actually used, so a
-		// non-standard scheme resolves to the same channel it subscribed to.
-		const session = isChatChannel(channel) ? sessionUri(sessionId) : channel;
+		const session = sessionUri(sessionId);
 		if (this.#options.isLive(session)) {
 			return this.#options.host.store.has(channel);
 		}
@@ -203,7 +198,7 @@ export class SessionHydrator implements ChannelHydrator {
 			defaultChat: chat,
 			_meta: { piSessionFile: file, hydrated: true },
 		};
-		this.#options.host.store.create(session, sessionState, "session");
+		this.#options.host.store.create(session, sessionState);
 
 		this.#options.adopt?.({
 			uri: session,

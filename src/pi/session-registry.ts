@@ -245,7 +245,7 @@ export class SessionRegistry {
 		this.#host.addClientActionEffect((channel, action) => {
 			const flag = sessionMetadataFlag(action);
 			if (!flag) return;
-			const id = sessionIdFromUri(channel, [PI_PROVIDER]);
+			const id = sessionIdFromUri(channel);
 			if (id) this.#options.metadata.sessions.set(id, flag.key, flag.value);
 		});
 	}
@@ -265,7 +265,7 @@ export class SessionRegistry {
 	}
 
 	isDisposing(uri: URI): boolean {
-		const id = sessionIdFromUri(uri, [PI_PROVIDER]);
+		const id = sessionIdFromUri(uri);
 		return id !== undefined && this.#disposals.has(id);
 	}
 
@@ -286,7 +286,7 @@ export class SessionRegistry {
 	readonly routeMetadataAction: SessionMetadataActionRouter = (channel, action, apply) => {
 		const flag = sessionMetadataFlag(action);
 		if (!flag) return false;
-		const id = sessionIdFromUri(channel, [PI_PROVIDER]);
+		const id = sessionIdFromUri(channel);
 		if (!id) return false;
 		// Refusing new work on a loaded target must not wait for its deletion to settle.
 		if (this.#sessions.has(channel) && this.#disposals.has(id)) {
@@ -380,8 +380,7 @@ export class SessionRegistry {
 	 */
 	create(request: CreateSessionRequest): void | Promise<void> {
 		const uri = request.channel;
-		// Only canonical and provider-alias URIs can be recovered after a host restart.
-		const sessionId = sessionIdFromUri(uri, [PI_PROVIDER]);
+		const sessionId = sessionIdFromUri(uri);
 		if (!sessionId) {
 			throw ProtocolError.invalidParams(`Not a session URI: ${uri}`);
 		}
@@ -410,8 +409,7 @@ export class SessionRegistry {
 		// pi withholds the session file until an assistant message exists; the
 		// manager still owns the target directory and in-memory entry tree now.
 		const sessionManager = this.#options.createSessionManager(workingDirectory, sessionId);
-		// A provider-alias URI still needs the session reducer.
-		this.#host.store.create(uri, initialSessionState(PI_PROVIDER, title, workingDirectory), "session");
+		this.#host.store.create(uri, initialSessionState(PI_PROVIDER, title, workingDirectory));
 		const chatChannel = installDefaultChat(this.#host, uri, sessionId, title, this.#options.defaultSelection?.());
 
 		const session: LiveSession = {
@@ -475,8 +473,8 @@ export class SessionRegistry {
 	 * trash-then-unlink path pi's own `/resume` delete uses.
 	 */
 	dispose(uri: URI): Promise<void> {
-		const id = sessionIdFromUri(uri, [PI_PROVIDER]);
-		if (!id || (this.#host.store.kindOf(uri) !== undefined && this.#host.store.kindOf(uri) !== "session")) {
+		const id = sessionIdFromUri(uri);
+		if (!id) {
 			return Promise.reject(ProtocolError.sessionNotFound(uri));
 		}
 		const pending = this.#disposals.get(id);
@@ -486,7 +484,7 @@ export class SessionRegistry {
 
 		// Defer the work so the gate is installed before backend shutdown can emit
 		// events or any other message can observe the transition.
-		const operation = Promise.resolve().then(() => this.#operations.run(id, () => this.#disposeOnce(uri)));
+		const operation = Promise.resolve().then(() => this.#operations.run(id, () => this.#disposeOnce(uri, id)));
 		this.#disposals.set(id, operation);
 		const clear = (): void => {
 			if (this.#disposals.get(id) === operation) {
@@ -497,15 +495,13 @@ export class SessionRegistry {
 		return operation;
 	}
 
-	async #disposeOnce(uri: URI): Promise<void> {
+	async #disposeOnce(uri: URI, sessionId: string): Promise<void> {
 		const session = this.#sessions.get(uri);
-		let sessionId: string;
 		let file: string | undefined;
 		let quiesced: ChatDriver | undefined;
 
 		try {
 			if (session) {
-				sessionId = session.sessionId;
 				quiesced = session.driver;
 				await quiesced?.quiesce();
 				file = session.sessionManager.getSessionFile();
@@ -521,15 +517,6 @@ export class SessionRegistry {
 					});
 				}
 			} else {
-				const kind = this.#host.store.kindOf(uri);
-				if (kind !== undefined && kind !== "session") {
-					throw ProtocolError.sessionNotFound(uri);
-				}
-				const parsedId = sessionIdFromUri(uri, [PI_PROVIDER]);
-				if (!parsedId) {
-					throw ProtocolError.sessionNotFound(uri);
-				}
-				sessionId = parsedId;
 				file = await this.#options.findSessionFile?.(sessionId);
 				if (!file && !this.#host.store.has(uri)) {
 					throw ProtocolError.sessionNotFound(uri);
@@ -688,10 +675,10 @@ export class SessionRegistry {
 				return typeof action.title === "string" ? undefined : "A session title must be a string";
 			case ActionType.SessionIsArchivedChanged:
 				if (typeof action.isArchived !== "boolean") return "The archive flag must be a boolean";
-				return sessionIdFromUri(channel, [PI_PROVIDER]) ? undefined : "This session is unavailable";
+				return sessionIdFromUri(channel) ? undefined : "This session is unavailable";
 			case ActionType.SessionIsReadChanged:
 				if (typeof action.isRead !== "boolean") return "The read flag must be a boolean";
-				return sessionIdFromUri(channel, [PI_PROVIDER]) ? undefined : "This session is unavailable";
+				return sessionIdFromUri(channel) ? undefined : "This session is unavailable";
 			case ActionType.ChatTurnStarted: {
 				if (typeof action.turnId !== "string" || typeof action.startedAt !== "string") {
 					return "A turn requires string turnId and startedAt fields";

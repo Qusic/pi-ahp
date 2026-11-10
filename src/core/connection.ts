@@ -24,7 +24,8 @@ export class ClientConnection {
 	}
 
 	send(message: JsonRpcMessage): void {
-		this.transport.send(this.workarounds.applyToOutgoing(message));
+		this.workarounds.observeOutgoing(message);
+		this.transport.send(message);
 	}
 
 	subscribe(channel: URI): void {

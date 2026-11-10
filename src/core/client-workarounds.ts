@@ -6,22 +6,13 @@
 import { ActionType, JsonRpcErrorCodes, type URI } from "@microsoft/agent-host-protocol";
 import { ProtocolError } from "../protocol/errors.ts";
 import type { JsonRpcMessage, JsonRpcNotification, JsonRpcRequest, JsonRpcResponse } from "../protocol/jsonrpc.ts";
-import { chatIdFromUri, chatUri, ROOT_CHANNEL, sessionIdFromUri, sessionUri } from "./channels.ts";
-
-/**
- * Field names that carry session or chat URIs in state, actions, and catalogue
- * notifications. The rewrite itself ignores every other URI scheme.
- */
-const REWRITABLE_FIELDS = new Set(["channel", "resource", "defaultChat", "session", "chat"]);
-
-/** VS Code's derived chat URI: `ahp-chat://<anything>/<base64url(sessionUri)>`. */
-const DERIVED_CHAT_URI = /^ahp-chat:\/\/[^/]+\/([^/?#]+)$/;
+import { chatIdFromUri, chatUri, sessionIdFromUri, sessionUri } from "./channels.ts";
 
 /** The client names VS Code identifies itself with at `initialize`. */
 const VSCODE_CLIENT_NAMES = new Set(["vscode-editor-window", "vscode-agents-window"]);
 
-const VSCODE_MATERIALIZED_SESSION_DISPOSAL_REFUSAL =
-	"Materialized session disposal is temporarily disabled for VS Code because of a VS Code provisional-session lifecycle bug; this session was kept.";
+const VSCODE_SESSION_DISPOSAL_REFUSAL =
+	"Deleting sessions from VS Code is temporarily disabled because VS Code can dispose sessions unintentionally; this session was kept.";
 
 /** Actions after which a session is no longer an abandoned empty draft. */
 const MATERIALIZING_ACTIONS = new Set<string>([
@@ -30,52 +21,14 @@ const MATERIALIZING_ACTIONS = new Set<string>([
 	ActionType.SessionTitleChanged,
 ]);
 
-/**
- * The provider scheme affected by this compatibility layer. Keep it local so
- * client-specific routing does not leak into canonical host APIs.
- */
-const PROVIDER_SESSION_SCHEME = "pi";
-type SessionUriDialect = "canonical" | "provider" | "vscode";
-
-/** Methods where a direct `pi:/...` target can only mean a session. */
-const PROVIDER_SESSION_METHODS = new Set([
-	"createSession",
-	"disposeSession",
-	"subscribe",
-	"unsubscribe",
-	"dispatchAction",
-	"completions",
-]);
-
-function providerSessionId(uri: URI): string | undefined {
-	return sessionIdFromUri(uri, [PROVIDER_SESSION_SCHEME]);
-}
-
-function isProviderSession(uri: URI): boolean {
-	return uri.toLowerCase().startsWith(`${PROVIDER_SESSION_SCHEME}:/`) && providerSessionId(uri) !== undefined;
-}
-
-function canonicalSessionUri(uri: URI): URI | undefined {
-	const sessionId = providerSessionId(uri);
-	return sessionId ? sessionUri(sessionId) : undefined;
-}
-
-function owningSessionUri(uri: URI): URI | undefined {
-	const session = canonicalSessionUri(uri);
-	if (session) return session;
-	const chatId = chatIdFromUri(uri);
-	return chatId ? sessionUri(chatId) : undefined;
-}
-
 interface MessageParams {
 	_meta?: unknown;
 	action?: unknown;
 	channel?: unknown;
+	clientInfo?: unknown;
 	importConversation?: unknown;
-	initialSubscriptions?: unknown;
 	rejectionReason?: unknown;
 	session?: unknown;
-	subscriptions?: unknown;
 }
 
 type TrackedSessionState = "creating" | "empty" | "materialized" | "disposing";
@@ -91,21 +44,33 @@ function typeOfAction(value: unknown): string | undefined {
 		: undefined;
 }
 
-function hasVscodeClientMeta(value: unknown): boolean {
+/** VS Code names itself at `initialize` and sends namespaced metadata with every handshake. */
+function identifiesVscode({ clientInfo, _meta: meta }: MessageParams): boolean {
+	const name =
+		typeof clientInfo === "object" && clientInfo !== null && "name" in clientInfo ? clientInfo.name : undefined;
 	return (
-		typeof value === "object" &&
-		value !== null &&
-		("vscode.telemetryLevel" in value || "vscode.clientConnectionKind" in value)
+		(typeof name === "string" && VSCODE_CLIENT_NAMES.has(name)) ||
+		(typeof meta === "object" &&
+			meta !== null &&
+			("vscode.telemetryLevel" in meta || "vscode.clientConnectionKind" in meta))
 	);
 }
 
+/** The session a session or chat channel belongs to; a chat shares its session's id. */
+function owningSessionUri(uri: URI): URI | undefined {
+	if (sessionIdFromUri(uri)) return uri;
+	const chatId = chatIdFromUri(uri);
+	return chatId ? sessionUri(chatId) : undefined;
+}
+
 /**
- * Allows VS Code to clean up only sessions known to be unused drafts on this
- * connection. Unknown sessions are protected: reconnect does not carry enough
- * history to prove that they are empty.
+ * Lets VS Code dispose only the drafts it created on this connection and never
+ * used. VS Code disposes every loaded session when the window's workspace
+ * folders change (microsoft/vscode#343406, microsoft/vscode#344553), so any
+ * other session is kept. Unknown sessions are protected too: reconnect does not
+ * carry enough history to prove that they are empty.
  *
- * Remove this tracker when VS Code graduates materialized remote sessions
- * before tearing down its provisional-session service.
+ * Remove this guard when VS Code Stable fixes those issues.
  */
 class VscodeSessionDisposalGuard {
 	readonly #sessions = new Map<URI, TrackedSessionState>();
@@ -117,26 +82,22 @@ class VscodeSessionDisposalGuard {
 		if (channel && actionType && MATERIALIZING_ACTIONS.has(actionType)) {
 			this.#markMaterialized(channel);
 		}
-		if (!("id" in message) || !channel) {
-			return;
-		}
-		const session = canonicalSessionUri(channel);
-		if (!session) {
+		if (!("id" in message) || !channel || !sessionIdFromUri(channel)) {
 			return;
 		}
 		if (message.method === "createSession") {
-			this.#sessions.set(session, params.importConversation === undefined ? "creating" : "materialized");
-			this.#pendingRequests.set(message.id, { kind: "create", session });
+			this.#sessions.set(channel, params.importConversation === undefined ? "creating" : "materialized");
+			this.#pendingRequests.set(message.id, { kind: "create", session: channel });
 			return;
 		}
 		if (message.method !== "disposeSession") {
 			return;
 		}
-		if (this.#sessions.get(session) !== "empty") {
-			throw new ProtocolError(JsonRpcErrorCodes.InvalidRequest, VSCODE_MATERIALIZED_SESSION_DISPOSAL_REFUSAL);
+		if (this.#sessions.get(channel) !== "empty") {
+			throw new ProtocolError(JsonRpcErrorCodes.InvalidRequest, VSCODE_SESSION_DISPOSAL_REFUSAL);
 		}
-		this.#sessions.set(session, "disposing");
-		this.#pendingRequests.set(message.id, { kind: "dispose", session });
+		this.#sessions.set(channel, "disposing");
+		this.#pendingRequests.set(message.id, { kind: "dispose", session: channel });
 	}
 
 	applyToOutgoing(message: JsonRpcMessage): void {
@@ -159,8 +120,7 @@ class VscodeSessionDisposalGuard {
 			this.#markMaterialized(params.channel);
 		}
 		if (message.method === "root/sessionRemoved" && typeof params.session === "string") {
-			const session = canonicalSessionUri(params.session);
-			if (session) this.#sessions.delete(session);
+			this.#sessions.delete(params.session);
 		}
 	}
 
@@ -194,165 +154,48 @@ class VscodeSessionDisposalGuard {
 	}
 }
 
+/** The channel AHP defines for a request VS Code addresses elsewhere; see {@link ClientWorkarounds}. */
+function vscodeChannel(method: string, channel: URI, action: unknown): URI {
+	if (method === "completions") {
+		const sessionId = sessionIdFromUri(channel);
+		return sessionId ? chatUri(sessionId) : channel;
+	}
+	if (method === "dispatchAction" && typeOfAction(action) === ActionType.SessionTitleChanged) {
+		const chatId = chatIdFromUri(channel);
+		return chatId ? sessionUri(chatId) : channel;
+	}
+	return channel;
+}
+
 /**
- * VS Code computes provider-scoped session URIs and derived default-chat URIs
- * instead of using the canonical resources published by the host. It also
- * targets `completions` at the session URI rather than the chat URI. Publishing
- * those shapes globally would impose one client's dialect on every client, so
- * translation remains per connection and core services see canonical URIs.
+ * VS Code Stable still departs from AHP in three ways, repaired per connection
+ * so core services only ever see standard traffic:
  *
- * `initialize.clientInfo`, VS Code's namespaced request metadata, and derived
- * chat URIs identify VS Code and gate its workarounds. Independently, a raw
- * `pi:/...` target selects the provider-session URI dialect used by the iOS
- * client. Both observations remain per connection; core services stay canonical.
+ * - it requests `completions` for a session rather than the session's chat;
+ * - it renames a default chat with `session/titleChanged` on the chat channel,
+ *   which AHP defines only on the owning session;
+ * - it can dispose sessions unintentionally (see {@link VscodeSessionDisposalGuard}).
  *
- * Remove each compatibility branch when its clients emit canonical AHP traffic.
+ * Remove each repair when VS Code Stable sends standard traffic.
  */
 export class ClientWorkarounds {
 	#isVscode = false;
-	#usesProviderSessionUris = false;
 	readonly #vscodeSessionDisposal = new VscodeSessionDisposalGuard();
 
-	/** Reads implementation identity without erasing observations from wire traffic. */
-	identify(clientInfo: { name?: string } | undefined): void {
-		if (VSCODE_CLIENT_NAMES.has(clientInfo?.name ?? "")) this.#isVscode = true;
-	}
-
-	/** Rewrites this connection's parsed request or notification in place. */
+	/** Repairs this connection's parsed request or notification in place. */
 	applyToIncoming(message: JsonRpcRequest | JsonRpcNotification): void {
 		const params = message.params as MessageParams | undefined;
 		if (!params) return;
-		this.#observeTraffic(message.method, params);
-		// Remove when VS Code includes the AHP 0.9 root-channel discriminant in reconnect.
-		if ("id" in message && this.#isVscode && message.method === "reconnect" && params.channel === undefined) {
-			params.channel = ROOT_CHANNEL;
-		}
-
-		const dialect = this.#uriDialect();
-		const rewrite = (uri: URI) => inbound(uri, dialect);
+		if (identifiesVscode(params)) this.#isVscode = true;
+		if (!this.#isVscode) return;
 		if (typeof params.channel === "string") {
-			let channel = rewrite(params.channel);
-			if (message.method === "completions" && dialect !== "canonical") {
-				// Both VS Code and the iOS client currently target completions at the
-				// provider-style session URI.
-				const sessionId = providerSessionId(channel);
-				channel = sessionId ? chatUri(sessionId) : channel;
-			}
-			// VS Code addresses its session rename to the selected chat. AHP defines
-			// `session/titleChanged` only on the owning session.
-			if (
-				message.method === "dispatchAction" &&
-				this.#isVscode &&
-				typeOfAction(params.action) === ActionType.SessionTitleChanged
-			) {
-				const chatId = chatIdFromUri(channel);
-				channel = chatId ? sessionUri(chatId) : channel;
-			}
-			params.channel = channel;
+			params.channel = vscodeChannel(message.method, params.channel, params.action);
 		}
-		// Handshake requests name their subscribed channels in arrays rather than
-		// the top-level routing `channel`.
-		for (const field of ["initialSubscriptions", "subscriptions"] as const) {
-			const subscriptions = params[field];
-			if (Array.isArray(subscriptions)) {
-				params[field] = subscriptions.map((uri) => (typeof uri === "string" ? rewrite(uri) : uri));
-			}
-		}
-		if (this.#isVscode) {
-			this.#vscodeSessionDisposal.applyToIncoming(message, params);
-		}
+		this.#vscodeSessionDisposal.applyToIncoming(message, params);
 	}
 
-	/** Returns the outgoing message, rewritten if this client needs it. */
-	applyToOutgoing(message: JsonRpcMessage): JsonRpcMessage {
-		if (this.#isVscode) {
-			this.#vscodeSessionDisposal.applyToOutgoing(message);
-		}
-		const dialect = this.#uriDialect();
-		return dialect === "canonical"
-			? message
-			: (rewriteFields(message, (uri) => outbound(uri, dialect)) as JsonRpcMessage);
+	/** Lets the repairs track what this connection is sent; the message itself is unchanged. */
+	observeOutgoing(message: JsonRpcMessage): void {
+		if (this.#isVscode) this.#vscodeSessionDisposal.applyToOutgoing(message);
 	}
-
-	#observeTraffic(method: string, params: MessageParams): void {
-		const direct = typeof params.channel === "string" ? params.channel : undefined;
-		const listed = [
-			...(Array.isArray(params.initialSubscriptions) ? params.initialSubscriptions : []),
-			...(Array.isArray(params.subscriptions) ? params.subscriptions : []),
-		];
-		const observed = direct ? [direct, ...listed] : listed;
-		this.#observeVscode(params, observed);
-		if (
-			!this.#usesProviderSessionUris &&
-			(PROVIDER_SESSION_METHODS.has(method) ? observed : listed).some(
-				(uri) => typeof uri === "string" && isProviderSession(uri),
-			)
-		) {
-			this.#usesProviderSessionUris = true;
-		}
-	}
-
-	#observeVscode(params: MessageParams, observed: readonly unknown[]): void {
-		if (
-			hasVscodeClientMeta(params._meta) ||
-			observed.some((uri) => typeof uri === "string" && sessionFromDerivedChat(uri) !== undefined)
-		) {
-			this.#isVscode = true;
-		}
-	}
-
-	#uriDialect(): SessionUriDialect {
-		if (this.#isVscode) return "vscode";
-		return this.#usesProviderSessionUris ? "provider" : "canonical";
-	}
-}
-
-/**
- * Translates a URI this client computed into the one this host minted.
- *
- * A derived chat URI is unwrapped regardless of who sent it — it names no channel this
- * host could otherwise serve. A provider-aliased session URI is only rewritten
- * for a client identified as using that alias; unknown schemes are left alone.
- */
-function sessionFromDerivedChat(uri: URI): URI | undefined {
-	const [, encoded = ""] = DERIVED_CHAT_URI.exec(uri) ?? [];
-	const session = encoded ? Buffer.from(encoded, "base64url").toString("utf8") : "";
-	return isProviderSession(session) ? session : undefined;
-}
-
-function inbound(uri: URI, dialect: SessionUriDialect): URI {
-	const derivedSession = sessionFromDerivedChat(uri);
-	const derivedSessionId = derivedSession ? providerSessionId(derivedSession) : undefined;
-	if (derivedSessionId) return chatUri(derivedSessionId);
-	if (dialect === "canonical" || !isProviderSession(uri)) return uri;
-	const sessionId = providerSessionId(uri);
-	return sessionId ? sessionUri(sessionId) : uri;
-}
-
-/** Translates a URI this host minted into the dialect this client expects. */
-function outbound(uri: URI, dialect: Exclude<SessionUriDialect, "canonical">): URI {
-	const chatId = chatIdFromUri(uri);
-	if (chatId) {
-		return dialect === "vscode"
-			? `ahp-chat://default/${Buffer.from(`${PROVIDER_SESSION_SCHEME}:/${chatId}`).toString("base64url")}`
-			: uri;
-	}
-	const sessionId = providerSessionId(uri);
-	return sessionId ? `${PROVIDER_SESSION_SCHEME}:/${sessionId}` : uri;
-}
-
-/** Applies `rewrite` to every rewritable field, however deeply nested. */
-function rewriteFields(value: unknown, rewrite: (uri: URI) => URI): unknown {
-	if (Array.isArray(value)) {
-		return value.map((item) => rewriteFields(item, rewrite));
-	}
-	if (typeof value !== "object" || value === null) {
-		return value;
-	}
-	const out: Record<string, unknown> = {};
-	for (const [key, item] of Object.entries(value)) {
-		out[key] =
-			REWRITABLE_FIELDS.has(key) && typeof item === "string" ? rewrite(item as URI) : rewriteFields(item, rewrite);
-	}
-	return out;
 }

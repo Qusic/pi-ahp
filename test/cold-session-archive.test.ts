@@ -28,7 +28,7 @@ it("archives and unarchives cold history without materializing it, and suppresse
 	const writes = t.mock.method(f.metadata.sessions, "set");
 	for (const isArchived of [true, false, true]) {
 		if (isArchived) f.client.dispatch(f.session, { type: ActionType.SessionIsArchivedChanged, isArchived });
-		else f.observer.dispatch(`pi:/${f.id}`, { type: ActionType.SessionIsArchivedChanged, isArchived });
+		else f.observer.dispatch(f.session, { type: ActionType.SessionIsArchivedChanged, isArchived });
 		const event = await nextArchiveEvent(roots);
 		assert.ok(event.type === "sessionSummaryChanged");
 		assert.deepEqual(event.params, {

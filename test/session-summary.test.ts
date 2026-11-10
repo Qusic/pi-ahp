@@ -174,10 +174,9 @@ async function fixture(t: TestContext, createBackend?: BackendFactory) {
 	});
 	const id = randomUUID();
 	const session = sessionUri(id);
-	const alias = `pi:/${id}`;
 	const chat = chatUri(id);
-	await client.request("createSession", { channel: alias });
-	const initial = (await client.subscribe(alias)).result.snapshot;
+	await client.request("createSession", { channel: session });
+	const initial = (await client.subscribe(session)).result.snapshot;
 	await client.subscribe(chat);
 	await client.ping();
 	notifications.length = 0;
@@ -205,7 +204,6 @@ async function fixture(t: TestContext, createBackend?: BackendFactory) {
 		client,
 		clientId,
 		session,
-		alias,
 		chat,
 		initial: must(initial),
 		notifications,
@@ -227,7 +225,7 @@ describe("session summary over the wire", () => {
 		await attaching;
 		await f.client.ping();
 		assert.deepEqual(f.changes(), [
-			{ channel: ROOT_CHANNEL, session: f.alias, changes: { status: SessionStatus.Error } },
+			{ channel: ROOT_CHANNEL, session: f.session, changes: { status: SessionStatus.Error } },
 		]);
 		const state = f.harness.host.store.get(f.session) as SessionState;
 		assert.equal(state.lifecycle, SessionLifecycle.Failed);
@@ -239,10 +237,10 @@ describe("session summary over the wire", () => {
 		const f = await fixture(t);
 		await f.start();
 		assert.deepEqual(f.changes(), [
-			{ channel: ROOT_CHANNEL, session: f.alias, changes: { title: "go" } },
+			{ channel: ROOT_CHANNEL, session: f.session, changes: { title: "go" } },
 			{
 				channel: ROOT_CHANNEL,
-				session: f.alias,
+				session: f.session,
 				changes: {
 					status: SessionStatus.InProgress,
 					modifiedAt: START,
@@ -254,11 +252,11 @@ describe("session summary over the wire", () => {
 		assert.equal(actions.length, 3);
 		assert.equal(actions[0]?.action.type, ActionType.ChatTurnStarted);
 		const title = must(actions[1]);
-		assert.equal(title.channel, f.alias);
+		assert.equal(title.channel, f.session);
 		assert.deepEqual(title.action, { type: ActionType.SessionTitleChanged, title: "go" });
 		assert.equal(title.origin, undefined);
 		const update = must(actions[2]);
-		assert.equal(update.channel, f.alias);
+		assert.equal(update.channel, f.session);
 		const { resource: _resource, ...expected } = chatSummaryOf(f.harness.host.store.get(f.chat) as ChatState);
 		assert.deepEqual(update.action, { type: ActionType.SessionChatUpdated, chat: f.chat, changes: expected });
 		assert.equal(update.rejectionReason, undefined);
@@ -268,7 +266,7 @@ describe("session summary over the wire", () => {
 		assert.equal((f.harness.host.store.get(f.session) as SessionState).status, SessionStatus.Idle);
 		assert.equal(existsSync(must(f.harness.sessions?.get(f.session)?.sessionManager.getSessionFile())), false);
 		const live = await f.list();
-		assert.equal(live.resource, f.alias);
+		assert.equal(live.resource, f.session);
 		assert.equal(live.title, "go");
 		assert.equal(live.status, SessionStatus.InProgress);
 		assert.equal(live.modifiedAt, START);
@@ -303,7 +301,7 @@ describe("session summary over the wire", () => {
 			],
 		);
 		let mirror = f.initial.state as SessionState;
-		for (const envelope of [...startActions, ...actions].filter((e) => e.channel === f.alias))
+		for (const envelope of [...startActions, ...actions].filter((e) => e.channel === f.session))
 			mirror = sessionReducer(mirror, envelope.action as never);
 		assert.deepEqual(
 			JSON.parse(JSON.stringify(mirror)),
@@ -371,7 +369,7 @@ describe("session summary over the wire", () => {
 			assert.deepEqual(f.changes(), [
 				{
 					channel: ROOT_CHANNEL,
-					session: f.alias,
+					session: f.session,
 					changes: { status, ...(outcome === "truncate" ? {} : { modifiedAt: END }) },
 				},
 			]);
@@ -403,18 +401,18 @@ describe("session summary over the wire", () => {
 			const replay = await resumed.reconnect({
 				clientId: f.clientId,
 				lastSeenServerSeq: baseline,
-				subscriptions: [f.alias, f.chat],
+				subscriptions: [f.session, f.chat],
 			});
 			assert.equal(replay.type, "replay");
 			if (replay.type !== "replay") assert.fail("expected replay");
 			let mirror = f.initial.state as SessionState;
-			for (const envelope of replay.actions.filter((e) => e.channel === f.alias))
+			for (const envelope of replay.actions.filter((e) => e.channel === f.session))
 				mirror = sessionReducer(mirror, envelope.action as never);
 			const fresh = await f.harness.connect();
 			const fallback = await fresh.reconnect({
 				clientId: nextClientId(),
 				lastSeenServerSeq: baseline,
-				subscriptions: [f.alias],
+				subscriptions: [f.session],
 			});
 			assert.equal(fallback.type, "snapshot");
 			if (fallback.type !== "snapshot") assert.fail("expected snapshot fallback");
