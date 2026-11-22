@@ -26,6 +26,8 @@ for attr in $(nix eval --impure --raw --expr '
 	)
 '); do
 	echo "    ${attr}"
+	# Work around https://github.com/Mic92/nix-update/issues/687 until nixpkgs has the fix.
+	nix flake prefetch
 	nix run nixpkgs#nix-update -- --flake --version=skip "$attr"
 done
 
