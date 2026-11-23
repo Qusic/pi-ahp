@@ -5,7 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 patchedDependencies:
-  '@microsoft/agent-host-protocol': b372828619e89b1db03041aef9145725739fd9bebbc62d28cbedc29b568d3515
+  '@microsoft/agent-host-protocol': 8a868ca262c7a82c6d677baec31853c7cd2e9eb3ffb7abd169d4de532b438d48
 
 importers:
 
@@ -18,8 +18,8 @@ importers:
         specifier: 1.5.2
         version: 1.5.2(@aws-sdk/credential-provider-node@3.972.84)(@smithy/signature-v4@5.7.3)(supports-color@7.2.0)(ws@8.23.0)(zod@4.6.7)
       '@microsoft/agent-host-protocol':
-        specifier: 1.0.0
-        version: 1.0.0(patch_hash=b372828619e89b1db03041aef9145725739fd9bebbc62d28cbedc29b568d3515)
+        specifier: 1.1.0
+        version: 1.1.0(patch_hash=8a868ca262c7a82c6d677baec31853c7cd2e9eb3ffb7abd169d4de532b438d48)
       '@parcel/watcher':
         specifier: ^2.6.0
         version: 2.6.0
@@ -292,8 +292,8 @@ packages:
   '@isaacs/nonrecursive-glob-match@1.0.3':
     resolution: {integrity: sha512-SI7kyKHq4XXDRozw+r9GlRZkia1ZkFrpLW98r2IC2Bpr8YkFGE3fvjzmxCG0x78A++69HmDNrDvSMYBZmHGpKA==}
 
-  '@microsoft/agent-host-protocol@1.0.0':
-    resolution: {integrity: sha512-swjikGoqZ/bv3Mn4vkkLzwpmS/j9tV7Aas7ruD2a/R3KVsUlokwCJNSET57mdsmZLMnrawDaCr/ctufbpjE4iA==}
+  '@microsoft/agent-host-protocol@1.1.0':
+    resolution: {integrity: sha512-6LXOqqXWGwMtrGxhIquNW9ECDPSHuW4yOpnIrOperBQuVZeRqbbmIGYn6ZZK3Q41/8heOi2LUlP9x9Wrsru3Eg==}
 
   '@octokit/auth-token@6.0.0':
     resolution: {integrity: sha512-P4YJBPdPSpWTQ1NU4XYdvHvXJJDxM6YwpS0FZHRgP7YFkdVxsWcpWGy/NVqlAA7PcPCnMacXlRm1y2PFZRWL/w==}
@@ -2371,7 +2371,7 @@ snapshots:
 
   '@isaacs/nonrecursive-glob-match@1.0.3': {}
 
-  '@microsoft/agent-host-protocol@1.0.0(patch_hash=b372828619e89b1db03041aef9145725739fd9bebbc62d28cbedc29b568d3515)': {}
+  '@microsoft/agent-host-protocol@1.1.0(patch_hash=8a868ca262c7a82c6d677baec31853c7cd2e9eb3ffb7abd169d4de532b438d48)': {}
 
   '@octokit/auth-token@6.0.0': {}
 

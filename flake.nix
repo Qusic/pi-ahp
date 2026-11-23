@@ -36,7 +36,7 @@
             owner = "microsoft";
             repo = "agent-host-protocol";
             rev = "spec/v${version}";
-            hash = "sha256-G7Hm2Ew6/cRx5M3Sx9K1dQ2T3hnviaqbLAFb/LM8a/U=";
+            hash = "sha256-M5CravjzVBP82G6TKIpxt7UoZX4ky+xyrGyp64+VuOg=";
           };
 
           pi-ahp = final.stdenv.mkDerivation (finalAttrs: {
@@ -57,7 +57,7 @@
               inherit (finalAttrs) src;
               inherit pnpm;
               fetcherVersion = 5;
-              hash = "sha256-ZUcr4jvUpIf0O93waApuafPETdAf2FoKmcgvVfdCC9U=";
+              hash = "sha256-dKuzDWCJ8mDD+PoSa53MlqTPLlOKZpvvc5luiFr/QLE=";
             };
 
             __structuredAttrs = true;
