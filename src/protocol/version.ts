@@ -1,10 +1,8 @@
 /**
- * Protocol version negotiation.
+ * Protocol version negotiation for `initialize`.
  *
- * The client offers `InitializeParams.protocolVersions`; the server picks the
- * highest compatible SemVer entry and echoes it back as
- * `InitializeResult.protocolVersion`. If there is no overlap the server MUST
- * return `UnsupportedProtocolVersion` (-32005) rather than a result.
+ * The SDK selects the version. This module checks the client's offer and
+ * reports the SDK's outcome as the errors the spec requires.
  *
  * @see https://microsoft.github.io/agent-host-protocol/specification/versioning
  */
@@ -17,10 +15,11 @@ import {
 import { ProtocolError } from "./errors.ts";
 
 /**
- * Supports the SDK's released 1.0 and 0.9 compatibility baselines. No 1.0-only
- * actions or fields are published yet, so both clients see the same 0.9 surface.
+ * Returns the version the SDK selects from the client's offer.
  *
- * @throws {ProtocolError} `UnsupportedProtocolVersion` when there is no overlap.
+ * @throws {ProtocolError} `InvalidParams` for a malformed offer, or
+ * `UnsupportedProtocolVersion` with the SDK's supported versions when it
+ * selects none.
  */
 export function negotiateProtocolVersion(offered: readonly string[] | undefined): string {
 	if (!Array.isArray(offered) || offered.length === 0 || offered.some((version) => typeof version !== "string")) {

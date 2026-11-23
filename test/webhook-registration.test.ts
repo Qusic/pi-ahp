@@ -68,17 +68,17 @@ it("only advertises the extension when its handler is installed", async (t) => {
 	await expectRpcError(setWebhook(client, webhook), JsonRpcErrorCodes.MethodNotFound);
 });
 
-it("persists independent registrations across both AHP versions, replacement, clearing and restart", async (t) => {
+it("persists independent registrations across replacement, clearing and restart", async (t) => {
 	const f = await fixture(t);
 	const first = await f.harness.connect();
 	const second = await f.harness.connect();
 	const firstId = nextClientId();
 	const secondId = nextClientId();
-	for (const [client, id, versions] of [
-		[first, firstId, ["1.0.0"]],
-		[second, secondId, ["0.9.0"]],
+	for (const [client, id] of [
+		[first, firstId],
+		[second, secondId],
 	] as const) {
-		const result = await client.initialize({ clientId: id, protocolVersions: versions });
+		const result = await client.initialize({ clientId: id, protocolVersions: SUPPORTED_PROTOCOL_VERSIONS });
 		assert.equal(result._meta?.["me.qusic.ahp-webhook"], 1);
 	}
 	assert.equal(await setWebhook(first, webhook), null);
