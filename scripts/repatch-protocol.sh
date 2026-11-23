@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
-# Regenerates patches/@microsoft__agent-host-protocol.patch.
+# Upgrades @microsoft/agent-host-protocol and regenerates its patch.
 #
-# Run after bumping @microsoft/agent-host-protocol; the existing patch will not
-# apply to new .d.ts files and `pnpm install` will say so.
+# Usage: nix develop -c scripts/repatch-protocol.sh <version>
 #
 # The edit itself is one substitution: the package declares its enums `declare
 # const enum` but compiles them with `preserveConstEnums`, so the runtime
@@ -13,35 +12,46 @@
 # A postinstall script doing the same substitution would be shorter than the
 # patch, but nixpkgs' pnpmConfigHook installs with `--ignore-scripts`, so it
 # would never run in `nix build` and the hermetic typecheck would fail.
+#
+# The old patch goes first: it would not apply to the new version, so the
+# upgrade would fail, and `pnpm patch` would start from the patched files.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+version=${1:?usage: nix develop -c scripts/repatch-protocol.sh <version>}
 pkg="@microsoft/agent-host-protocol"
+patch="patches/@microsoft__agent-host-protocol.patch"
+
+pnpm patch-remove "$pkg"
+pnpm up "$pkg@$version"
+
 dir=$(mktemp -d)
-# The path is chosen here rather than parsed out of pnpm's multi-line hint.
+trap 'rm -rf "$dir"' EXIT
 pnpm patch "$pkg" --edit-dir "$dir" >/dev/null
 
 files=$(grep -rl 'declare const enum' "$dir" || true)
 if [ -z "$files" ]; then
-	echo "No 'declare const enum' left in $pkg — upstream may have fixed it."
-	echo "If so, delete patches/, the patchedDependencies entry, and this script."
-	exit 1
+	echo "$pkg $version has no 'declare const enum' left, so it is now installed unpatched."
+	echo "Delete this script."
+	exit 0
 fi
 
 echo "$files" | xargs sed -i 's/declare const enum /declare enum /g'
 pnpm patch-commit "$dir"
 
-# `pnpm patch-commit` may rewrite pnpm-workspace.yaml and drop policy keys such
-# as `minimumReleaseAgeExclude`. Show any diff so unrelated changes can be
-# restored before committing the regenerated patch.
-if git -C . diff --quiet -- pnpm-workspace.yaml 2>/dev/null; then
-	:
-else
+# pnpm drops comments when it rewrites pnpm-workspace.yaml, so the note lives
+# in the patch. pnpm hashes the whole file, so install again to record it.
+{
+	echo "Required by isolatedModules; regenerate with scripts/repatch-protocol.sh <version>."
 	echo
-	echo "NOTE: pnpm-workspace.yaml changed. Check that only patchedDependencies moved:"
-	git -C . diff -- pnpm-workspace.yaml || true
-fi
+	cat "$patch"
+} >"$patch.new"
+mv "$patch.new" "$patch"
+pnpm install
+
+# pnpm also rewrites pnpm-workspace.yaml in its own quoting style.
+pnpm exec biome format --write pnpm-workspace.yaml
 
 echo
-echo "Patched $(echo "$files" | wc -l) files. Verify with: pnpm run check"
+echo "Patched $(wc -l <<<"$files") files. Next: scripts/update-flake.sh, then nix flake check."

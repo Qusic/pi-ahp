@@ -37,7 +37,6 @@
             repo = "agent-host-protocol";
             rev = "spec/v${version}";
             hash = "sha256-G7Hm2Ew6/cRx5M3Sx9K1dQ2T3hnviaqbLAFb/LM8a/U=";
-            passthru.src = final.ahp-spec;
           };
 
           pi-ahp = final.stdenv.mkDerivation (finalAttrs: {
