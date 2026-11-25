@@ -34,107 +34,33 @@ export type SchemaName = "state" | "actions" | "commands" | "notifications" | "e
 const SCHEMA_NAMES: readonly SchemaName[] = ["state", "actions", "commands", "notifications", "errors"];
 
 /**
- * Strips `oneOf` / `anyOf` members that are dangling `$ref`s to an empty `$defs`
- * name.
+ * Closes `EmptyState`, which the schemas publish open, so it matches any object.
  *
  * ---------------------------------------------------------------------------
  * UPSTREAM WORKAROUND — remove when fixed upstream.
  *
- * The generator's general union path removes empty members, but its special
- * `StateAction` path maps `splitUnionType()` directly. The multiline alias has
- * a leading `|`, so the split yields an empty member and the schema gets
- * `{"$ref": "#/$defs/"}`. Ajv then refuses to compile anything transitively
- * referencing `StateAction`, including every action envelope we validate.
+ * `Snapshot.state` is a `oneOf` over every channel's state and `EmptyState`,
+ * which the spec calls "always the empty object `{}`" but defines as
+ * `{ "type": "object", "properties": {} }`. Every other state then matches two
+ * members, so every snapshot fails. Closing it makes it what the spec says.
  *
- * Upstream's dangling-ref guard also skips the empty name because its match
- * requires at least one character after `#/$defs/`.
- *
- * Removal is enforced, not remembered: `test/upstream-workarounds.test.ts`
- * fails once a re-sync brings in schemas that no longer need this.
- * ---------------------------------------------------------------------------
- *
- * A member that can never resolve can never match, so dropping it does not
- * change what validates. Returns the number of members removed.
- */
-function stripDanglingRefs(node: unknown): number {
-	if (Array.isArray(node)) {
-		let removed = 0;
-		for (const item of node) {
-			removed += stripDanglingRefs(item);
-		}
-		return removed;
-	}
-	if (typeof node !== "object" || node === null) {
-		return 0;
-	}
-
-	const record = node as Record<string, unknown>;
-	let removed = 0;
-	for (const key of ["oneOf", "anyOf", "allOf"]) {
-		const members = record[key];
-		if (!Array.isArray(members)) {
-			continue;
-		}
-		const kept = members.filter((member) => {
-			const ref = (member as { $ref?: unknown } | null)?.$ref;
-			return !(typeof ref === "string" && /#\/\$defs\/$/.test(ref));
-		});
-		removed += members.length - kept.length;
-		record[key] = kept;
-	}
-	for (const value of Object.values(record)) {
-		removed += stripDanglingRefs(value);
-	}
-	return removed;
-}
-
-/** How many dangling refs the upstream schemas needed stripped. Exported for visibility. */
-export let strippedDanglingRefs = 0;
-
-/**
- * Bitset types the generator emitted as a closed `enum` of their declared
- * members.
- *
- * ---------------------------------------------------------------------------
- * UPSTREAM WORKAROUND — remove entries as they are fixed upstream.
- *
- * `SessionStatus` is documented as a bitset ("Use bitwise checks instead of
- * equality"), and the spec's own round-trip fixtures require combinations to
- * survive: `004-session-status-bitset-flags` round-trips
- * `InProgress(8)|IsArchived(64)` = 72, and
- * `005-session-status-unknown-bits-preserved` round-trips a value carrying an
- * unknown forward-compatibility bit (2147483720). The generated schema instead
- * says `enum: [1, 2, 8, 24, 32, 64]`, so **every combined status fails**,
- * including an ordinary idle-and-read session (`1 | 32` = 33).
- *
- * Dropping the `enum` keeps `type: number`, which is what a bitset actually is.
- *
- * Each of the five schema files carries its own copy of the definition, so the
- * fix is applied wherever the name appears rather than per file.
+ * Each schema file carries its own copy, so every copy that still accepts a
+ * non-empty object is closed. Removal is enforced, not remembered:
+ * `test/upstream-workarounds.test.ts` fails once no copy needs it.
  * ---------------------------------------------------------------------------
  */
-export const KNOWN_BITSET_ENUMS: readonly { def: string; evidence: string }[] = [
-	{
-		def: "SessionStatus",
-		evidence: "round-trips/004-session-status-bitset-flags + 005-session-status-unknown-bits-preserved",
-	},
-];
-
-/** Which bitset enums were actually relaxed. Empty means the workaround is obsolete. */
-export const relaxedBitsetEnums: string[] = [];
-
-function relaxKnownBitsetEnums(schemas: ReadonlyMap<SchemaName, Record<string, unknown>>): void {
-	for (const { def } of KNOWN_BITSET_ENUMS) {
-		for (const [name, schema] of schemas) {
-			const target = (schema.$defs as Record<string, { enum?: unknown[] }> | undefined)?.[def];
-			if (!target?.enum) {
-				continue;
-			}
-			delete target.enum;
-			relaxedBitsetEnums.push(`${name}#/$defs/${def}`);
+function closeEmptyState(ajv: AjvInstance, schemas: ReadonlyMap<SchemaName, Record<string, unknown>>): void {
+	for (const [name, schema] of schemas) {
+		const def = (schema.$defs as Record<string, Record<string, unknown>> | undefined)?.EmptyState;
+		if (def && ajv.compile(def)({ unexpected: true })) {
+			def.additionalProperties = false;
+			closedEmptyStates.push(name);
 		}
 	}
 }
+
+/** Which schema files had `EmptyState` closed. Empty means the workaround is obsolete. */
+export const closedEmptyStates: SchemaName[] = [];
 
 function loadAjv(): { ajv: AjvInstance; schemaIds: Map<SchemaName, string> } {
 	const ajv = new Ajv2020({
@@ -148,7 +74,6 @@ function loadAjv(): { ajv: AjvInstance; schemaIds: Map<SchemaName, string> } {
 	const schemaIds = new Map<SchemaName, string>();
 	for (const name of SCHEMA_NAMES) {
 		const schema = JSON.parse(readFileSync(join(SCHEMA_DIR, `${name}.schema.json`), "utf8")) as Record<string, unknown>;
-		strippedDanglingRefs += stripDanglingRefs(schema);
 		loaded.set(name, schema);
 		// Nothing is fetched — the files come from `$AHP_SPEC_PATH` — but ajv
 		// keys them by `$id`, so that is what a `$ref` has to name. Taking it
@@ -160,7 +85,7 @@ function loadAjv(): { ajv: AjvInstance; schemaIds: Map<SchemaName, string> } {
 		}
 		schemaIds.set(name, id);
 	}
-	relaxKnownBitsetEnums(loaded);
+	closeEmptyState(ajv, loaded);
 	// The five schemas cross-reference each other by `$id`, so register them all
 	// before compiling anything.
 	for (const schema of loaded.values()) {

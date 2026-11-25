@@ -1,36 +1,19 @@
 /**
- * Self-expiring guards for the upstream workarounds in `test/support/schema.ts`.
- * They fail when matching AHP schemas no longer need the corresponding repair.
+ * Self-expiring guard for the upstream workaround in `test/support/schema.ts`.
+ * It fails when the AHP schemas no longer need the repair.
  */
 
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { KNOWN_BITSET_ENUMS, relaxedBitsetEnums, strippedDanglingRefs } from "./support/schema.ts";
+import { closedEmptyStates } from "./support/schema.ts";
 
 describe("upstream workarounds", () => {
-	it("still needs the dangling-$ref strip", () => {
+	it("still needs EmptyState closed", () => {
 		assert.ok(
-			strippedDanglingRefs > 0,
+			closedEmptyStates.length > 0,
 			[
-				"The upstream schemas no longer contain a dangling `$ref` to an empty `$defs` name.",
-				"Upstream appears to have fixed generate-json-schema.ts.",
-				"ACTION: delete `stripDanglingRefs` (and this test) from test/support/schema.ts.",
-			].join("\n"),
-		);
-	});
-
-	it("still needs every KNOWN_BITSET_ENUMS entry", () => {
-		const unused = KNOWN_BITSET_ENUMS.filter(
-			({ def }) => !relaxedBitsetEnums.some((entry) => entry.endsWith(`#/$defs/${def}`)),
-		);
-
-		assert.deepEqual(
-			unused.map(({ def }) => def),
-			[],
-			[
-				"These bitset types are no longer emitted as closed enums — upstream fixed them:",
-				...unused.map(({ def, evidence }) => `  ${def} (evidence: ${evidence})`),
-				"ACTION: remove the listed entries from KNOWN_BITSET_ENUMS in test/support/schema.ts.",
+				"No upstream schema lets EmptyState match a non-empty object any more.",
+				"ACTION: delete `closeEmptyState` (and this test) from test/support/schema.ts.",
 			].join("\n"),
 		);
 	});
