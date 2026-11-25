@@ -107,6 +107,8 @@ function unsupportedClientActionReason(action: StateAction): string | undefined 
 			return "This host supports archive state only at the session level";
 		case ActionType.SessionConfigChanged:
 			return "This session has no mutable configuration";
+		case ActionType.ChatConfigChanged:
+			return "This chat has no mutable configuration";
 		case ActionType.ChatToolCallConfirmed:
 		case ActionType.ChatToolCallComplete:
 		case ActionType.ChatToolCallResultConfirmed:

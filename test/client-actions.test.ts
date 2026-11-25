@@ -143,6 +143,7 @@ describe("pi client-action policy", () => {
 			ActionType.ChatDraftChanged,
 			ActionType.ChatIsReadChanged,
 			ActionType.ChatIsArchivedChanged,
+			ActionType.ChatConfigChanged,
 			ActionType.ChatInputAnswerChanged,
 			ActionType.ChatInputCompleted,
 			ActionType.ChatTruncated,
@@ -222,6 +223,7 @@ describe("pi client-action policy", () => {
 			...rejected(session, /no mutable configuration/, [
 				{ type: ActionType.SessionConfigChanged, config: { probe: true } },
 			]),
+			...rejected(chat, /no mutable configuration/, [{ type: ActionType.ChatConfigChanged, config: { probe: true } }]),
 			...rejected(chat, /client tool execution or confirmation/, [
 				{
 					type: ActionType.ChatToolCallConfirmed,

@@ -12,7 +12,7 @@ import { ROOT_CHANNEL } from "../src/core/channels.ts";
 import { type Harness, nextClientId, startHarness } from "./harness.ts";
 import { expectRpcError } from "./support/assertions.ts";
 
-type Route = "root" | "dynamic" | "session" | "chat" | "terminal" | "changeset" | "automations";
+type Route = "root" | "dynamic" | "session" | "chat" | "terminal" | "tcp" | "changeset" | "automations";
 type CommandPolicy = { readonly support: "implemented" | "unsupported"; readonly route: Route };
 
 const implemented = <R extends Route>(route: R) => ({ support: "implemented" as const, route });
@@ -31,6 +31,7 @@ const COMMAND_POLICY = {
 	disposeChat: unsupported("chat"),
 	createTerminal: implemented("terminal"),
 	disposeTerminal: implemented("terminal"),
+	createTcpConnection: unsupported("tcp"),
 	createResourceWatch: implemented("root"),
 	listSessions: implemented("root"),
 	resourceRead: implemented("root"),
@@ -61,6 +62,7 @@ const UNSUPPORTED_REQUESTS: { [M in UnsupportedMethod]: CommandMap[M]["params"] 
 	createChat: { channel: "ahp-session:/session", chat: "ahp-chat:/chat" },
 	moveChat: { channel: "ahp-chat:/chat", destination: { kind: ChatMoveDestinationKind.NewSession } },
 	disposeChat: { channel: "ahp-chat:/chat" },
+	createTcpConnection: { channel: "ahp-tcp:/connection", host: "localhost", port: 3000 },
 	authenticate: { channel: ROOT_CHANNEL, resource: "https://example.com", token: "opaque" },
 	invokeChangesetOperation: { channel: "ahp-changeset:/changes", operationId: "apply" },
 	listAutomationTriggerDefinitions: { channel: ROOT_CHANNEL },
