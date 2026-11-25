@@ -377,6 +377,55 @@ describe("chat driver", () => {
 		assert.equal(completed.turns.at(-1)?.state, TurnState.Complete);
 	});
 
+	it("starts the next queued message, not steering pi already took", async () => {
+		fixture.client.dispatch(fixture.chatChannel, {
+			type: ActionType.ChatTurnStarted,
+			turnId: "t-steered",
+			startedAt: new Date().toISOString(),
+			message: { text: "long running", origin: { kind: MessageKind.User } },
+		});
+		await eventually("the active prompt to reach the backend", () => backend.prompts.length === 1);
+
+		for (const [kind, id, text] of [
+			[PendingMessageKind.Steering, "steer-a", "first steer"],
+			[PendingMessageKind.Steering, "steer-b", "second steer"],
+			[PendingMessageKind.Queued, "q-next", "queued next"],
+		] as const) {
+			fixture.client.dispatch(fixture.chatChannel, {
+				type: ActionType.ChatPendingMessageSet,
+				kind,
+				id,
+				message: { text, origin: { kind: MessageKind.User } },
+			});
+		}
+		await fixture.client.ping();
+
+		// pi takes both, then injects them one per model call, its default mode.
+		for (const event of [
+			{ type: "queue_update", steering: ["first steer", "second steer"], followUp: [] },
+			{ type: "message_start", message: { role: "assistant" } },
+			{ type: "message_end", message: { role: "assistant", stopReason: "stop" } },
+			{ type: "queue_update", steering: ["second steer"], followUp: [] },
+			{ type: "message_start", message: { role: "user", content: "first steer" } },
+			{ type: "message_end", message: { role: "user" } },
+			{ type: "message_start", message: { role: "assistant" } },
+			{ type: "message_end", message: { role: "assistant", stopReason: "stop" } },
+			{ type: "queue_update", steering: [], followUp: [] },
+			{ type: "message_start", message: { role: "user", content: "second steer" } },
+			{ type: "message_end", message: { role: "user" } },
+			{ type: "message_start", message: { role: "assistant" } },
+			{ type: "message_end", message: { role: "assistant", stopReason: "stop" } },
+			{ type: "agent_settled" },
+		])
+			backend.emit(event as unknown as AgentSessionEvent);
+
+		await eventually("the queued message to run", () => {
+			const chat = fixture.host.store.get(fixture.chatChannel) as ChatState;
+			return chat.activeTurn === undefined && chat.turns.at(-1)?.message.text === "queued next";
+		});
+		assert.deepEqual(backend.prompts, ["long running", "queued next"]);
+	});
+
 	it("does not start a prompt cancelled during model selection", async () => {
 		let releaseSelection!: () => void;
 		backend.selectionGate = new Promise<void>((resolve) => {

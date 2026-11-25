@@ -414,7 +414,8 @@ export class ChatDriver {
 	}
 
 	/**
-	 * Starts the next queued message, if any.
+	 * Starts the next queued message, if any. Steering shares `queuedMessages`
+	 * but goes to pi through `steer`, so it is skipped here.
 	 *
 	 * The `queuedMessageId` is what makes this atomic: the reducer creates the
 	 * active turn and removes that entry from `queuedMessages` in one step, so
@@ -426,7 +427,9 @@ export class ChatDriver {
 			return;
 		}
 		const state = this.#host.store.get(this.#chatChannel) as ChatState | undefined;
-		const next = state?.queuedMessages?.[0];
+		const next = state?.queuedMessages?.find(
+			(message) => (message.kind ?? PendingMessageKind.Queued) === PendingMessageKind.Queued,
+		);
 		if (!next || this.#run) return;
 
 		const turnId = `turn-${next.id}`;
